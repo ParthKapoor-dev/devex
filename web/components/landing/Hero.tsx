@@ -5,10 +5,12 @@ import { ArrowRight, Code, Zap, Shield, Globe } from "lucide-react";
 import Waves from "../ui/waves";
 import MatrixText from "../ui/matrix-text";
 import { ScrollComponent } from "../ui/container-scoll-animation";
-import GithubStarButton from "../ui/github-star";
 import Previews from "./Previews";
 import HeroVideoDialog from "../magicui/hero-video-dialog";
 import { useState } from "react";
+import ProductHuntBadge from "../ui/product-hunt-badge";
+import GitHubStarBadge from "../ui/github-star";
+import Link from "next/link";
 
 export default function HeroSection() {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
@@ -32,7 +34,31 @@ export default function HeroSection() {
 function Component({ openVideo }: { openVideo: () => void }) {
   return (
     <div className="max-md:pt-28">
-      <GithubStarButton />
+      <div className=" mb-4">
+        <div className="md:hidden flex  justify-center items-center gap-2">
+          <GitHubStarBadge
+            owner="parthkapoor-dev"
+            repo="devex"
+            size="small"
+            theme="dark"
+            showMetric="stars"
+          />
+
+          <ProductHuntBadge size="small" />
+        </div>
+
+        <div className="hidden md:flex justify-center items-center gap-4">
+          <GitHubStarBadge
+            owner="parthkapoor-dev"
+            repo="devex"
+            size="medium"
+            theme="dark"
+            showMetric="stars"
+          />
+
+          <ProductHuntBadge size="medium" />
+        </div>
+      </div>
       {/* Badge */}
       <div
         className="flex justify-center mb-8 cursor-pointer"
@@ -47,9 +73,12 @@ function Component({ openVideo }: { openVideo: () => void }) {
         </Badge>
       </div>
 
-      <div className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8">
+      <Link
+        href={"/login"}
+        className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8"
+      >
         <MatrixText text="DevEx" />
-      </div>
+      </Link>
 
       {/* Main Heading */}
       <h1 className="text-2xl md:text-3xl lg:text-5xl font-bold tracking-tight mb-8">

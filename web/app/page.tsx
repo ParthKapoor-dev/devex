@@ -36,6 +36,7 @@ const LandingPage = () => {
       <div className="max-w-6xl mx-auto text-center z-50">
         <HeroSection />
         <FeaturedPills />
+
         {/* <LogoCloud /> */}
         <Pricing />
         <Footer />
@@ -45,3 +46,64 @@ const LandingPage = () => {
 };
 
 export default LandingPage;
+
+// // Demo component to show usage
+// const Demo = () => {
+//   return (
+//     <div
+//       style={{
+//         padding: "20px",
+//         backgroundColor: "#0d1117",
+//         minHeight: "100vh",
+//       }}
+//     >
+//       <h2
+//         style={{
+//           color: "#f0f6fc",
+//           marginBottom: "20px",
+//           fontFamily: "system-ui",
+//         }}
+//       >
+//         GitHub Star Badge Examples
+//       </h2>
+
+//       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+//         {/* Different sizes */}
+//         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+//           <GitHubStarBadge owner="microsoft" repo="vscode" size="small" />
+//           <GitHubStarBadge owner="microsoft" repo="vscode" size="medium" />
+//           <GitHubStarBadge owner="microsoft" repo="vscode" size="large" />
+//         </div>
+
+//         {/* Different themes */}
+//         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+//           <GitHubStarBadge owner="facebook" repo="react" theme="dark" />
+//           <GitHubStarBadge owner="facebook" repo="react" theme="light" />
+//           <GitHubStarBadge owner="facebook" repo="react" theme="gradient" />
+//         </div>
+
+//         {/* Different metrics */}
+//         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+//           <GitHubStarBadge owner="vercel" repo="next.js" showMetric="stars" />
+//           <GitHubStarBadge owner="vercel" repo="next.js" showMetric="forks" />
+//           <GitHubStarBadge
+//             owner="vercel"
+//             repo="next.js"
+//             showMetric="watchers"
+//           />
+//         </div>
+
+//         {/* Custom size */}
+//         <div>
+//           <GitHubStarBadge
+//             owner="nodejs"
+//             repo="node"
+//             size="custom"
+//             customWidth={300}
+//             customHeight={60}
+//           />
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };

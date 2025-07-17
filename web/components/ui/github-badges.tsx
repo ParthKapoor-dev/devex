@@ -1,7 +1,6 @@
+"use client";
 import { Star, GitFork, Eye } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { FaGithubAlt } from "react-icons/fa";
-import { NumberTicker } from "../magicui/number-ticker";
 
 interface GitHubStarBadgeProps {
   owner: string;
@@ -52,21 +51,21 @@ const GitHubStarBadge = ({
     dark: {
       background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)",
       text: "#f0f6fc",
-      accent: "#10b981", // Changed from #f85149 to emerald
+      accent: "#10b981", // emerald-500
       border: "rgba(240, 246, 252, 0.1)",
       shadow: "rgba(0, 0, 0, 0.3)",
     },
     light: {
       background: "linear-gradient(135deg, #ffffff 0%, #f6f8fa 100%)",
       text: "#24292f",
-      accent: "#0d9488", // Changed from #0969da to teal
+      accent: "#0d9488", // teal-600
       border: "rgba(27, 31, 36, 0.15)",
       shadow: "rgba(0, 0, 0, 0.1)",
     },
     gradient: {
-      background: "linear-gradient(135deg, #0f766e 0%, #10b981 100%)", // Changed from blue gradient to teal/emerald
+      background: "linear-gradient(135deg, #24292f 0%, #0d9488 100%)",
       text: "#ffffff",
-      accent: "#a7f3d0", // Changed from #ffd700 to light mint/emerald
+      accent: "#34d399", // emerald-400
       border: "rgba(255, 255, 255, 0.2)",
       shadow: "rgba(0, 0, 0, 0.2)",
     },
@@ -127,11 +126,7 @@ const GitHubStarBadge = ({
       case "watchers":
         return { icon: Eye, count: repoData.watchers_count, label: "Watchers" };
       default:
-        return {
-          icon: Star,
-          count: repoData.stargazers_count,
-          label: "star",
-        };
+        return { icon: Star, count: repoData.stargazers_count, label: "Stars" };
     }
   };
 
@@ -207,7 +202,7 @@ const GitHubStarBadge = ({
               transition: showAnimation ? "transform 0.3s ease" : "none",
             }}
           >
-            <FaGithubAlt size={sizeConfig.iconSize} />
+            <MetricIcon size={sizeConfig.iconSize} />
           </div>
 
           <div
@@ -230,7 +225,7 @@ const GitHubStarBadge = ({
                 whiteSpace: "nowrap",
               }}
             >
-              {owner}
+              {owner}/{repo}
             </div>
             <div
               style={{
@@ -242,11 +237,12 @@ const GitHubStarBadge = ({
                 marginBottom: "2px",
               }}
             >
-              {repo}
+              {label}
             </div>
           </div>
         </div>
 
+        {/* Count display */}
         <div
           style={{
             color: themeConfig.accent,
@@ -258,9 +254,33 @@ const GitHubStarBadge = ({
             zIndex: 1,
           }}
         >
-          <div className="flex flex-col items-center">
-            <Star size={12} />
-            <div>{loading ? "..." : <NumberTicker value={count} />}</div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "2px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: `${parseInt(sizeConfig.fontSize) + 2}px`,
+                fontWeight: "700",
+              }}
+            >
+              {loading ? "..." : error ? "?" : formatNumber(count)}
+            </div>
+            {error && (
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: themeConfig.text,
+                  opacity: 0.5,
+                }}
+              >
+                Error
+              </div>
+            )}
           </div>
         </div>
 

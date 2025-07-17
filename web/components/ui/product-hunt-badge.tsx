@@ -1,35 +1,32 @@
-import { Star, GitFork, Eye } from "lucide-react";
+"use client";
+import { Triangle } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { FaGithubAlt } from "react-icons/fa";
+import { FaProductHunt } from "react-icons/fa";
 import { NumberTicker } from "../magicui/number-ticker";
 
-interface GitHubStarBadgeProps {
-  owner: string;
-  repo: string;
-  size?: "small" | "medium" | "large";
+interface PageProps {
+  size?: "medium" | "large" | "small";
   customWidth?: number | null;
   customHeight?: number | null;
   theme?: "dark" | "light" | "gradient";
   showAnimation?: boolean;
-  showMetric?: "stars" | "forks" | "watchers";
   className?: string;
 }
 
-const GitHubStarBadge = ({
-  owner,
-  repo,
-  size = "medium",
+const ProductHuntBadge = ({
+  size = "medium", // "small", "medium", "large", "custom"
   customWidth = null,
   customHeight = null,
-  theme = "dark",
+  theme = "dark", // "dark", "light", "gradient"
   showAnimation = true,
-  showMetric = "stars",
   className = "",
-}: GitHubStarBadgeProps) => {
+}: PageProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
-  const [repoData, setRepoData] = useState<any>(null);
+
+  const [votes, setVotes] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [lastFetch, setLastFetch] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Size configurations
@@ -50,23 +47,23 @@ const GitHubStarBadge = ({
   // Theme configurations
   const themes = {
     dark: {
-      background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)",
-      text: "#f0f6fc",
-      accent: "#10b981", // Changed from #f85149 to emerald
-      border: "rgba(240, 246, 252, 0.1)",
+      background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)",
+      text: "#ffffff",
+      accent: "#ff6154",
+      border: "rgba(255, 255, 255, 0.1)",
       shadow: "rgba(0, 0, 0, 0.3)",
     },
     light: {
-      background: "linear-gradient(135deg, #ffffff 0%, #f6f8fa 100%)",
-      text: "#24292f",
-      accent: "#0d9488", // Changed from #0969da to teal
-      border: "rgba(27, 31, 36, 0.15)",
+      background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+      text: "#333333",
+      accent: "#ff6154",
+      border: "rgba(0, 0, 0, 0.1)",
       shadow: "rgba(0, 0, 0, 0.1)",
     },
     gradient: {
-      background: "linear-gradient(135deg, #0f766e 0%, #10b981 100%)", // Changed from blue gradient to teal/emerald
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
       text: "#ffffff",
-      accent: "#a7f3d0", // Changed from #ffd700 to light mint/emerald
+      accent: "#ffd700",
       border: "rgba(255, 255, 255, 0.2)",
       shadow: "rgba(0, 0, 0, 0.2)",
     },
@@ -79,67 +76,41 @@ const GitHubStarBadge = ({
     setTimeout(() => setIsClicked(false), 150);
   };
 
-  // Format numbers (e.g., 1000 -> 1k)
-  const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M";
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + "k";
-    }
-    return num.toString();
-  };
-
-  // Fetch GitHub repository data
-  const fetchRepoData = async () => {
+  async function load() {
     try {
       setLoading(true);
-      const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}`,
-      );
-
-      if (!response.ok) {
-        throw new Error(`GitHub API returned ${response.status}`);
+      const res = await fetch(`/api/producthunt`, {
+        method: "GET",
+        // Let browser cache if you want; we usually bypass to always see latest from server cache:
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
       }
-
-      const data = await response.json();
-      setRepoData(data);
+      const data = await res.json();
+      setVotes(data.votes);
+      setLastFetch(data.cachedAt);
       setError(null);
     } catch (err: any) {
-      console.error("Error fetching GitHub data:", err);
-      setError(err.message ?? "Failed to load repository data");
+      console.error(err);
+      setError(err.message ?? "Failed to load");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
+  // Initial load
   useEffect(() => {
-    fetchRepoData();
-  }, [owner, repo]);
+    load();
+  }, []);
 
-  // Get the appropriate icon and count based on showMetric
-  const getMetricData = () => {
-    if (!repoData) return { icon: Star, count: 0, label: "Stars" };
-
-    switch (showMetric) {
-      case "forks":
-        return { icon: GitFork, count: repoData.forks_count, label: "Forks" };
-      case "watchers":
-        return { icon: Eye, count: repoData.watchers_count, label: "Watchers" };
-      default:
-        return {
-          icon: Star,
-          count: repoData.stargazers_count,
-          label: "star",
-        };
-    }
-  };
-
-  const { icon: MetricIcon, count, label } = getMetricData();
+  const ProductHuntIcon = ({ size }: { size: number }) => (
+    <FaProductHunt size={size} />
+  );
 
   return (
     <a
-      href={`https://github.com/${owner}/${repo}`}
+      href={"https://producthunt.com/products/devex"}
       target="_blank"
       rel="noopener noreferrer"
       className={`inline-block ${className}`}
@@ -203,11 +174,12 @@ const GitHubStarBadge = ({
               color: themeConfig.accent,
               display: "flex",
               alignItems: "center",
-              transform: showAnimation && isHovered ? "scale(1.1)" : "scale(1)",
-              transition: showAnimation ? "transform 0.3s ease" : "none",
+              // transform:
+              //   showAnimation && isHovered ? "rotate(180deg)" : "rotate(0deg)",
+              // transition: showAnimation ? "transform 0.3s ease" : "none",
             }}
           >
-            <FaGithubAlt size={sizeConfig.iconSize} />
+            <ProductHuntIcon size={sizeConfig.iconSize} />
           </div>
 
           <div
@@ -230,7 +202,7 @@ const GitHubStarBadge = ({
                 whiteSpace: "nowrap",
               }}
             >
-              {owner}
+              Featured on
             </div>
             <div
               style={{
@@ -242,11 +214,12 @@ const GitHubStarBadge = ({
                 marginBottom: "2px",
               }}
             >
-              {repo}
+              Product Hunt
             </div>
           </div>
         </div>
 
+        {/* Arrow indicator */}
         <div
           style={{
             color: themeConfig.accent,
@@ -259,8 +232,14 @@ const GitHubStarBadge = ({
           }}
         >
           <div className="flex flex-col items-center">
-            <Star size={12} />
-            <div>{loading ? "..." : <NumberTicker value={count} />}</div>
+            <Triangle size={12} />
+            <span
+              title={
+                lastFetch ? `Server cache timestamp: ${lastFetch}` : undefined
+              }
+            >
+              {votes ? <NumberTicker value={votes} /> : "–"}
+            </span>
           </div>
         </div>
 
@@ -286,4 +265,4 @@ const GitHubStarBadge = ({
   );
 };
 
-export default GitHubStarBadge;
+export default ProductHuntBadge;
