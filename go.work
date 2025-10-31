@@ -4,5 +4,6 @@ use (
 	./apps/core
 	./apps/runner
 	./apps/mcp
+	./apps/agent
 	./packages
 )

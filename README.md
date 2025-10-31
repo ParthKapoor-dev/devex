@@ -61,37 +61,40 @@ Unlike Gitpod or E2B, DevEx is lightweight, self-hostable, and production-grade 
 ```mermaid
 graph TB
     User[👤 User] --> Web[🌐 Web Frontend<br/>React/Next.js Application]
-    Web --> Core[🔧 Core Backend<br/>• User Authentication<br/>• Repl Management<br/>• S3 Integration<br/>• K8s Orchestration]
+    Web --> Core[🔧 Core Backend<br/>• User Auth<br/>• Repl Mgmt<br/>• S3 Integration<br/>• K8s Orchestration]
     Core --> S3[(🗄️ S3 Storage<br/>username/repl-id/<br/>├── templates/<br/>└── user-files/)]
-
+    Core --> Orchestrator[🤖 AI Agent Orchestrator<br/>• LLM calls Gemini/Qwen<br/>• Agent planning & state<br/>• Execution scheduling]
+    Orchestrator --> LLMAPI[🌐 External LLM Provider<br/>Gemini / Qwen / Custom API]
     subgraph K8sCluster["☸️ Kubernetes Cluster"]
         direction TB
         IngressController[🚪 Ingress NGINX Controller<br/>Traffic Routing]
         CertManager[🔒 Cert Manager<br/>TLS Certificate Management]
-
         subgraph ReplResources["📦 Per-Repl Resources"]
             Deployment[🚀 Deployment<br/>Repl Container Instance]
             Service[🔗 Service<br/>Internal Network Access]
             Ingress[🌍 Ingress<br/>External Access Route]
         end
-
         subgraph Pod["🏠 Repl Pod"]
-            MainContainer[🐳 Runner Container<br/>• WebSocket Server<br/>• File Operations<br/>• PTY/Terminal Access<br/>• Code Execution]
-            EphemeralContainer[⚡ Ephemeral Container<br/>File Sync Back to S3<br/>🔄 Cleanup Process]
+            MainContainer[🐳 Runner Container<br/>• WebSocket Server<br/>• File Ops<br/>• PTY/Terminal<br/>• Code Execution]
+            MCPServer[🧩 MCP Server - one-per-runner-session<br/>• Exec API - gRPC/WebSocket<br/>• Package/Network Proxy]
+            EphemeralContainer[⚡ Ephemeral Container<br/>File Sync Back to S3<br/>🔄 Cleanup]
         end
-
         Deployment --> Pod
         Service --> Pod
         Ingress --> Service
         IngressController --> Ingress
     end
-
     Core --> K8sCluster
     Core -.->|Create Resources<br/>Deploy → Service → Ingress| ReplResources
-    Web -.->|🔌 WebSocket Connection<br/>• File Management<br/>• Terminal Access<br/>• Real-time Collaboration| MainContainer
+    Web -.->|🔌 WebSocket Connection<br/>• File Mgmt • Terminal • Collaboration| MainContainer
     Core -.->|📁 Copy Template<br/>to user directory| S3
     EphemeralContainer -.->|💾 Sync Files Back<br/>Before Cleanup| S3
     MainContainer -.->|📂 Load Files<br/>on Session Start| S3
+    Orchestrator -->|gRPC / WebSocket<br/>schedule & control| MCPServer
+    MCPServer -->|runtime logs / results| Orchestrator
+    Orchestrator -.->|Service discovery / k8s service| Service
+    noteForMapping[/"Mapping: 1 runner session (Repl Pod) → 1 MCP Server (inside same pod)"/]
+    noteForMapping -.-> MCPServer
 ````
 
 ---
