@@ -16,6 +16,7 @@ import (
 )
 
 var RUNNER_CLUSTER_IP = dotenv.EnvString("RUNNER_CLUSTER_IP", "localhost")
+var ENABLE_MCP_SIDECAR = dotenv.EnvString("ENABLE_MCP_SIDECAR", "false") == "true"
 
 func CreateReplDeploymentAndService(userName, replId, template string) error {
 	clientset, _ := getClientSet()
@@ -75,75 +76,74 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 							Env: awsEnvVars(),
 						},
 					},
-					Containers: []corev1.Container{
-						// Runner container now exposes the app port AND the internal gRPC port
-						{
-							Name:            "runner",
-							Image:           fmt.Sprintf("ghcr.io/parthkapoor-dev/devex/runner-%s:latest", template),
-							ImagePullPolicy: corev1.PullAlways,
-							Env: []corev1.EnvVar{
-								{
-									Name:  "REPL_ID",
-									Value: replId,
+					Containers: func() []corev1.Container {
+						containers := []corev1.Container{
+							{
+								Name:            "runner",
+								Image:           fmt.Sprintf("ghcr.io/parthkapoor-dev/devex/runner-%s:latest", template),
+								ImagePullPolicy: corev1.PullAlways,
+								Env: []corev1.EnvVar{
+									{
+										Name:  "REPL_ID",
+										Value: replId,
+									},
+									{
+										Name:  "TEMPLATE",
+										Value: template,
+									},
 								},
-								{
-									Name:  "TEMPLATE",
-									Value: template,
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "workspace-vol",
+										MountPath: "/workspaces",
+									},
 								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "workspace-vol",
-									MountPath: "/workspaces",
-								},
-							},
-							Ports: []corev1.ContainerPort{
-								// Port for the user-facing application (e.g., a web server)
-								{
-									Name:          "http",
-									ContainerPort: config.Port,
-								},
-								// Port for internal gRPC communication, acting as the server
-								{
-									Name:          "grpc",
-									ContainerPort: 50051,
-									Protocol:      corev1.ProtocolTCP,
-								},
-							},
-						},
-						// MCP container now exposes its own HTTP port for external access
-						{
-							Name:            "mcp-server",
-							Image:           "ghcr.io/parthkapoor-dev/devex/mcp:latest",
-							ImagePullPolicy: corev1.PullAlways,
-							Env: []corev1.EnvVar{
-								{
-									Name:  "REPL_ID",
-									Value: replId,
-								},
-								{
-									Name:  "TEMPLATE",
-									Value: template,
-								},
-								// NOTE: The mcp-server (gRPC client) will connect to the runner (gRPC server)
-								// on localhost:50051 as they are in the same Pod.
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "workspace-vol",
-									MountPath: "/workspaces",
+								Ports: []corev1.ContainerPort{
+									{
+										Name:          "http",
+										ContainerPort: config.Port,
+									},
+									{
+										Name:          "grpc",
+										ContainerPort: 50051,
+										Protocol:      corev1.ProtocolTCP,
+									},
 								},
 							},
-							Ports: []corev1.ContainerPort{
-								// Port for the mcp-service's own HTTP server
-								{
-									Name:          "mcp-http",
-									ContainerPort: 8080,
-									Protocol:      corev1.ProtocolTCP,
+						}
+
+						if ENABLE_MCP_SIDECAR {
+							containers = append(containers, corev1.Container{
+								Name:            "mcp-server",
+								Image:           "ghcr.io/parthkapoor-dev/devex/mcp:latest",
+								ImagePullPolicy: corev1.PullAlways,
+								Env: []corev1.EnvVar{
+									{
+										Name:  "REPL_ID",
+										Value: replId,
+									},
+									{
+										Name:  "TEMPLATE",
+										Value: template,
+									},
 								},
-							},
-						},
-					},
+								VolumeMounts: []corev1.VolumeMount{
+									{
+										Name:      "workspace-vol",
+										MountPath: "/workspaces",
+									},
+								},
+								Ports: []corev1.ContainerPort{
+									{
+										Name:          "mcp-http",
+										ContainerPort: 8080,
+										Protocol:      corev1.ProtocolTCP,
+									},
+								},
+							})
+						}
+						return containers
+					}(),
 				},
 			},
 		},
@@ -161,28 +161,30 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: labels,
-			Ports: []corev1.ServicePort{
-				// Port for the runner's web application
-				{
-					Name:       "http",
-					Port:       config.Port,
-					TargetPort: intstr.FromInt(int(config.Port)),
-				},
-				// Port for the mcp-service's HTTP server
-				{
-					Name:       "mcp-http",
-					Port:       8080,
-					TargetPort: intstr.FromInt(8080),
-					Protocol:   corev1.ProtocolTCP,
-				},
-				// Port for the internal gRPC communication
-				{
-					Name:       "grpc",
-					Port:       50051,
-					TargetPort: intstr.FromInt(50051),
-					Protocol:   corev1.ProtocolTCP,
-				},
-			},
+			Ports: func() []corev1.ServicePort {
+				ports := []corev1.ServicePort{
+					{
+						Name:       "http",
+						Port:       config.Port,
+						TargetPort: intstr.FromInt(int(config.Port)),
+					},
+					{
+						Name:       "grpc",
+						Port:       50051,
+						TargetPort: intstr.FromInt(50051),
+						Protocol:   corev1.ProtocolTCP,
+					},
+				}
+				if ENABLE_MCP_SIDECAR {
+					ports = append(ports, corev1.ServicePort{
+						Name:       "mcp-http",
+						Port:       8080,
+						TargetPort: intstr.FromInt(8080),
+						Protocol:   corev1.ProtocolTCP,
+					})
+				}
+				return ports
+			}(),
 			Type: corev1.ServiceTypeClusterIP,
 		},
 	}
@@ -197,6 +199,7 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: replId + "-ingress",
 			Annotations: map[string]string{
+				"cert-manager.io/cluster-issuer":                 "letsencrypt-cluster-issuer",
 				"nginx.ingress.kubernetes.io/use-regex":          "true",
 				"nginx.ingress.kubernetes.io/rewrite-target":     "/$2", // Captures group after the replId
 				"nginx.ingress.kubernetes.io/websocket-services": replId,
@@ -218,34 +221,38 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 					Host: RUNNER_CLUSTER_IP,
 					IngressRuleValue: networkingv1.IngressRuleValue{
 						HTTP: &networkingv1.HTTPIngressRuleValue{
-							Paths: []networkingv1.HTTPIngressPath{
-								// Path for the runner service
-								{
-									Path:     fmt.Sprintf("/(%s)/(.*)", replId),
-									PathType: pathTypePtr(networkingv1.PathTypeImplementationSpecific),
-									Backend: networkingv1.IngressBackend{
-										Service: &networkingv1.IngressServiceBackend{
-											Name: replId,
-											Port: networkingv1.ServiceBackendPort{
-												Number: config.Port,
+							Paths: func() []networkingv1.HTTPIngressPath {
+								paths := []networkingv1.HTTPIngressPath{
+									{
+										Path:     fmt.Sprintf("/(%s)/(.*)", replId),
+										PathType: pathTypePtr(networkingv1.PathTypeImplementationSpecific),
+										Backend: networkingv1.IngressBackend{
+											Service: &networkingv1.IngressServiceBackend{
+												Name: replId,
+												Port: networkingv1.ServiceBackendPort{
+													Number: config.Port,
+												},
 											},
 										},
 									},
-								},
-								// Path for the mcp-service
-								{
-									Path:     fmt.Sprintf("/mcp/(%s)/(.*)", replId),
-									PathType: pathTypePtr(networkingv1.PathTypeImplementationSpecific),
-									Backend: networkingv1.IngressBackend{
-										Service: &networkingv1.IngressServiceBackend{
-											Name: replId,
-											Port: networkingv1.ServiceBackendPort{
-												Number: 8080,
+								}
+
+								if ENABLE_MCP_SIDECAR {
+									paths = append(paths, networkingv1.HTTPIngressPath{
+										Path:     fmt.Sprintf("/mcp/(%s)/(.*)", replId),
+										PathType: pathTypePtr(networkingv1.PathTypeImplementationSpecific),
+										Backend: networkingv1.IngressBackend{
+											Service: &networkingv1.IngressServiceBackend{
+												Name: replId,
+												Port: networkingv1.ServiceBackendPort{
+													Number: 8080,
+												},
 											},
 										},
-									},
-								},
-							},
+									})
+								}
+								return paths
+							}(),
 						},
 					},
 				},
@@ -258,6 +265,10 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 		return fmt.Errorf("failed to create ingress: %w", err)
 	}
 
-	log.Printf("✅ Deployment and Service for repl %s (template: %s) created with MCP sidecar.\n", replId, template)
+	if ENABLE_MCP_SIDECAR {
+		log.Printf("✅ Deployment and Service for repl %s (template: %s) created with MCP sidecar.\n", replId, template)
+	} else {
+		log.Printf("✅ Deployment and Service for repl %s (template: %s) created.\n", replId, template)
+	}
 	return nil
 }

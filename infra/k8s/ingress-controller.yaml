@@ -30,6 +30,7 @@ metadata:
   name: ingress-nginx-controller
   namespace: ingress-nginx
 data:
+  strict-validate-path-type: "false"
 ---
 # Source: ingress-nginx/templates/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -54,6 +55,7 @@ rules:
       - secrets
       - namespaces
     verbs:
+      - get
       - list
       - watch
   - apiGroups:
