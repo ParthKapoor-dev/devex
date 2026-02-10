@@ -1,0 +1,195 @@
+name: Cluster Availability Check
+
+on:
+  schedule:
+    # Runs at 00:00 UTC and 12:00 UTC every day.
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cluster-availability-check
+  cancel-in-progress: false
+
+jobs:
+  probe-public-repl-endpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DOMAIN: repl.parthkapoor.me
+
+    steps:
+      - name: Check public ingress availability
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          WORKDIR="$(mktemp -d)"
+          CERT_FILE="${WORKDIR}/cert.txt"
+          DNS_FILE="${WORKDIR}/dns.txt"
+          BODY_ONE="${WORKDIR}/body-one.txt"
+          BODY_TWO="${WORKDIR}/body-two.txt"
+          BODY_HTTP="${WORKDIR}/body-http.txt"
+          HDR_ONE="${WORKDIR}/headers-one.txt"
+          HDR_TWO="${WORKDIR}/headers-two.txt"
+          HDR_HTTP="${WORKDIR}/headers-http.txt"
+
+          cleanup() {
+            rm -rf "${WORKDIR}"
+          }
+          trap cleanup EXIT
+
+          log() {
+            echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*"
+          }
+
+          dump_diagnostics() {
+            echo "=== diagnostics: domain ==="
+            echo "${DOMAIN}"
+
+            echo "=== diagnostics: dns ==="
+            if [[ -f "${DNS_FILE}" ]]; then
+              cat "${DNS_FILE}"
+            else
+              echo "dns info unavailable"
+            fi
+
+            echo "=== diagnostics: tls ==="
+            if [[ -f "${CERT_FILE}" ]]; then
+              cat "${CERT_FILE}"
+            else
+              echo "tls info unavailable"
+            fi
+
+            echo "=== diagnostics: endpoint one headers ==="
+            if [[ -f "${HDR_ONE}" ]]; then
+              cat "${HDR_ONE}"
+            else
+              echo "headers unavailable"
+            fi
+
+            echo "=== diagnostics: http root headers ==="
+            if [[ -f "${HDR_HTTP}" ]]; then
+              cat "${HDR_HTTP}"
+            else
+              echo "headers unavailable"
+            fi
+
+            echo "=== diagnostics: http root body (tail) ==="
+            if [[ -f "${BODY_HTTP}" ]]; then
+              tail -n 40 "${BODY_HTTP}" || true
+            else
+              echo "body unavailable"
+            fi
+
+            echo "=== diagnostics: endpoint one body (tail) ==="
+            if [[ -f "${BODY_ONE}" ]]; then
+              tail -n 40 "${BODY_ONE}" || true
+            else
+              echo "body unavailable"
+            fi
+
+            echo "=== diagnostics: endpoint two headers ==="
+            if [[ -f "${HDR_TWO}" ]]; then
+              cat "${HDR_TWO}"
+            else
+              echo "headers unavailable"
+            fi
+
+            echo "=== diagnostics: endpoint two body (tail) ==="
+            if [[ -f "${BODY_TWO}" ]]; then
+              tail -n 40 "${BODY_TWO}" || true
+            else
+              echo "body unavailable"
+            fi
+          }
+
+          fail() {
+            echo "::error::$*"
+            dump_diagnostics
+            exit 1
+          }
+
+          resolve_dns() {
+            local ips=""
+            if command -v dig >/dev/null 2>&1; then
+              ips="$(dig +short A "${DOMAIN}" | sort -u)"
+            fi
+            if [[ -z "${ips}" ]]; then
+              ips="$(getent hosts "${DOMAIN}" | awk '{print $1}' | sort -u)"
+            fi
+            if [[ -z "${ips}" ]]; then
+              fail "DNS resolution failed for ${DOMAIN}"
+            fi
+            echo "${ips}" | tee "${DNS_FILE}"
+            log "DNS resolution succeeded for ${DOMAIN}"
+          }
+
+          check_tls() {
+            if ! openssl s_client -connect "${DOMAIN}:443" -servername "${DOMAIN}" </dev/null 2>/dev/null \
+              | openssl x509 -noout -subject -issuer -dates -ext subjectAltName > "${CERT_FILE}"; then
+              fail "TLS handshake or certificate read failed for ${DOMAIN}:443"
+            fi
+            if ! grep -Fq "DNS:${DOMAIN}" "${CERT_FILE}"; then
+              fail "Certificate SAN does not include ${DOMAIN}"
+            fi
+            log "TLS certificate validation succeeded for ${DOMAIN}"
+          }
+
+          http_status() {
+            local url="$1"
+            local body_file="$2"
+            local header_file="$3"
+
+            curl --silent --show-error --location \
+              --connect-timeout 5 --max-time 12 \
+              --retry 3 --retry-delay 2 --retry-all-errors \
+              --output "${body_file}" --dump-header "${header_file}" \
+              --write-out "%{http_code}" \
+              "${url}" || true
+          }
+
+          assert_status_200() {
+            local name="$1"
+            local status="$2"
+            if [[ "${status}" != "200" ]]; then
+              fail "${name} returned non-200 status: ${status}"
+            fi
+          }
+
+          assert_http_root_reachable() {
+            local status="$1"
+            case "${status}" in
+              200|301|302|307|308|404) ;;
+              *)
+                fail "HTTP root probe returned unexpected status: ${status}. Expected one of 200/301/302/307/308/404"
+                ;;
+            esac
+          }
+
+          URL_HTTP="http://${DOMAIN}/"
+          URL_ONE="https://${DOMAIN}/test-repl"
+          URL_TWO="https://${DOMAIN}/test-repl/anything"
+
+          resolve_dns
+          check_tls
+
+          STATUS_HTTP="$(http_status "${URL_HTTP}" "${BODY_HTTP}" "${HDR_HTTP}")"
+          log "HTTP root status: ${STATUS_HTTP}"
+          assert_http_root_reachable "${STATUS_HTTP}"
+
+          STATUS_ONE="$(http_status "${URL_ONE}" "${BODY_ONE}" "${HDR_ONE}")"
+          log "Probe one status: ${STATUS_ONE}"
+          assert_status_200 "Probe ${URL_ONE}" "${STATUS_ONE}"
+
+          STATUS_TWO="$(http_status "${URL_TWO}" "${BODY_TWO}" "${HDR_TWO}")"
+          log "Probe two status: ${STATUS_TWO}"
+          assert_status_200 "Probe ${URL_TWO}" "${STATUS_TWO}"
+
+          grep -Fq "Hostname:" "${BODY_ONE}" || fail "Probe one body missing 'Hostname:' marker"
+          grep -Fq "X-Forwarded-Prefix: /test-repl" "${BODY_ONE}" || fail "Probe one body missing rewrite prefix marker"
+          grep -Fq "GET /anything HTTP/1.1" "${BODY_TWO}" || fail "Probe two body missing rewritten '/anything' marker"
+
+          log "Cluster availability checks passed"

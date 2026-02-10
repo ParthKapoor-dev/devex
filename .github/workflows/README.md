@@ -49,3 +49,22 @@ Before using these workflows, make sure the following secrets are added under:
   - If all are within limits, syncs the `templates/` directory to DigitalOcean Spaces (S3-compatible).
 
 ---
+
+### `cluster-availability-check.yaml`
+
+- **Triggers**:
+  - Scheduled every 12 hours (`00:00 UTC`, `12:00 UTC`)
+  - Manual trigger via `workflow_dispatch`
+- **What it does**:
+  - Resolves DNS for `repl.parthkapoor.me`
+  - Validates TLS certificate SAN contains `repl.parthkapoor.me`
+  - Verifies HTTP root reachability (`http://repl.parthkapoor.me/`) to catch port `80` issues
+  - Probes:
+    - `https://repl.parthkapoor.me/test-repl`
+    - `https://repl.parthkapoor.me/test-repl/anything`
+  - Fails if status is not `200` or expected whoami markers are missing
+  - Prints detailed diagnostics (DNS, TLS, headers, response tails) on failure
+
+No additional repository secrets are required for this workflow.
+
+---
