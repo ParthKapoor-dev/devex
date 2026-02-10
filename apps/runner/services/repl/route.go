@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"log"
+	log "packages/logging"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -51,7 +51,7 @@ func generateSessionID() string {
 
 func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManager *pty.PTYManager) {
 	if err := ws.Init(w, r); err != nil {
-		log.Printf("Failed to initialize websocket: %v", err)
+		log.Error("WebSocket init failed", "host", r.Host, "error", err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	OnTyped(ws, "fetchDir", func(req FetchDirRequest) {
 		contents, err := fs.FetchDir("/workspaces", req.Dir)
 		if err != nil {
-			log.Printf("Error fetching directory: %v", err)
+			log.Error("Fetch directory failed", "path", req.Dir, "error", err)
 			ws.Emit("fetchDirResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -81,7 +81,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		fullPath := fmt.Sprintf("/workspaces/%s", req.Path)
 		data, err := fs.FetchFileContent(fullPath)
 		if err != nil {
-			log.Printf("Error fetching file content: %v", err)
+			log.Error("Fetch file content failed", "path", req.Path, "full_path", fullPath, "error", err)
 			ws.Emit("fetchContentResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -92,7 +92,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		fullPath := fmt.Sprintf("/workspaces/%s", req.Path)
 		err := fs.SaveFileDiffs(fullPath, req.Patch)
 		if err != nil {
-			log.Printf("Error saving file: %v", err)
+			log.Error("Save file failed", "path", req.Path, "full_path", fullPath, "error", err)
 			ws.Emit("updateContentResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -103,7 +103,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		fullPath := filepath.Join("/workspaces", req.Path)
 		err := fs.CreateFile(fullPath)
 		if err != nil {
-			log.Printf("Error creating file: %v", err)
+			log.Error("Create file failed", "path", req.Path, "full_path", fullPath, "error", err)
 			ws.Emit("createFileResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -114,7 +114,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		fullPath := filepath.Join("/workspaces", req.Path)
 		err := fs.CreateFolder(fullPath)
 		if err != nil {
-			log.Printf("Error creating folder: %v", err)
+			log.Error("Create folder failed", "path", req.Path, "full_path", fullPath, "error", err)
 			ws.Emit("createFolderResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -125,7 +125,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		fullPath := filepath.Join("/workspaces", req.Path)
 		err := fs.Delete(fullPath)
 		if err != nil {
-			log.Printf("Error deleting: %v", err)
+			log.Error("Delete failed", "path", req.Path, "full_path", fullPath, "error", err)
 			ws.Emit("deleteResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -137,7 +137,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		newFullPath := filepath.Join("/workspaces", req.NewPath)
 		err := fs.Rename(oldFullPath, newFullPath)
 		if err != nil {
-			log.Printf("Error renaming: %v", err)
+			log.Error("Rename failed", "old_path", req.OldPath, "new_path", req.NewPath, "error", err)
 			ws.Emit("renameResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -153,7 +153,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		targetFullPath := filepath.Join("/workspaces", req.TargetPath)
 		err := fs.Copy(sourceFullPath, targetFullPath)
 		if err != nil {
-			log.Printf("Error copying: %v", err)
+			log.Error("Copy failed", "source_path", req.SourcePath, "target_path", req.TargetPath, "error", err)
 			ws.Emit("copyResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -168,7 +168,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		sourceFullPath := filepath.Join("/workspaces", req.SourcePath)
 		err := fs.Cut(sourceFullPath)
 		if err != nil {
-			log.Printf("Error cutting: %v", err)
+			log.Error("Cut failed", "source_path", req.SourcePath, "error", err)
 			ws.Emit("cutResponse", map[string]any{"error": err.Error()})
 			return
 		}
@@ -182,7 +182,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 		targetFullPath := filepath.Join("/workspaces", req.TargetPath)
 		err := fs.Paste(targetFullPath)
 		if err != nil {
-			log.Printf("Error pasting: %v", err)
+			log.Error("Paste failed", "target_path", req.TargetPath, "error", err)
 			ws.Emit("pasteResponse", map[string]any{"error": err.Error()})
 			return
 		}

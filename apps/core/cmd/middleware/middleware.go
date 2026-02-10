@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"log"
+	log "packages/logging"
 	"net/http"
 	"time"
 
@@ -34,7 +34,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 				// Try to refresh token
 				newToken, err := refreshToken(tokenInfo.Token)
 				if err != nil {
-					log.Printf("Failed to refresh token: %v", err)
+					log.Error("Refresh token failed", "error", err)
 					session.ClearSession(w, r)
 					json.WriteError(w, http.StatusUnauthorized, "Token expired")
 					return
@@ -44,7 +44,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 				tokenInfo.ExpiresAt = newToken.Expiry
 				// Save updated session
 				if err := session.SaveSession(w, r, tokenInfo); err != nil {
-					log.Printf("Failed to save refreshed session: %v", err)
+					log.Error("Save refreshed session failed", "error", err)
 					json.WriteError(w, http.StatusInternalServerError, "Internal server error")
 					return
 				}

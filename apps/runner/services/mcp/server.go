@@ -3,7 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"log"
+	log "packages/logging"
 	"net"
 	"packages/pb"
 	"runner/pkg/fs"
@@ -19,7 +19,7 @@ func NewGrpcServer(lis net.Listener) error {
 	server := grpc.NewServer()
 	pb.RegisterReplServiceServer(server, &grpcServer{})
 
-	log.Println("Starting gRPC server on :50051")
+	log.Info("Starting gRPC server", "addr", ":50051")
 	return server.Serve(lis)
 }
 
@@ -28,7 +28,7 @@ func (s *grpcServer) FetchContent(ctx context.Context, in *pb.FetchContentReques
 	fullPath := fmt.Sprintf("/workspaces/%s", in.Path)
 	data, err := fs.FetchFileContent(fullPath)
 	if err != nil {
-		log.Printf("Error fetching file content: %v", err)
+		log.Error("Fetch file content failed", "path", in.Path, "full_path", fullPath, "error", err)
 		return nil, err
 	}
 

@@ -2,7 +2,7 @@ package auth
 
 import (
 	"encoding/json"
-	"log"
+	log "packages/logging"
 	"net/http"
 
 	sessionManager "core/internal/session"
@@ -30,7 +30,7 @@ func NewAuthHandler() http.Handler {
 
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	if err := sessionManager.ClearSession(w, r); err != nil {
-		log.Printf("Error clearing session: %v", err)
+		log.Error("Clear session failed", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}

@@ -13,6 +13,7 @@ To use this WebSocket handler in your own HTTP route:
 ```go
 import (
   "net/http"
+  log "packages/logging"
   "github.com/ParthKapoor-dev/devex/apps/runner/pkg/ws"
   "github.com/ParthKapoor-dev/devex/apps/runner/pkg/pty"
 )
@@ -23,11 +24,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
   err := socket.Init(w, r)
   if err != nil {
-    log.Println(err)
+    log.Error(err)
   }
 
   socket.On("Connection", func(data any) {
-    fmt.Println("Client connected")
+    log.Info("Client connected")
   })
 
   socket.On("someEvent", func(data any) {
@@ -124,7 +125,7 @@ The main connection manager with:
 ```go
 ws := NewWSHandler()
 ws.On("sayHello", func(data any) {
-  fmt.Println("Client says:", data)
+  log.Info("Client says", "data", data)
 })
 
 ws.Emit("serverReady", map[string]string{"msg": "Welcome!"})

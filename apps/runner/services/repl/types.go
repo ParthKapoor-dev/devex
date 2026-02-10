@@ -2,8 +2,7 @@ package repl
 
 import (
 	"encoding/json"
-	"log"
-
+	log "packages/logging"
 	"runner/pkg/ws"
 )
 
@@ -75,7 +74,7 @@ func OnTyped[T any](ws *ws.WSHandler, event string, handler func(T)) {
 			if err := json.Unmarshal(jsonData, &typedData); err == nil {
 				handler(typedData)
 			} else {
-				log.Printf("Failed to unmarshal data for event %s: %v", event, err)
+				log.Warn("Failed to unmarshal event data", "event", event, "error", err)
 			}
 		}
 	})

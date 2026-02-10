@@ -3,7 +3,7 @@ package s3
 import (
 	"context"
 	"fmt"
-	"log"
+	log "packages/logging"
 	"path"
 	"strings"
 
@@ -37,7 +37,7 @@ func NewS3Client() *S3Client {
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 	)
 	if err != nil {
-		log.Printf("❌ Failed to load config: %v", err)
+		log.Error("Load S3 config failed", "error", err)
 	}
 
 	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
@@ -81,7 +81,7 @@ func (s *S3Client) CopyFolder(sourcePrefix, destinationPrefix string) error {
 		}
 
 		if len(output.Contents) == 0 {
-			log.Println("⚠️ No objects found under prefix:", sourcePrefix)
+			log.Warn("No objects found under prefix", "bucket", bucket, "prefix", sourcePrefix)
 			break
 		}
 
@@ -110,11 +110,11 @@ func (s *S3Client) CopyFolder(sourcePrefix, destinationPrefix string) error {
 
 			_, err := s.client.CopyObject(s.ctx, copyInput)
 			if err != nil {
-				log.Printf("❌ Failed to copy object %s -> %s: %v", sourceKey, destinationKey, err)
+				log.Error("Copy object failed", "bucket", bucket, "source_key", sourceKey, "dest_key", destinationKey, "error", err)
 				continue
 			}
 
-			log.Printf("✅ Copied %s -> %s", sourceKey, destinationKey)
+			log.Info("Copied object", "bucket", bucket, "source_key", sourceKey, "dest_key", destinationKey)
 		}
 
 		// Step 3: Handle pagination
@@ -140,13 +140,13 @@ func (s *S3Client) ListObjects(prefix string) error {
 	}
 
 	if len(resp.Contents) == 0 {
-		fmt.Println("No objects found with prefix:", prefix)
+		log.Info("No objects found with prefix", "bucket", bucket, "prefix", prefix)
 		return nil
 	}
 
-	fmt.Println("✅ Objects found under prefix:", prefix)
+	log.Info("Objects found under prefix", "bucket", bucket, "prefix", prefix)
 	for _, object := range resp.Contents {
-		fmt.Println(" -", *object.Key)
+		log.Info("Object found", "bucket", bucket, "object_key", *object.Key)
 	}
 
 	return nil
@@ -169,7 +169,7 @@ func (s *S3Client) DeleteFolder(folderPrefix string) error {
 		}
 
 		if len(output.Contents) == 0 && continuationToken == nil {
-			log.Println("⚠️ No objects found under prefix:", folderPrefix)
+			log.Warn("No objects found under prefix", "bucket", bucket, "prefix", folderPrefix)
 			return nil
 		}
 
@@ -182,11 +182,11 @@ func (s *S3Client) DeleteFolder(folderPrefix string) error {
 
 			_, err := s.client.DeleteObject(s.ctx, deleteInput)
 			if err != nil {
-				log.Printf("❌ Failed to delete object %s: %v", *obj.Key, err)
+				log.Error("Delete object failed", "bucket", bucket, "object_key", *obj.Key, "error", err)
 				continue
 			}
 
-			log.Printf("✅ Deleted %s", *obj.Key)
+			log.Info("Deleted object", "bucket", bucket, "object_key", *obj.Key)
 		}
 
 		// Step 3: Handle pagination

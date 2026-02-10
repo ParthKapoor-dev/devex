@@ -3,7 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	log "packages/logging"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -41,14 +41,14 @@ const (
 func magiclinkLoginHandler(w http.ResponseWriter, r *http.Request, resend *resend.Resend) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding login request: %v", err)
+		log.Warn("Decode login request failed", "error", err)
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	// Validate email
 	if err := email.ValidateEmail(req.Email); err != nil {
-		log.Printf("Invalid email: %v", err)
+		log.Warn("Invalid email", "email", req.Email, "error", err)
 		writeError(w, http.StatusBadRequest, "Invalid email address")
 		return
 	}
@@ -58,7 +58,7 @@ func magiclinkLoginHandler(w http.ResponseWriter, r *http.Request, resend *resen
 
 	// Check rate limiting
 	if err := email.CheckRateLimit(r, norm_email); err != nil {
-		log.Printf("Rate limit exceeded for email %s: %v", norm_email, err)
+		log.Warn("Rate limit exceeded", "email", norm_email, "error", err)
 		writeError(w, http.StatusTooManyRequests, "Too many requests. Please try again later.")
 		return
 	}
@@ -66,7 +66,7 @@ func magiclinkLoginHandler(w http.ResponseWriter, r *http.Request, resend *resen
 	// Generate secure token
 	token, err := email.GenerateToken(req.Email)
 	if err != nil {
-		log.Printf("Error generating token: %v", err)
+		log.Error("Generate token failed", "email", norm_email, "error", err)
 		writeError(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
@@ -74,7 +74,7 @@ func magiclinkLoginHandler(w http.ResponseWriter, r *http.Request, resend *resen
 	// Send magic link email
 	subject, body := email.GenerateMagicLink(norm_email, token)
 	if err := resend.SendEmail(norm_email, subject, body); err != nil {
-		log.Printf("Error sending magic link email: %v", err)
+		log.Error("Send magic link email failed", "email", norm_email, "error", err)
 		writeError(w, http.StatusInternalServerError, "Failed to send magic link")
 		return
 	}
@@ -89,14 +89,14 @@ func magiclinkLoginHandler(w http.ResponseWriter, r *http.Request, resend *resen
 func magiclinkCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		log.Println("Missing token in verification request")
+		log.Warn("Missing token in verification request")
 		redirectWithError(w, r, "missing_token")
 		return
 	}
 
 	validatedEmail, err := email.ValidateToken(token)
 	if err != nil {
-		log.Printf("Error retrieving magic link data: %v", err)
+		log.Warn("Validate token failed", "error", err)
 		redirectWithError(w, r, "invalid_token")
 		return
 	}
@@ -120,7 +120,7 @@ func magiclinkCallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Save session
 	if err := sessionManager.SaveSession(w, r, tokenInfo); err != nil {
-		log.Printf("Failed to save session: %v", err)
+		log.Error("Save session failed", "error", err)
 		redirectWithError(w, r, "session_save_failed")
 		return
 	}
@@ -139,7 +139,7 @@ func redirectWithError(w http.ResponseWriter, r *http.Request, errorType string)
 func writeJSON(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("Error encoding JSON response: %v", err)
+		log.Error("Encode JSON response failed", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }

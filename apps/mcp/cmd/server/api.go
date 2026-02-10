@@ -1,7 +1,7 @@
 package server
 
 import (
-	"log"
+	log "packages/logging"
 	"mcp/internal/gRPC"
 	"mcp/internal/tools"
 	"net/http"
@@ -18,7 +18,7 @@ type McpServer struct {
 
 func NewMcpServer() *McpServer {
 
-	defer log.Println("Created a New Server Instance")
+	defer log.Info("Created MCP server instance")
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "DevEx MCP Server",
@@ -27,7 +27,7 @@ func NewMcpServer() *McpServer {
 
 	replClient, err := gRPC.NewReplClient()
 	if err != nil {
-		log.Println("repl client error:", err)
+		log.Error("Repl client error", "error", err)
 	}
 
 	tools := tools.NewToolsHandler(replClient)
@@ -258,8 +258,8 @@ func NewMcpServer() *McpServer {
 }
 
 func (m *McpServer) Run() error {
-	log.Println("Running the MCP Server Now")
-	defer log.Println("Shutting Down the MCP Server")
+	log.Info("MCP server starting", "addr", m.httpAddr)
+	defer log.Info("MCP server shutting down", "addr", m.httpAddr)
 
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 		return m.server

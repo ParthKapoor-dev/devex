@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	"log"
+	log "packages/logging"
 	"net/http"
 	"time"
 
@@ -15,7 +15,7 @@ import (
 )
 
 func githubLoginHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Login Handler")
+	log.Info("GitHub login handler invoked")
 
 	// Generate state for CSRF protection
 	state := oauth.GenerateStateCookie()
@@ -23,7 +23,7 @@ func githubLoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Store state in session for verification
 	session, err := sessionManager.Store.Get(r, "oauth-state")
 	if err != nil {
-		log.Printf("Error getting session: %v", err)
+		log.Error("Get oauth session failed", "provider", "github", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -31,7 +31,7 @@ func githubLoginHandler(w http.ResponseWriter, r *http.Request) {
 	session.Values["state"] = state
 	session.Options.MaxAge = 600 // 10 minutes
 	if err := session.Save(r, w); err != nil {
-		log.Printf("Error saving session: %v", err)
+		log.Error("Save oauth session failed", "provider", "github", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -46,14 +46,14 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// Verify state
 	session, err := sessionManager.Store.Get(r, "oauth-state")
 	if err != nil {
-		log.Printf("Error getting state session: %v", err)
+		log.Error("Get oauth state session failed", "provider", "github", "error", err)
 		http.Redirect(w, r, dotenv.EnvString("FRONTEND_URL", "http://localhost:3000")+"?error=session_error", http.StatusTemporaryRedirect)
 		return
 	}
 
 	savedState, ok := session.Values["state"].(string)
 	if !ok || savedState != state {
-		log.Println("Invalid oauth state")
+		log.Warn("Invalid oauth state", "provider", "github")
 		http.Redirect(w, r, dotenv.EnvString("FRONTEND_URL", "http://localhost:3000")+"?error=invalid_state", http.StatusTemporaryRedirect)
 		return
 	}
@@ -61,7 +61,7 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	token, err := oauth.GithubOauthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		log.Printf("Code exchange failed: %v", err)
+		log.Error("OAuth code exchange failed", "provider", "github", "error", err)
 		http.Redirect(w, r, dotenv.EnvString("FRONTEND_URL", "http://localhost:3000")+"?error=exchange_failed", http.StatusTemporaryRedirect)
 		return
 	}
@@ -70,7 +70,7 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	client := github.NewClient(oauth.GithubOauthConfig.Client(context.Background(), token))
 	githubUser, _, err := client.Users.Get(context.Background(), "")
 	if err != nil {
-		log.Printf("Failed to get user: %v", err)
+		log.Error("Fetch GitHub user failed", "provider", "github", "error", err)
 		http.Redirect(w, r, dotenv.EnvString("FRONTEND_URL", "http://localhost:3000")+"?error=user_fetch_failed", http.StatusTemporaryRedirect)
 		return
 	}
@@ -78,7 +78,7 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// Get user emails
 	emails, _, err := client.Users.ListEmails(context.Background(), nil)
 	if err != nil {
-		log.Printf("Failed to get user emails: %v", err)
+		log.Warn("Fetch GitHub user emails failed", "provider", "github", "error", err)
 	}
 
 	var primaryEmail string
@@ -108,7 +108,7 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Save session
 	if err := sessionManager.SaveSession(w, r, tokenInfo); err != nil {
-		log.Printf("Failed to save session: %v", err)
+		log.Error("Save session failed", "provider", "github", "error", err)
 		http.Redirect(w, r, dotenv.EnvString("FRONTEND_URL", "http://localhost:3000")+"?error=session_save_failed", http.StatusTemporaryRedirect)
 		return
 	}

@@ -2,7 +2,7 @@ package shutdown
 
 import (
 	"context"
-	"log"
+	log "packages/logging"
 	"sync"
 	"time"
 )
@@ -39,7 +39,7 @@ func NewShutdownManager(replId string, callback ShutdownCallback) *ShutdownManag
 	// Start the initial shutdown timer
 	sm.startShutdownTimer()
 
-	log.Printf("Auto-shutdown manager initialized for repl: %s", replId)
+	log.Info("Auto-shutdown manager initialized", "repl_id", replId)
 	return sm
 }
 
@@ -61,8 +61,7 @@ func (sm *ShutdownManager) startShutdownTimer() {
 		sm.executeShutdown()
 	})
 
-	log.Printf("Shutdown timer started/restarted for repl: %s (%.0f minutes)",
-		sm.replId, sm.inactivityPeriod.Minutes())
+	log.Info("Shutdown timer started/restarted", "repl_id", sm.replId, "minutes", sm.inactivityPeriod.Minutes())
 }
 
 // OnConnectionEstablished should be called when a WebSocket connection is established
@@ -82,7 +81,7 @@ func (sm *ShutdownManager) OnConnectionEstablished() {
 		sm.timer = nil
 	}
 
-	log.Printf("Connection established for repl: %s - shutdown timer stopped", sm.replId)
+	log.Info("Connection established - shutdown timer stopped", "repl_id", sm.replId)
 }
 
 // OnConnectionClosed should be called when a WebSocket connection is closed
@@ -99,7 +98,7 @@ func (sm *ShutdownManager) OnConnectionClosed() {
 	// Restart the shutdown timer since connection is closed
 	go sm.startShutdownTimer()
 
-	log.Printf("Connection closed for repl: %s - shutdown timer restarted", sm.replId)
+	log.Info("Connection closed - shutdown timer restarted", "repl_id", sm.replId)
 }
 
 // executeShutdown performs the actual shutdown
@@ -113,15 +112,15 @@ func (sm *ShutdownManager) executeShutdown() {
 
 	sm.isShutdown = true
 
-	log.Printf("Executing auto-shutdown for repl: %s due to inactivity", sm.replId)
+	log.Warn("Executing auto-shutdown due to inactivity", "repl_id", sm.replId)
 
 	// Call the shutdown callback
 	if sm.shutdownCallback != nil {
 		go func() {
 			if err := sm.shutdownCallback(sm.replId); err != nil {
-				log.Printf("Error during shutdown callback for repl %s: %v", sm.replId, err)
+				log.Error("Shutdown callback failed", "repl_id", sm.replId, "error", err)
 			} else {
-				log.Printf("Successfully shutdown repl: %s", sm.replId)
+				log.Info("Successfully shutdown repl", "repl_id", sm.replId)
 			}
 		}()
 	}
@@ -165,7 +164,7 @@ func (sm *ShutdownManager) Close() {
 	sm.isShutdown = true
 	sm.cancel()
 
-	log.Printf("Shutdown manager closed for repl: %s", sm.replId)
+	log.Info("Shutdown manager closed", "repl_id", sm.replId)
 }
 
 // SetInactivityPeriod allows customizing the inactivity period (useful for testing)

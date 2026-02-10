@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
-	"log"
+	log "packages/logging"
 	"net"
 	"net/http"
 	"packages/utils/json"
@@ -63,7 +63,7 @@ func (api *APIServer) RunHTTP() error {
 	router.HandleFunc("/user-app/", proxy.ReverseProxyHandler)
 
 	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("ping-pong")
+		log.Debug("Ping", "route", "/ping")
 		json.WriteJSON(w, http.StatusOK, "pong")
 	})
 
@@ -78,6 +78,6 @@ func (api *APIServer) RunHTTP() error {
 		Handler: c.Handler(router),
 	}
 
-	log.Println("Server has started at ", api.httpAddr)
+	log.Info("Server started", "addr", api.httpAddr)
 	return server.ListenAndServe()
 }

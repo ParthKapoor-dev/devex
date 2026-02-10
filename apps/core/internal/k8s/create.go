@@ -3,8 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"log"
-
+	log "packages/logging"
 	"core/models"
 	"core/pkg/dotenv"
 
@@ -294,10 +293,6 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 		return fmt.Errorf("failed to create ingress: %w", err)
 	}
 
-	if ENABLE_MCP_SIDECAR {
-		log.Printf("✅ Deployment and Service for repl %s (template: %s) created with MCP sidecar.\n", replId, template)
-	} else {
-		log.Printf("✅ Deployment and Service for repl %s (template: %s) created.\n", replId, template)
-	}
+	log.Info("Deployment and service created", "repl_id", replId, "template", template, "mcp_sidecar", ENABLE_MCP_SIDECAR)
 	return nil
 }

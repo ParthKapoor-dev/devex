@@ -2,8 +2,7 @@ package k8s
 
 import (
 	"context"
-	"log"
-
+	log "packages/logging"
 	"path/filepath"
 
 	"core/pkg/dotenv"
@@ -25,13 +24,13 @@ func getDynamicClient() (dynamic.Interface, error) {
 	kubeconfig := KUBE_CONFIG_PATH
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		log.Printf("Failed to load kubeconfig: %v", err)
+		log.Error("Load kubeconfig failed", "kubeconfig_path", kubeconfig, "error", err)
 		return nil, err
 	}
 
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		log.Printf("Failed to create dynamic client: %v", err)
+		log.Error("Create dynamic client failed", "error", err)
 		return nil, err
 	}
 
@@ -43,13 +42,13 @@ func getClientSet() (*kubernetes.Clientset, error) {
 	kubeconfig := KUBE_CONFIG_PATH
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		log.Printf("Failed to load kubeconfig: %v", err)
+		log.Error("Load kubeconfig failed", "kubeconfig_path", kubeconfig, "error", err)
 		return nil, err
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Printf("Failed to create clientset: %v", err)
+		log.Error("Create clientset failed", "error", err)
 		return nil, err
 	}
 
@@ -64,7 +63,7 @@ func CheckStatus() (bool, error) {
 
 	_, err = clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Printf("Failed to list Kubernetes nodes: %v", err)
+		log.Error("List Kubernetes nodes failed", "error", err)
 		return false, err
 	}
 

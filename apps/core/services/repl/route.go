@@ -2,7 +2,7 @@ package repl
 
 import (
 	"fmt"
-	"log"
+	log "packages/logging"
 	"net/http"
 	"strings"
 
@@ -21,7 +21,7 @@ func NewHandler(s3Client *s3.S3Client, rds *redis.Redis) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /test", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("The Protected Route is Accessed")
+		log.Info("Protected route accessed")
 		json.WriteJSON(w, http.StatusOK, "Success")
 	})
 
@@ -57,7 +57,7 @@ func newRepl(w http.ResponseWriter, r *http.Request, s3Client *s3.S3Client, rds 
 	userName := strings.ToLower(user.Login)
 
 	if userRepls, err := rds.GetUserRepls(userName); err == nil && len(userRepls) == 2 {
-		log.Println("Cannot Create More Repls (Free Account Limit Reached): ")
+		log.Warn("Repl limit reached", "user", userName, "limit", 2)
 		json.WriteError(w, http.StatusInternalServerError, "Free Account Limit Reached")
 		return
 	}
@@ -70,14 +70,14 @@ func newRepl(w http.ResponseWriter, r *http.Request, s3Client *s3.S3Client, rds 
 	destinationPrefix := fmt.Sprintf("repl/%s/%s/", userName, replId)
 
 	if err := s3Client.CopyFolder(sourcePrefix, destinationPrefix); err != nil {
-		log.Println("S3 CopyTemplate is giving Err: ", err)
+		log.Error("S3 copy template failed", "user", userName, "repl_id", replId, "template", repl.Template, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// Create Repl in Store
 	if err := rds.CreateRepl(repl.Template, userName, repl.ReplName, replId); err != nil {
-		log.Println(err)
+		log.Error("Create repl record failed", "user", userName, "repl_id", replId, "template", repl.Template, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -111,14 +111,14 @@ func deleteRepl(w http.ResponseWriter, r *http.Request, s3Client *s3.S3Client, r
 
 	destination := fmt.Sprintf("repl/%s/%s/", userName, repl.Id)
 	if err := s3Client.DeleteFolder(destination); err != nil {
-		log.Println("Delete S3 is giving Err: ", err)
+		log.Error("S3 delete failed", "user", userName, "repl_id", repl.Id, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// Create Repl in Store
 	if err := rds.DeleteRepl(repl.Id); err != nil {
-		log.Println(err)
+		log.Error("Delete repl record failed", "user", userName, "repl_id", repl.Id, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -141,7 +141,7 @@ func getUserRepls(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
 	for _, id := range replIds {
 		repl, err := rds.GetRepl(id)
 		if err != nil {
-			log.Printf("This replId: %s doesn't exists for %s user", id, userName)
+			log.Warn("Repl ID does not exist for user", "repl_id", id, "user", userName, "error", err)
 			continue
 		}
 		repls = append(repls, repl)
@@ -159,7 +159,7 @@ func activateRepl(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
 
 	repl, err := rds.GetRepl(replId)
 	if err != nil {
-		log.Println(err)
+		log.Warn("Invalid repl id", "repl_id", replId, "error", err)
 		json.WriteError(w, http.StatusBadRequest, "This Repl Id doesn't exists")
 		return
 	}
@@ -173,7 +173,7 @@ func activateRepl(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
 	}
 
 	if err := k8s.CreateReplDeploymentAndService(userName, replId, repl.Template); err != nil {
-		log.Println("K8s Deployment Failed", err)
+		log.Error("K8s deployment failed", "repl_id", replId, "user", userName, "template", repl.Template, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -213,7 +213,7 @@ func deactivateRepl(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
 	}
 
 	if err := k8s.DeleteReplDeploymentAndService(userName, replId); err != nil {
-		log.Println("k8s Repl Deletion Failed", err)
+		log.Error("K8s repl deletion failed", "repl_id", replId, "user", userName, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

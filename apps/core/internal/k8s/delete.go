@@ -3,7 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"log"
+	log "packages/logging"
 	"time"
 
 	"core/pkg/dotenv"
@@ -24,12 +24,12 @@ func DeleteReplDeploymentAndService(userName, replId string) error {
 	region := dotenv.EnvString("S3_REGION", "us-east-1")
 
 	// Step 1: Upload workspace from pod to S3/R2
-	log.Println("📤 Uploading workspace from pod to S3/R2...")
+	log.Info("Uploading workspace from pod to S3/R2", "repl_id", replId, "user", userName, "bucket", bucket)
 
 	if err := InjectEphemeralUploader(clientset, ctx, replId, userName, endpoint, bucket, region); err != nil {
-		log.Printf("⚠️ Failed to inject uploader: %v", err)
+		log.Warn("Inject uploader failed", "repl_id", replId, "error", err)
 	} else {
-		log.Printf("✅ Uploaded /workspaces to s3://devex/repl/%s/%s/", userName, replId)
+		log.Info("Uploaded /workspaces to S3/R2", "repl_id", replId, "user", userName, "bucket", bucket)
 	}
 
 	// Step 2: Delete resources
@@ -65,9 +65,9 @@ func DeleteReplDeploymentAndService(userName, replId string) error {
 	} {
 		err := resource.del()
 		if err != nil {
-			log.Printf("⚠️ Failed to delete %s: %v", resource.name, err)
+			log.Warn("Delete resource failed", "repl_id", replId, "resource", resource.name, "error", err)
 		} else {
-			log.Printf("✅ %s deleted for repl %s", resource.name, replId)
+			log.Info("Resource deleted", "repl_id", replId, "resource", resource.name)
 		}
 	}
 
@@ -113,7 +113,7 @@ func InjectEphemeralUploader(clientset *kubernetes.Clientset, ctx context.Contex
 		ctx, pod.Name, &pod, metav1.UpdateOptions{}); err != nil {
 		return fmt.Errorf("failed to update pod with ephemeral container: %w", err)
 	}
-	log.Printf("📦 Ephemeral uploader injected into pod %s", pod.Name)
+	log.Info("Ephemeral uploader injected into pod", "repl_id", replId, "pod", pod.Name)
 
 	if err := waitForEphemeralUpload(clientset, pod.Name); err != nil {
 		return err
@@ -140,7 +140,7 @@ func waitForEphemeralUpload(clientset *kubernetes.Clientset, podName string) err
 			if ec.Name == "s3-uploader" {
 				if ec.State.Terminated != nil {
 					if ec.State.Terminated.ExitCode == 0 {
-						log.Println("✅ Ephemeral container finished successfully")
+						log.Info("Ephemeral container finished successfully", "pod", pod.Name)
 						return nil
 					}
 					return fmt.Errorf("ephemeral container failed with code %d", ec.State.Terminated.ExitCode)
@@ -148,7 +148,7 @@ func waitForEphemeralUpload(clientset *kubernetes.Clientset, podName string) err
 			}
 		}
 
-		log.Println("⏳ Waiting for ephemeral uploader to complete...")
+		log.Debug("Waiting for ephemeral uploader to complete", "pod", podName)
 		time.Sleep(interval)
 	}
 

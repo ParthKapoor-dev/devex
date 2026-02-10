@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"log"
+	log "packages/logging"
 	"net/http"
 	"sync"
 
@@ -105,6 +105,6 @@ func (api *APIServer) Run() error {
 		Handler: c.Handler(router),
 	}
 
-	log.Println("Server has started at ", api.addr)
+	log.Info("Server started", "addr", api.addr)
 	return server.ListenAndServe()
 }

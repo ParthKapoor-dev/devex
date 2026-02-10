@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-
+	log "packages/logging"
 	"core/models"
 	"core/pkg/dotenv"
 
@@ -27,10 +26,10 @@ func NewRedisStore() *Redis {
 
 	_, err := client.Ping(ctx).Result()
 	if err != nil {
-		log.Printf("❌ Failed to connect to Redis: %v", err)
+		log.Error("Failed to connect to Redis", "error", err)
 	}
 
-	log.Println("✅ Connected to Redis")
+	log.Info("Connected to Redis")
 
 	return &Redis{
 		client: client,

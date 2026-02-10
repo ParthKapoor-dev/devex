@@ -2,7 +2,7 @@ package email
 
 import (
 	"fmt"
-	"log"
+	log "packages/logging"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -39,7 +39,7 @@ func GenerateToken(email string) (string, error) {
 	tokenString, err := token.SignedString(jwtSecretKey)
 	if err != nil {
 		// If there's an error during signing, log it and return.
-		log.Printf("Error signing token: %v", err)
+		log.Error("Sign token failed", "error", err)
 		return "", err
 	}
 
@@ -62,7 +62,7 @@ func ValidateToken(tokenString string) (string, error) {
 		// - Token is expired (jwt.ErrTokenExpired)
 		// - Signature is invalid
 		// - Token is malformed
-		log.Printf("Error parsing or validating token: %v", err)
+		log.Warn("Parse or validate token failed", "error", err)
 		return "", err
 	}
 

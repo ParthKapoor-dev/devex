@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
+	log "packages/logging"
 	"net/http"
 	"time"
 )
@@ -28,20 +28,20 @@ func pingRunner(url string) error {
 		case <-ticker.C:
 			resp, err := client.Get(url)
 			if err != nil {
-				log.Println("Ping failed:", err)
+				log.Warn("Ping failed", "url", url, "error", err)
 				continue
 			}
 			body, err := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			if err != nil {
-				log.Println("Error reading response:", err)
+				log.Warn("Read ping response failed", "url", url, "error", err)
 				continue
 			}
 			if string(body) == "\"pong\"\n" {
-				log.Println("Received 'pong' from", url)
+				log.Info("Received pong from runner", "url", url)
 				return nil
 			} else {
-				log.Println("Received unexpected response, status code:", resp.StatusCode)
+				log.Warn("Received unexpected response", "url", url, "status_code", resp.StatusCode)
 			}
 		}
 	}

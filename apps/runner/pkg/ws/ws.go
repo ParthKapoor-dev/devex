@@ -2,7 +2,7 @@ package ws
 
 import (
 	"fmt"
-	"log"
+	log "packages/logging"
 	"net/http"
 	"sync"
 
@@ -70,7 +70,7 @@ func (ws *WSHandler) Init(w http.ResponseWriter, r *http.Request) error {
 	// Emit connect event
 	ws.triggerEvent("connect", nil)
 
-	log.Printf("WebSocket connection established for repl: %s", ws.replId)
+	log.Info("WebSocket connection established", "repl_id", ws.replId)
 	return nil
 }
 
@@ -112,13 +112,13 @@ func (ws *WSHandler) readLoop() {
 		case <-ws.done:
 			return
 		case <-ws.shutdownManager.Context().Done():
-			log.Printf("Repl %s is shutting down, closing WebSocket connection", ws.replId)
+			log.Warn("Repl is shutting down, closing WebSocket connection", "repl_id", ws.replId)
 			return
 		default:
 			var message Message
 			if err := ws.conn.ReadJSON(&message); err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Printf("WebSocket error for repl %s: %v", ws.replId, err)
+					log.Warn("WebSocket error", "repl_id", ws.replId, "error", err)
 				}
 				return
 			}
@@ -137,7 +137,7 @@ func (ws *WSHandler) writeLoop() {
 		if ws.shutdownManager != nil {
 			ws.shutdownManager.OnConnectionClosed()
 		}
-		log.Printf("WebSocket connection closed for repl: %s", ws.replId)
+		log.Info("WebSocket connection closed", "repl_id", ws.replId)
 	}()
 
 	for {
@@ -145,11 +145,11 @@ func (ws *WSHandler) writeLoop() {
 		case <-ws.done:
 			return
 		case <-ws.shutdownManager.Context().Done():
-			log.Printf("Repl %s is shutting down, closing write loop", ws.replId)
+			log.Warn("Repl is shutting down, closing write loop", "repl_id", ws.replId)
 			return
 		case message := <-ws.writeChan:
 			if err := ws.conn.WriteJSON(message); err != nil {
-				log.Printf("Write error for repl %s: %v", ws.replId, err)
+				log.Error("WebSocket write failed", "repl_id", ws.replId, "error", err)
 				return
 			}
 		}
@@ -166,7 +166,7 @@ func (ws *WSHandler) triggerEvent(event string, data any) {
 		// Run handler in a separate goroutine to avoid blocking
 		go handler(data)
 	} else {
-		log.Printf("No handler registered for event: %s (repl: %s)", event, ws.replId)
+		log.Warn("No handler registered for event", "event", event, "repl_id", ws.replId)
 	}
 }
 

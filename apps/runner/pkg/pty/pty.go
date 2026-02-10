@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
+	log "packages/logging"
 	"os"
 	"os/exec"
 	"sync"
@@ -166,7 +166,7 @@ func (pm *PTYManager) Cleanup() {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
 
-	log.Println("Calling Cleanup")
+	log.Info("Calling cleanup")
 
 	for _, session := range pm.sessions {
 		session.Close()
@@ -183,7 +183,7 @@ func (s *PTYSession) start() {
 	err := s.CMD.Wait()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); !ok || !exitErr.Success() {
-			log.Printf("Command for session %s exited with error: %v", s.ID, err)
+			log.Warn("Command exited with error", "session_id", s.ID, "error", err)
 		}
 	}
 }
@@ -200,7 +200,7 @@ func (s *PTYSession) readFromPTY() {
 			n, err := s.PTY.Read(buffer)
 			if err != nil {
 				if err != io.EOF && !s.isClosed.Load() {
-					log.Printf("Error reading from PTY for session %s: %v", s.ID, err)
+					log.Error("Error reading from PTY", "session_id", s.ID, "error", err)
 				}
 				s.Close()
 				return
@@ -380,7 +380,7 @@ func (s *PTYSession) cleanup() {
 		select {
 		case <-waitChan:
 		case <-time.After(2 * time.Second):
-			log.Printf("Process for session %s did not exit gracefully, killing.", s.ID)
+			log.Warn("Process did not exit gracefully, killing", "session_id", s.ID)
 			s.CMD.Process.Kill()
 			s.CMD.Wait()
 		}

@@ -1,7 +1,7 @@
 package runner
 
 import (
-	"log"
+	log "packages/logging"
 	"net/http"
 
 	"core/internal/k8s"
@@ -35,7 +35,7 @@ func endReplSession(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
 	}
 
 	if err := k8s.DeleteReplDeploymentAndService(userName, replId); err != nil {
-		log.Println("k8s Repl Deletion Failed", err)
+		log.Error("K8s repl deletion failed", "repl_id", replId, "user", userName, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
