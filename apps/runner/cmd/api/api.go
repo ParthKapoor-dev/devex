@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	log "packages/logging"
 	"net"
 	"net/http"

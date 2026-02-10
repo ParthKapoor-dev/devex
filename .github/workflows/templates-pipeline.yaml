@@ -6,6 +6,7 @@ on:
       - "templates/**"
       - "!templates/README.md"
       - "!templates/**/README.md"
+  workflow_dispatch:
 
 jobs:
   sync-templates:

@@ -7,6 +7,7 @@ on:
     paths:
       - "apps/mcp/**" # Only trigger if something in mcp/ changes
       - ".github/workflows/mcp-pipeline.yaml" # Also trigger if the workflow itself changes
+  workflow_dispatch:
 
 permissions:
   packages: write

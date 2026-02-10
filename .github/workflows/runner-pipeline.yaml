@@ -8,6 +8,7 @@ on:
       - "apps/runner/**"
       - "infra/runner/**"
       - ".github/workflows/runner-pipeline.yaml"
+  workflow_dispatch:
 
 permissions:
   contents: read
