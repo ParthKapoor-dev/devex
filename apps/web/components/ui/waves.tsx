@@ -100,6 +100,12 @@ export interface WavesProps {
   fixed?: boolean;
   /** Frame rate cap. A slow field reads identically at 30fps for half the cost. */
   fps?: number;
+  /**
+   * Device-pixel-ratio cap for the backing store. Every step up multiplies the
+   * pixel count by its square, and this is a soft decorative line field — 1.5
+   * is visibly crisper than 1 without paying the 4x of a full 2.
+   */
+  maxDpr?: number;
   /** Disable cursor interaction (and its global pointer listener). */
   interactive?: boolean;
   style?: CSSProperties;
@@ -120,6 +126,7 @@ const Waves: React.FC<WavesProps> = ({
   maxCursorMove = 100,
   fixed = false,
   fps = 30,
+  maxDpr = 1.5,
   interactive = true,
   style,
   className = "",
@@ -403,7 +410,7 @@ const Waves: React.FC<WavesProps> = ({
         },
       } satisfies Scene;
     },
-    { fps, reducedMotion, maxDpr: 2 },
+    { fps, reducedMotion, maxDpr },
     [
       lineColor,
       waveSpeedX,
