@@ -7,6 +7,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import { Section, HairlineGrid } from "./section";
 
 /**
  * What the product actually does.
@@ -55,33 +56,28 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
 
 export default function Features() {
   return (
-    <section className="px-6 py-24">
-      <div className="mx-auto max-w-5xl">
-        <p className="label mb-3 text-ink-subtle">What you get</p>
-        <h2 className="max-w-2xl text-balance text-left font-display text-3xl font-medium tracking-[-0.025em] text-ink sm:text-4xl">
-          Everything a dev box does, without the dev box.
-        </h2>
-
-        {/* A hairline grid: the dividers are the layout, so there are no cards
-            to draw and no borders doubling up between cells. */}
-        <ul className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-edge bg-edge sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map(({ icon: Icon, title, body }) => (
-            <li
-              key={title}
-              className="group bg-canvas p-6 transition-colors duration-[--duration-fast] hover:bg-surface"
-            >
-              <Icon
-                className="size-5 text-ink-subtle transition-colors duration-[--duration-fast] group-hover:text-brand"
-                aria-hidden="true"
-              />
-              <h3 className="mt-4 font-medium text-ink">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                {body}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+    <Section
+      id="features"
+      eyebrow="What you get"
+      title="Everything a dev box does, without the dev box."
+    >
+      <HairlineGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {FEATURES.map(({ icon: Icon, title, body }) => (
+          <div
+            key={title}
+            className="group bg-canvas p-6 transition-colors duration-[--duration-fast] hover:bg-surface"
+          >
+            <Icon
+              className="size-5 text-ink-subtle transition-colors duration-[--duration-fast] group-hover:text-brand"
+              aria-hidden="true"
+            />
+            <h3 className="mt-4 font-medium text-ink">{title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+              {body}
+            </p>
+          </div>
+        ))}
+      </HairlineGrid>
+    </Section>
   );
 }
