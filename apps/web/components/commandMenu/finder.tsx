@@ -140,7 +140,7 @@ export const FileFinder = ({
   return (
     <CommandMenu open={open} onOpenChange={setOpen}>
       <CommandMenuTrigger asChild>
-        <kbd className="transition-colors duration-150 hover:bg-emerald-800 select-none items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-jetbrains-mono font-medium opacity-100 ml-auto flex">
+        <kbd className="transition-colors duration-150 hover:bg-emerald-800 select-none items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-display font-medium opacity-100 ml-auto flex">
           ⌘ P
         </kbd>
       </CommandMenuTrigger>

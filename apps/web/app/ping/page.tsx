@@ -148,7 +148,7 @@ export default function StatusPage() {
     : [];
 
   return (
-    <div className="font-jetbrains-mono min-h-screen relative max-md:p-4 pt-16 font-inter">
+    <div className="font-display min-h-screen relative max-md:p-4 pt-16 font-inter">
       <Waves
         lineColor="#10b981"
         backgroundColor="rgba(16, 185, 129, 0.03)"

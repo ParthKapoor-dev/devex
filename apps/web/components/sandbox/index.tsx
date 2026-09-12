@@ -374,7 +374,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                   ? toast("Open/Create a file to continue")
                   : setShowSettings(true)
               }
-              className=" items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-jetbrains-mono font-medium opacity-100 ml-auto flex"
+              className=" items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-display font-medium opacity-100 ml-auto flex"
               title="Settings"
               size={"sm"}
             >
@@ -491,7 +491,7 @@ const Sandbox: React.FC<SandboxProps> = ({
             />
 
             <Button onClick={() => setShowHelp(true)}>
-              <kbd className=" transition-colors duration-150 hover:bg-emerald-800 select-none items-center gap-1 rounded border hover:border-emerald-950 border-border bg-muted px-2 text-sm font-jetbrains-mono font-medium opacity-100 ml-auto flex">
+              <kbd className=" transition-colors duration-150 hover:bg-emerald-800 select-none items-center gap-1 rounded border hover:border-emerald-950 border-border bg-muted px-2 text-sm font-display font-medium opacity-100 ml-auto flex">
                 Shft + /
               </kbd>
             </Button>
@@ -509,7 +509,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                   ? toast("Open/Create a file to continue")
                   : setShowSettings(true)
               }
-              className=" transition-colors duration-150 hover:bg-emerald-800 items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-jetbrains-mono font-medium opacity-100 ml-auto flex"
+              className=" transition-colors duration-150 hover:bg-emerald-800 items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-display font-medium opacity-100 ml-auto flex"
               title="Settings"
               size={"sm"}
             >
@@ -528,7 +528,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                   setTimeout(() => focusTerminal(), 100);
                 }
               }}
-              className="items-center gap-1 rounded border border-border bg-muted px-2 text-xs font-jetbrains-mono font-medium opacity-100 ml-auto flex transition-colors duration-150 hover:bg-emerald-800"
+              className="items-center gap-1 rounded border border-border bg-muted px-2 text-xs font-display font-medium opacity-100 ml-auto flex transition-colors duration-150 hover:bg-emerald-800"
               title="Toggle Terminal (Ctrl+`)"
             >
               <TerminalIcon className="h-3 w-3 mr-1" />
@@ -549,7 +549,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                   setBottomPanelCollapsed(false);
                 }
               }}
-              className=" items-center gap-1 rounded border border-border bg-muted px-2 text-xs font-jetbrains-mono font-medium opacity-100 ml-auto flex transition-colors duration-150 hover:bg-emerald-800"
+              className=" items-center gap-1 rounded border border-border bg-muted px-2 text-xs font-display font-medium opacity-100 ml-auto flex transition-colors duration-150 hover:bg-emerald-800"
               title="Toggle Output (Ctrl+Shift+Y)"
             >
               <Play className="h-3 w-3 mr-1" />
@@ -612,7 +612,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                   <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-4">
                       <FileText className="w-12 h-12 text-emerald-400" />
-                      <p className="text-emerald-400 font-medium font-jetbrains-mono">
+                      <p className="text-emerald-400 font-medium font-display">
                         Select/Create a File to Continue
                       </p>
                       <p className="text-gray-500 text-sm">
@@ -798,7 +798,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                       <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
                         <div className="flex flex-col items-center gap-4">
                           <FileText className="w-12 h-12 text-emerald-400" />
-                          <p className="text-emerald-400 font-medium font-jetbrains-mono">
+                          <p className="text-emerald-400 font-medium font-display">
                             Select/Create a File to Continue
                           </p>
                           <p className="text-gray-500 text-sm">
