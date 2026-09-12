@@ -41,8 +41,12 @@ import { DevExLogoDark } from "../icons/logo";
  * hardcoded milliseconds.
  */
 
-/** Matches `max-w-6xl`, the content width of every page underneath. */
-const REST_WIDTH = 1152;
+/**
+ * `max-w-5xl` (1024px) plus this bar's own 24px of side padding, so the logo
+ * sits exactly on the left edge of the hairline rule at the top of every
+ * section below it. The old bar had `px-32` and lined up with nothing.
+ */
+const REST_WIDTH = 1072;
 /** The contracted pill. Wide enough for the logo, two links and two buttons. */
 const PILL_WIDTH = 820;
 
