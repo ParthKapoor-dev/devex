@@ -120,10 +120,20 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
+    // `absolute inset-0` centres the links against the bar rather than against
+    // whatever is left between the logo and the buttons — but it also means
+    // this element covers the entire bar. Being absolutely positioned, it
+    // painted above its statically-positioned siblings and swallowed every
+    // click meant for "Log in", "Start a workspace" and the GitHub link, which
+    // looked enabled and did nothing. The logo only worked because it carries
+    // its own `relative z-20`.
+    //
+    // `pointer-events-none` here hands those clicks back; each link opts itself
+    // back in.
     <div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center justify-center gap-1 text-sm lg:flex",
+        "pointer-events-none absolute inset-0 hidden flex-1 flex-row items-center justify-center gap-1 text-sm lg:flex",
         className,
       )}
     >
@@ -134,7 +144,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
           onMouseEnter={() => setHovered(index)}
           onClick={onItemClick}
           className={cn(
-            "relative rounded-full px-3.5 py-1.5 text-ink-muted",
+            "pointer-events-auto relative rounded-full px-3.5 py-1.5 text-ink-muted",
             "transition-colors duration-[--duration-fast] hover:text-ink",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
           )}
@@ -149,7 +159,9 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
           <span className="relative z-20">{item.name}</span>
         </Link>
       ))}
-      <Cmd compact />
+      <span className="pointer-events-auto">
+        <Cmd compact />
+      </span>
     </div>
   );
 };

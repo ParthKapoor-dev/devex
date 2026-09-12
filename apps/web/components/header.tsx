@@ -64,7 +64,9 @@ export default function Header() {
         <NavbarLogo />
         <NavItems items={navItems} />
 
-        <div className="flex items-center gap-2">
+        {/* `relative z-20` so this group stays above the absolutely-positioned
+            nav links, which span the full width of the bar. */}
+        <div className="relative z-20 flex items-center gap-2">
           {/* An open-source project's most-clicked link, and it was not in the
               header at all. */}
           <a

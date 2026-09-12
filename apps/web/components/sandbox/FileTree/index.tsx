@@ -243,9 +243,20 @@ function VSCodeFileTree({
                 </div>
               </div>
             </FileContextMenu>
-            {isExpanded && tree[entryPath] && (
-              <div>{renderTree(tree[entryPath], entryPath, depth + 1)}</div>
-            )}
+            {isExpanded && tree[entryPath] ? (
+              tree[entryPath].length > 0 ? (
+                <div>{renderTree(tree[entryPath], entryPath, depth + 1)}</div>
+              ) : (
+                // An expanded folder that renders nothing is indistinguishable
+                // from one that failed to load.
+                <div
+                  style={{ paddingLeft: `${(depth + 1) * 12 + 20}px` }}
+                  className="py-[3px] font-mono text-xs italic text-ink-subtle"
+                >
+                  empty
+                </div>
+              )
+            ) : null}
           </div>
         );
       } else {

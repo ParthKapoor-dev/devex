@@ -15,12 +15,45 @@ import { FileTreeAction, Tree } from "@/components/sandbox/FileTree";
 import { toast } from "sonner";
 import { TerminalRef } from "@/components/sandbox/Terminal";
 import { ProtectedRoute } from "@/components/Auth/ProtectedRoute";
+import { CoreService } from "@/lib/core";
 
 export default function ReplPage() {
   const { slug } = useParams();
 
   // sockets states
   const { isConnected, emit, on, off } = useRunnerSocket(slug as string);
+
+  /**
+   * The workspace's name, for the title bar.
+   *
+   * The route slug is the REPL's id — `repl-f34552ed-d4f9-…` — which is what
+   * the IDE was showing you all day. The core API has no single-REPL endpoint,
+   * so this reads the list once on mount and picks out the matching row. It is
+   * a read, it happens alongside the socket handshake, and the id stays as the
+   * fallback if the lookup fails, so nothing here can leave the header blank.
+   */
+  const [replName, setReplName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!slug) return;
+    let ignore = false;
+
+    (async () => {
+      try {
+        const repls = await CoreService.getInstance().getRepls();
+        const match = repls.find((repl) => repl.id === slug);
+        if (!ignore && match) setReplName(match.name);
+      } catch {
+        // The header falls back to the id. Not worth a toast — the socket
+        // connection is the thing that actually matters on this page, and it
+        // reports its own failures.
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [slug]);
 
   // sandbox states
   const [tree, setTree] = useState<Tree | null>(null);
@@ -62,7 +95,20 @@ export default function ReplPage() {
       if (data.error) {
         toast.error(`Failed to load directory: ${data.error}`);
       } else {
-        setTree((prev) => ({ ...prev, [data.path]: data.contents }));
+        // `?? []` because an empty directory arrives as `null`, not `[]`.
+        //
+        // The runner builds the listing with `var result []DirEntry` and
+        // appends in a loop; for an empty directory the loop never runs, the
+        // slice stays nil, and Go marshals a nil slice as JSON `null`. So
+        // creating a folder and opening it put `null` into the tree, and the
+        // file finder's `entries.forEach` threw on the next render — taking
+        // the whole page down.
+        //
+        // Normalised here, at the one place directory listings enter the app,
+        // so nothing downstream has to know. It also stops the tree
+        // re-fetching an empty folder on every expand: the old value was
+        // falsy, so `if (!tree[path])` was true forever.
+        setTree((prev) => ({ ...prev, [data.path]: data.contents ?? [] }));
       }
     });
 
@@ -433,6 +479,7 @@ export default function ReplPage() {
         fileTree={fileTreeProps}
         terminal={terminalProps}
         replId={slug as string}
+        replName={replName}
       />
     </ProtectedRoute>
   );

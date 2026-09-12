@@ -46,6 +46,11 @@ export const FileFinder = ({
     const items: FileItem[] = [];
 
     Object.entries(tree).forEach(([path, entries]) => {
+      // Belt and braces. The listing is normalised where it enters the app,
+      // but a palette should never be the thing that crashes the page over an
+      // unexpected shape on the wire.
+      if (!Array.isArray(entries)) return;
+
       entries.forEach((entry) => {
         const fullPath =
           path === "/" ? `/${entry.name}` : `${path}/${entry.name}`;

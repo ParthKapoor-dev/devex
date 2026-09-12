@@ -76,6 +76,7 @@ interface SandboxProps {
     error: string | null;
   };
   replId: string;
+  replName?: string | null;
   isConnected: boolean;
 }
 
@@ -97,6 +98,7 @@ const Sandbox: React.FC<SandboxProps> = ({
   fileTree,
   terminal,
   replId,
+  replName,
   isConnected,
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -495,8 +497,13 @@ const Sandbox: React.FC<SandboxProps> = ({
 
           <ChromeDivider />
 
-          <span className="truncate font-mono text-xs text-ink-subtle">
-            {replId}
+          {/* The name, with the id kept as a tooltip — you still need it
+              for a bug report, but it is not what you want to read all day. */}
+          <span
+            className="truncate font-mono text-xs text-ink-muted"
+            title={replId}
+          >
+            {replName ?? replId}
           </span>
 
           <div className="ml-auto flex items-center gap-1">
