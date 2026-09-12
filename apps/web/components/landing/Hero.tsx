@@ -11,11 +11,8 @@ import Preview from "./Previews";
 /**
  * The opening.
  *
- * The badges used to be the very first thing on the page, above the eyebrow —
- * two pieces of third-party chrome standing between the visitor and any claim
- * about what this is. They have moved below the buttons, where they do the job
- * they are actually good at: reassuring somebody who has already read the
- * pitch and is deciding whether to click.
+ * The badges lead, at the maintainer's request. The top padding comes down to
+ * compensate so the headline still lands in roughly the same place.
  */
 export default function HeroSection() {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
@@ -29,7 +26,19 @@ export default function HeroSection() {
         videoSrc="https://www.youtube.com/embed/Tlck20bJeFE"
       />
 
-      <section className="px-6 pt-28 pb-4 text-center sm:pt-36">
+      <section className="px-6 pt-24 pb-4 text-center sm:pt-28">
+        {/* Real social proof — an actual star count and an actual launch. */}
+        <div className="mb-8 flex flex-wrap items-center justify-center gap-3">
+          <GitHubStarBadge
+            owner="parthkapoor-dev"
+            repo="devex"
+            size="small"
+            theme="dark"
+            showMetric="stars"
+          />
+          <ProductHuntBadge size="small" />
+        </div>
+
         <p className="label mb-6 inline-flex items-center gap-2 text-ink-subtle">
           <span
             className="size-1.5 rounded-full bg-term-accent"
@@ -70,18 +79,6 @@ export default function HeroSection() {
             <Play className="size-4" aria-hidden="true" />
             Watch the demo
           </button>
-        </div>
-
-        {/* Real social proof — an actual star count and an actual launch. */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <GitHubStarBadge
-            owner="parthkapoor-dev"
-            repo="devex"
-            size="small"
-            theme="dark"
-            showMetric="stars"
-          />
-          <ProductHuntBadge size="small" />
         </div>
 
         <Preview />
