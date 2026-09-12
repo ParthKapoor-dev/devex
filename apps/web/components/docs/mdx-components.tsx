@@ -116,9 +116,9 @@ export function Card({
     <>
       <div className="mb-2 flex items-center gap-2">
         {Icon ? (
-          <Icon className="size-4 text-brand" aria-hidden="true" />
+          <Icon className="size-4 text-ink-subtle" aria-hidden="true" />
         ) : null}
-        <span className="font-semibold text-ink">{title}</span>
+        <span className="font-medium text-ink">{title}</span>
         {href ? (
           <ArrowUpRight className="ml-auto size-4 text-ink-subtle transition-transform duration-[--duration-fast] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand" />
         ) : null}
@@ -156,7 +156,7 @@ export function Steps({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "my-6 ml-1 [counter-reset:step] [&>h3]:mb-2 [&>h3]:mt-0 [&>h3]:text-base [&>h3]:font-semibold",
+        "my-6 ml-1 [counter-reset:step] [&>h3]:mb-2 [&>h3]:mt-0 [&>h3]:text-base [&>h3]:font-medium",
         // The rail.
         "border-l border-edge pl-8",
         // Each heading gets a numbered badge sitting on the rail.
@@ -165,7 +165,7 @@ export function Steps({ children }: { children: React.ReactNode }) {
         "[&>h3]:before:size-7 [&>h3]:before:items-center [&>h3]:before:justify-center",
         "[&>h3]:before:rounded-full [&>h3]:before:border [&>h3]:before:border-edge",
         "[&>h3]:before:bg-surface [&>h3]:before:text-xs [&>h3]:before:font-semibold",
-        "[&>h3]:before:text-brand [&>h3]:before:content-[counter(step)]",
+        "[&>h3]:before:text-ink-muted [&>h3]:before:content-[counter(step)]",
         "[&>h3:not(:first-child)]:mt-8",
       )}
     >
@@ -180,11 +180,15 @@ export function Steps({ children }: { children: React.ReactNode }) {
 
 function heading(level: 1 | 2 | 3 | 4) {
   const Tag = `h${level}` as const;
+  // Space Grotesk is a display face: AGENTS.md caps it at weight 500, and
+  // above that it reads as dated rather than emphatic. These were bold and
+  // semibold, which made every docs heading heavier than the h1 on the page
+  // above it.
   const sizes = {
-    1: "mt-0 mb-4 text-3xl font-bold tracking-tight sm:text-4xl",
-    2: "mt-12 mb-4 scroll-mt-24 border-b border-edge pb-2 text-2xl font-semibold tracking-tight",
-    3: "mt-8 mb-3 scroll-mt-24 text-xl font-semibold tracking-tight",
-    4: "mt-6 mb-2 scroll-mt-24 text-lg font-semibold tracking-tight",
+    1: "mt-0 mb-4 text-3xl font-medium tracking-[-0.03em] sm:text-4xl",
+    2: "mt-14 mb-4 scroll-mt-24 border-b border-edge pb-2.5 text-2xl font-medium tracking-[-0.025em]",
+    3: "mt-10 mb-3 scroll-mt-24 text-lg font-medium tracking-[-0.02em]",
+    4: "mt-8 mb-2 scroll-mt-24 text-base font-medium",
   } as const;
 
   return function Heading({
@@ -264,7 +268,7 @@ export const mdxComponents = {
 
   blockquote: (props: React.ComponentPropsWithoutRef<"blockquote">) => (
     <blockquote
-      className="my-6 border-l-2 border-brand/50 pl-4 italic text-ink-muted"
+      className="my-6 border-l-2 border-edge-strong pl-5 text-ink-muted italic"
       {...props}
     />
   ),
@@ -276,10 +280,16 @@ export const mdxComponents = {
   ),
 
   // Inline code. Fenced blocks arrive as `pre` and are handled by CodeBlock.
+  //
+  // This was `text-brand-300`, which put the accent on every identifier,
+  // filename and flag in the corpus — on a page like self-hosting that is
+  // dozens of amber fragments per screen, and it left links (the one thing a
+  // reader can act on) indistinguishable from them. In the docs amber means a
+  // link and nothing else; code is marked by the mono face and the fill.
   code: ({ className, ...props }: React.ComponentPropsWithoutRef<"code">) => (
     <code
       className={cn(
-        "rounded-[0.3rem] border border-edge bg-raised px-[0.35em] py-[0.15em] font-mono text-[0.875em] text-brand-300",
+        "rounded-[0.3rem] border border-edge bg-raised px-[0.35em] py-[0.15em] font-mono text-[0.875em] text-ink",
         className,
       )}
       {...props}
