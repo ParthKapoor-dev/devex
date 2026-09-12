@@ -6,7 +6,6 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
-import { File, Folder, Tree } from "@/components/magicui/file-tree";
 import {
   Copy,
   Edit3,

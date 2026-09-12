@@ -818,10 +818,16 @@ const TerminalComponent = forwardRef<TerminalRef, TerminalProps>(
             ...style,
           }}
         >
-          <div className="text-center">
-            <div>Terminal Error</div>
-            <div className="text-sm mt-2">{error}</div>
+          <div className="max-w-sm px-6 text-center">
+            <p className="label text-danger">Terminal failed to start</p>
+            <p className="mt-3 font-mono text-xs leading-relaxed text-ink-muted">
+              {error}
+            </p>
+            {/* Retrying is not the destructive act here — the failure was.
+                This was a solid red `bg-red-600` fill, which read as "press
+                this to break something". */}
             <button
+              type="button"
               onClick={() => {
                 // Reset error state and retry initialization
                 setError(null);
@@ -830,9 +836,9 @@ const TerminalComponent = forwardRef<TerminalRef, TerminalProps>(
                 setIsReady(false);
                 initializeTerminal();
               }}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              className="mt-5 inline-flex h-8 items-center rounded-md border border-edge px-3 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-edge-strong hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              Retry
+              Try again
             </button>
           </div>
         </div>

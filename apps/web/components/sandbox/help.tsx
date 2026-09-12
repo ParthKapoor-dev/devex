@@ -1,4 +1,31 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useModifierKey } from "@/hooks/use-modifier-key";
+
+/**
+ * The keyboard shortcut reference.
+ *
+ * The other panel that never made it onto the design system: a
+ * `border-dashed border-2 border-zinc-400` frame — a light grey dashed box in
+ * a dark IDE — with `border-zinc-600` key caps, `text-zinc-500` labels, and an
+ * emoji per section heading.
+ *
+ * Two real bugs went with the styling:
+ *
+ * - **`navigator.platform` was read during render.** It does not exist on the
+ *   server, so this line threw on any render that was not client-only, and it
+ *   is deprecated besides. It was also printing the raw UA platform string to
+ *   the user as if that were useful.
+ * - **The Escape handler re-subscribed on every render**, because the effect
+ *   listed a handler redeclared in the component body as its dependency.
+ *
+ * Shortcuts are written with a `mod` token rather than a literal `Ctrl`, so
+ * the sheet shows `⌘` on Apple keyboards and `Ctrl` everywhere else — the
+ * handlers accept either, and the sheet used to tell everyone `Ctrl`.
+ */
 
 interface ShortcutKeysPopupProps {
   onClose: () => void;
@@ -6,7 +33,6 @@ interface ShortcutKeysPopupProps {
 
 interface ShortcutCategory {
   title: string;
-  icon: string;
   shortcuts: {
     keys: string;
     description: string;
@@ -14,211 +40,183 @@ interface ShortcutCategory {
   }[];
 }
 
+const EXIT_MS = 150;
+
+const CATEGORIES: ShortcutCategory[] = [
+  {
+    title: "General",
+    shortcuts: [
+      { keys: "mod+Shift+P", description: "Editor settings" },
+      { keys: "mod+1", description: "Focus editor" },
+      { keys: "mod+2", description: "Focus terminal" },
+      { keys: "Escape", description: "Back to the editor" },
+      { keys: "?", description: "This sheet" },
+    ],
+  },
+  {
+    title: "Panels",
+    shortcuts: [
+      { keys: "mod+B", description: "Toggle the sidebar" },
+      { keys: "mod+Shift+E", description: "Focus the explorer" },
+      { keys: "mod+`", description: "Toggle the terminal" },
+      { keys: "mod+Shift+Y", description: "Toggle the output panel" },
+    ],
+  },
+  {
+    title: "Terminal",
+    shortcuts: [
+      {
+        keys: "mod+Shift+C",
+        description: "Clear the buffer",
+        context: "terminal",
+      },
+      {
+        keys: "mod+Shift+R",
+        description: "Restart the session",
+        context: "terminal",
+      },
+      {
+        keys: "mod+Shift+F",
+        description: "Search the buffer",
+        context: "terminal",
+      },
+    ],
+  },
+  {
+    title: "Editor",
+    shortcuts: [
+      { keys: "mod+Shift+I", description: "Format the document" },
+      { keys: "mod+Shift+K", description: "Delete the line" },
+      { keys: "mod+D", description: "Add the next match to the selection" },
+      { keys: "mod+L", description: "Select the line" },
+      { keys: "mod+/", description: "Toggle a line comment" },
+      { keys: "Alt+↑ ↓", description: "Move the line" },
+      { keys: "Shift+Alt+↑ ↓", description: "Copy the line" },
+      { keys: "mod+F", description: "Find" },
+      { keys: "mod+H", description: "Replace" },
+      { keys: "mod+G", description: "Go to line" },
+      { keys: "F2", description: "Rename the symbol" },
+      { keys: "mod+.", description: "Quick fix" },
+    ],
+  },
+];
+
 export default function ShortcutKeysPopup({ onClose }: ShortcutKeysPopupProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const modifier = useModifierKey();
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
-      onClose();
-    }
-  };
+  useEffect(() => setIsMounted(true), []);
 
-  useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [handleKeyDown]);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsMounted(false);
-    setTimeout(onClose, 300);
-  };
+    window.setTimeout(onClose, EXIT_MS);
+  }, [onClose]);
 
-  const shortcutCategories: ShortcutCategory[] = [
-    {
-      title: "General",
-      icon: "💻",
-      shortcuts: [
-        { keys: "Ctrl+Shift+P", description: "Open Settings" },
-        { keys: "Escape", description: "Focus Editor" },
-        { keys: "Ctrl+1", description: "Focus Editor" },
-        { keys: "Ctrl+2", description: "Focus Terminal" },
-      ],
-    },
-    {
-      title: "Sidebar & Panels",
-      icon: "📂",
-      shortcuts: [
-        { keys: "Ctrl+B", description: "Toggle Sidebar" },
-        { keys: "Ctrl+Shift+E", description: "Focus Explorer" },
-        { keys: "Ctrl+`", description: "Toggle Terminal" },
-        { keys: "Ctrl+Shift+Y", description: "Toggle Output Panel" },
-      ],
-    },
-    {
-      title: "Terminal",
-      icon: "⚡",
-      shortcuts: [
-        {
-          keys: "Ctrl+Shift+C",
-          description: "Clear Terminal",
-          context: "terminal",
-        },
-        {
-          keys: "Ctrl+Shift+R",
-          description: "Reset Terminal",
-          context: "terminal",
-        },
-        {
-          keys: "Ctrl+Shift+F",
-          description: "Search in Terminal",
-          context: "terminal",
-        },
-      ],
-    },
-    {
-      title: "Editor",
-      icon: "📝",
-      shortcuts: [
-        { keys: "Ctrl+Shift+I", description: "Format Document" },
-        { keys: "Ctrl+Shift+K", description: "Delete Current Line" },
-        { keys: "Ctrl+D", description: "Add Selection to Next Find Match" },
-        { keys: "Ctrl+L", description: "Select Current Line" },
-        { keys: "Ctrl+/", description: "Toggle Line Comment" },
-        { keys: "Ctrl+Shift+/", description: "Toggle Block Comment" },
-        { keys: "Alt+↑/↓", description: "Move Line Up/Down" },
-        { keys: "Shift+Alt+↑/↓", description: "Copy Line Up/Down" },
-        { keys: "Ctrl+F", description: "Find" },
-        { keys: "Ctrl+H", description: "Replace" },
-        { keys: "Ctrl+G", description: "Go to Line" },
-        { keys: "Ctrl+Shift+O", description: "Go to Symbol" },
-        { keys: "F2", description: "Rename Symbol" },
-        { keys: "Ctrl+Space", description: "Trigger Suggestion" },
-        { keys: "Ctrl+.", description: "Quick Fix" },
-      ],
-    },
-  ];
+  // One subscription for the life of the sheet.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [handleClose]);
 
-  const renderShortcutKey = (keys: string) => {
-    return keys.split("+").map((key, index, array) => (
-      <span key={index} className="inline-flex items-center">
-        <kbd className="px-2 py-1 text-xs font-mono bg-raised border border-zinc-600 rounded shadow-sm">
-          {key}
-        </kbd>
-        {index < array.length - 1 && (
-          <span className="mx-1 text-zinc-500 text-xs">+</span>
-        )}
-      </span>
-    ));
-  };
+  const total = CATEGORIES.reduce((sum, c) => sum + c.shortcuts.length, 0);
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex h-screen w-full items-center justify-center transition-all duration-300 ${
-        isMounted ? "bg-canvas/40 backdrop-blur-md" : "bg-transparent"
-      }`}
-    >
-      <div
-        className={`w-full max-w-4xl border-dashed border-2 border-zinc-400 rounded-none shadow-none bg-surface transition-all duration-300 max-h-[90vh] overflow-hidden ${
-          isMounted ? "scale-100 opacity-100" : "scale-90 opacity-0"
-        }`}
-      >
-        <div className="border-b border-dashed pb-4 flex flex-row items-center justify-between p-6">
-          <div className="flex items-center gap-2">
-            <span className="text-brand">⌨️</span>
-            <span className="text-sm font-mono">Keyboard Shortcuts</span>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-raised transition-colors rounded"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close shortcuts"
+        onClick={handleClose}
+        className={cn(
+          "absolute inset-0 cursor-default transition-colors duration-[--duration-normal]",
+          isMounted ? "bg-canvas/70 backdrop-blur-sm" : "bg-transparent",
+        )}
+      />
 
-        <div className="font-mono p-6 overflow-y-auto max-h-[calc(85vh-140px)]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {shortcutCategories.map((category) => (
-              <div
-                key={category.title}
-                className="border border-dashed border-edge p-4 bg-raised/50"
-              >
-                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-dashed border-edge">
-                  <span className="text-brand">{category.icon}</span>
-                  <span className="text-sm font-medium text-brand">
-                    {category.title}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {category.shortcuts.map((shortcut, index) => (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Keyboard shortcuts"
+        className={cn(
+          "relative flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden",
+          "rounded-lg border border-edge bg-surface",
+          "shadow-[0_24px_64px_-24px_rgb(0_0_0/0.9)]",
+          "transition-[opacity,transform] duration-[--duration-normal] ease-[--ease-out-circ]",
+          isMounted ? "scale-100 opacity-100" : "scale-95 opacity-0",
+        )}
+      >
+        <header className="flex shrink-0 items-center gap-3 border-b border-edge px-3 py-2">
+          <span className="label text-ink">Keyboard</span>
+          <span className="font-mono text-xs tabular-nums text-ink-subtle">
+            {total}
+          </span>
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label="Close shortcuts"
+            className="ml-auto rounded-sm p-1 text-ink-subtle transition-colors duration-[--duration-fast] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+          >
+            <X className="size-4" />
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="grid gap-px bg-edge sm:grid-cols-2">
+            {CATEGORIES.map((category) => (
+              <section key={category.title} className="bg-canvas p-4">
+                <h3 className="label mb-3 text-ink-subtle">{category.title}</h3>
+                <dl className="space-y-2">
+                  {category.shortcuts.map((shortcut) => (
                     <div
-                      key={index}
-                      className="flex items-center justify-between gap-4 text-xs"
+                      key={shortcut.keys}
+                      className="flex items-baseline justify-between gap-4"
                     >
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="text-ink-muted">
-                          {shortcut.description}
-                        </span>
-                        {shortcut.context && (
-                          <span className="text-zinc-500 text-xs px-2 py-1 bg-raised border border-zinc-600 rounded">
+                      <dt className="min-w-0 text-sm text-ink-muted">
+                        {shortcut.description}
+                        {shortcut.context ? (
+                          <span className="ml-2 font-mono text-[10px] text-ink-subtle">
                             {shortcut.context}
                           </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {renderShortcutKey(shortcut.keys)}
-                      </div>
+                        ) : null}
+                      </dt>
+                      <dd className="flex shrink-0 items-center gap-1">
+                        <Keys keys={shortcut.keys} modifier={modifier} />
+                      </dd>
                     </div>
                   ))}
-                </div>
-              </div>
+                </dl>
+              </section>
             ))}
           </div>
-
-          {/* Command Palette Style Status */}
-          <div className="mt-6 pt-4 border-t border-dashed border-edge">
-            <div className="flex items-center gap-2">
-              <span className="text-brand">$</span>
-              <span className="text-sm">shortcuts.getAll()</span>
-            </div>
-            <div className="pl-6 mt-2 text-xs text-ink-subtle flex flex-col gap-1">
-              <div>platform: {navigator.platform}</div>
-              <div>
-                total shortcuts:{" "}
-                {shortcutCategories.reduce(
-                  (acc, cat) => acc + cat.shortcuts.length,
-                  0,
-                )}
-              </div>
-              <div>context-aware: enabled</div>
-              <div className="flex items-center gap-1">
-                tip: Use
-                <kbd className="px-1 py-0.5 bg-raised border border-zinc-600 rounded text-xs mx-1">
-                  Ctrl+Shift+P
-                </kbd>
-                to access settings
-              </div>
-            </div>
-          </div>
         </div>
+
+        <footer className="shrink-0 border-t border-edge px-4 py-2.5 font-mono text-[11px] text-ink-subtle">
+          Shortcuts marked{" "}
+          <span className="text-ink-muted">{"{context}"}</span> only fire while
+          that panel has focus.
+        </footer>
       </div>
     </div>
+  );
+}
+
+function Keys({ keys, modifier }: { keys: string; modifier: string }) {
+  const parts = keys.split("+");
+
+  return (
+    <>
+      {parts.map((part, index) => (
+        <span key={`${part}-${index}`} className="inline-flex items-center">
+          {index > 0 ? (
+            <span className="mx-0.5 text-[10px] text-ink-subtle">+</span>
+          ) : null}
+          <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-edge bg-raised px-1.5 font-mono text-[10px] leading-none text-ink-muted">
+            {part === "mod" ? modifier : part}
+          </kbd>
+        </span>
+      ))}
+    </>
   );
 }

@@ -95,29 +95,10 @@ const Editor = ({
     }
   }, [code]);
 
-  // Supported languages and themes
-  const languages = useMemo(
-    () => [
-      "javascript",
-      "typescript",
-      "python",
-      "java",
-      "cpp",
-      "c",
-      "csharp",
-      "php",
-      "ruby",
-      "go",
-      "rust",
-      "swift",
-      "kotlin",
-      "html",
-      "css",
-      "json",
-    ],
-    [],
-  );
-
+  // An eighteen-entry `languages` list used to live here. It was passed to the
+  // settings panel, destructured there, and never rendered — the editor takes
+  // its language from the open file's extension, which is the only correct
+  // source for it.
   const themes: Theme[] = useMemo(
     () => [
       { value: EDITOR_THEME_NAME, label: "DevEx" },
@@ -430,7 +411,6 @@ const Editor = ({
           fontSize={fontSize}
           wordWrap={wordWrap}
           minimap={minimap}
-          languages={languages}
           themes={themes}
           onThemeChange={handleThemeChange}
           onFontSizeChange={handleFontSizeChange}

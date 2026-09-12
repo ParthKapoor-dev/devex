@@ -1,24 +1,32 @@
-import {
-  Settings,
-  X,
-  Type,
-  Palette,
-  Monitor,
-  Eye,
-  Code2,
-  Maximize2,
-  Download,
-  Upload,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { useEffect, useState, useRef } from "react";
-import ModernCheckbox from "@/components/ui/modern-checkbox";
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Download, Upload, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/**
+ * Editor settings.
+ *
+ * This was one of the panels that never made it onto the design system in the
+ * first pass, and it showed: a `border-dashed border-2 border-zinc-400` frame
+ * — a *light* grey dashed box inside a dark IDE — `focus:ring-emerald-500` on
+ * both selects, `bg-zinc-700` / `border-zinc-600` / `hover:bg-zinc-600` on the
+ * controls, and a range slider whose thumb was `#10b981` with a green glow,
+ * all from the brand before last.
+ *
+ * Three things were wrong beyond the colours:
+ *
+ * - **The footer had two buttons that did the same thing.** `$ apply --changes`
+ *   and a red `destructive` "Close" both called `handleClose`. Every setting
+ *   here applies the moment it changes, so "apply" was describing work that
+ *   had already happened, and dismissing a settings sheet is not destructive.
+ * - **The Escape handler re-subscribed on every render.** `handleKeyDown` was
+ *   redeclared in the component body and listed as the effect's dependency.
+ * - `languages` was passed in, destructured, and never used.
+ *
+ * The shape is flatter now, to match the rest of the IDE: rows of label and
+ * control separated by hairlines, no cards inside cards.
+ */
 
 interface Theme {
   value: string;
@@ -26,7 +34,6 @@ interface Theme {
 }
 
 interface SettingsPopupProps {
-  // Current settings
   isFullScreen: boolean;
   language: string;
   theme: string;
@@ -34,11 +41,8 @@ interface SettingsPopupProps {
   wordWrap: "off" | "on" | "wordWrapColumn";
   minimap: boolean;
 
-  // Available options
-  languages: string[];
   themes: Theme[];
 
-  // Handlers
   onThemeChange: (theme: string) => void;
   onFontSizeChange: (fontSize: number) => void;
   onWordWrapChange: (wordWrap: "off" | "on" | "wordWrapColumn") => void;
@@ -49,6 +53,15 @@ interface SettingsPopupProps {
   onUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
+const EXIT_MS = 150;
+
+const SELECT_CLASS = cn(
+  "h-7 min-w-36 rounded-sm border border-edge bg-canvas px-2",
+  "font-mono text-xs text-ink",
+  "transition-colors duration-[--duration-fast]",
+  "focus:border-brand focus:outline-none",
+);
+
 export default function EditorSettingsPopup({
   language,
   isFullScreen,
@@ -56,7 +69,6 @@ export default function EditorSettingsPopup({
   fontSize,
   wordWrap,
   minimap,
-  languages,
   themes,
   onThemeChange,
   onFontSizeChange,
@@ -69,31 +81,26 @@ export default function EditorSettingsPopup({
 }: SettingsPopupProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [localFontSize, setLocalFontSize] = useState(fontSize);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [busy, setBusy] = useState<"download" | "upload" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
-      onClose();
-    }
-  };
+  useEffect(() => setIsMounted(true), []);
 
-  useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [handleKeyDown]);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsMounted(false);
-    setTimeout(onClose, 300); // Match animation duration
-  };
+    window.setTimeout(onClose, EXIT_MS);
+  }, [onClose]);
+
+  // One subscription for the life of the panel. The previous version listed a
+  // handler that was recreated on every render as its dependency, so this
+  // listener was torn down and re-added on every keystroke of the font slider.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [handleClose]);
 
   const handleFontSizeChange = (value: number) => {
     setLocalFontSize(value);
@@ -102,244 +109,283 @@ export default function EditorSettingsPopup({
 
   const handleDownload = async () => {
     try {
-      setIsDownloading(true);
+      setBusy("download");
       await onFileDownload();
     } catch (error) {
       console.error("Download failed:", error);
     } finally {
-      setIsDownloading(false);
+      setBusy(null);
     }
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
   };
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     try {
-      setIsUploading(true);
+      setBusy("upload");
       await onUpload(event);
     } catch (error) {
       console.error("Upload failed:", error);
     } finally {
-      setIsUploading(false);
-      // Reset the input value to allow uploading the same file again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleFullScreenToggle = () => {
-    try {
-      onFullScreenMode();
-    } catch (error) {
-      console.error("Fullscreen toggle failed:", error);
+      setBusy(null);
+      // Reset so the same file can be picked again.
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex h-screen w-full items-center justify-center transition-all duration-300 ${
-        isMounted ? "bg-canvas/40 backdrop-blur-md" : "bg-transparent"
-      }`}
-    >
-      <Card
-        className={`w-full max-w-lg border-dashed border-2 border-zinc-400 rounded-none shadow-none bg-surface transition-all duration-300 max-h-[80vh] overflow-scroll ${
-          isMounted ? "scale-100 opacity-100" : "scale-90 opacity-0"
-        }`}
-      >
-        <CardHeader className="border-b border-dashed pb-4 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-brand" />
-            <span className="text-sm font-mono">Editor Configuration</span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={handleClose}>
-            <X className="h-5 w-5" />
-          </Button>
-        </CardHeader>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close settings"
+        onClick={handleClose}
+        className={cn(
+          "absolute inset-0 cursor-default transition-colors duration-[--duration-normal]",
+          isMounted ? "bg-canvas/70 backdrop-blur-sm" : "bg-transparent",
+        )}
+      />
 
-        <CardContent className="font-mono flex-col flex gap-6">
-          {/* Theme Selection */}
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <Palette className="h-4 w-4 text-brand" />
-              <span className="text-sm font-medium">Theme</span>
-            </div>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Editor settings"
+        className={cn(
+          "relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden",
+          "rounded-lg border border-edge bg-surface",
+          "shadow-[0_24px_64px_-24px_rgb(0_0_0/0.9)]",
+          "transition-[opacity,transform] duration-[--duration-normal] ease-[--ease-out-circ]",
+          isMounted ? "scale-100 opacity-100" : "scale-95 opacity-0",
+        )}
+      >
+        <header className="flex shrink-0 items-center gap-2 border-b border-edge px-3 py-2">
+          <span className="label text-ink">Editor</span>
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label="Close settings"
+            className="ml-auto rounded-sm p-1 text-ink-subtle transition-colors duration-[--duration-fast] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+          >
+            <X className="size-4" />
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <Row label="Theme">
             <select
+              aria-label="Editor theme"
               value={theme}
               onChange={(e) => onThemeChange(e.target.value)}
-              className="w-full bg-raised border border-edge rounded-none px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className={SELECT_CLASS}
             >
-              {themes.map((themeOption) => (
-                <option key={themeOption.value} value={themeOption.value}>
-                  {themeOption.label}
+              {themes.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
-          </div>
+          </Row>
 
-          {/* Font Size */}
-          <div className="flex gap-4 flex-col">
-            <div className="flex items-center gap-2">
-              <Type className="h-4 w-4 text-brand" />
-              <span className="text-sm font-medium">Font Size</span>
-              <span className="text-xs text-ink-subtle">({localFontSize}px)</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-ink-subtle">10</span>
-              <input
-                type="range"
-                min="10"
-                max="24"
-                value={localFontSize}
-                onChange={(e) => handleFontSizeChange(parseInt(e.target.value))}
-                className="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer slider"
-              />
-              <span className="text-xs text-ink-subtle">24</span>
-            </div>
-          </div>
-
-          {/* Word Wrap */}
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <Monitor className="h-4 w-4 text-brand" />
-              <span className="text-sm font-medium">Word Wrap</span>
-            </div>
+          <Row label="Word wrap">
             <select
+              aria-label="Word wrap"
               value={wordWrap}
               onChange={(e) =>
                 onWordWrapChange(
                   e.target.value as "off" | "on" | "wordWrapColumn",
                 )
               }
-              className="w-full bg-raised border border-edge rounded-none px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className={SELECT_CLASS}
             >
               <option value="off">Off</option>
               <option value="on">On</option>
-              <option value="wordWrapColumn">Word Wrap Column</option>
+              <option value="wordWrapColumn">At column</option>
             </select>
-          </div>
+          </Row>
 
-          {/* Minimap Toggle */}
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-brand" />
-              <span className="text-sm font-medium">Minimap</span>
+          <Row label="Font size" value={`${localFontSize}px`}>
+            <div className="flex w-36 items-center gap-2">
+              <span className="font-mono text-[10px] text-ink-subtle">10</span>
+              <input
+                type="range"
+                aria-label="Font size"
+                min={10}
+                max={24}
+                value={localFontSize}
+                onChange={(e) => handleFontSizeChange(Number(e.target.value))}
+                // `accent-color` gets the native thumb and fill in one
+                // property, which replaces the styled-jsx block that was
+                // painting the thumb `#10b981` with a green glow.
+                className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-edge-strong accent-[var(--color-brand)]"
+              />
+              <span className="font-mono text-[10px] text-ink-subtle">24</span>
             </div>
-            <ModernCheckbox
+          </Row>
+
+          <Row label="Minimap">
+            <Toggle
               checked={minimap}
-              onChange={(e) => onMinimapChange(e.target.checked)}
+              onChange={onMinimapChange}
+              label="Minimap"
             />
-          </div>
+          </Row>
 
-          {/* Fullscreen Mode Toggle */}
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <Maximize2 className="h-4 w-4 text-brand" />
-              <span className="text-sm font-medium">Fullscreen Mode</span>
-            </div>
-            <ModernCheckbox
+          <Row label="Full screen">
+            <Toggle
               checked={isFullScreen}
-              onChange={handleFullScreenToggle}
+              onChange={() => onFullScreenMode()}
+              label="Full screen"
             />
-          </div>
+          </Row>
 
-          {/* File Operations */}
-          <div className="flex gap-4 flex-col">
-            <div className="flex items-center gap-2">
-              <Code2 className="h-4 w-4 text-brand" />
-              <span className="text-sm font-medium">File Operations</span>
-            </div>
+          <Row label="File">
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+              <SmallButton
                 onClick={handleDownload}
-                disabled={isDownloading}
-                className="flex-1 rounded-none border-dashed border-zinc-600 hover:bg-zinc-700 hover:border-brand transition-colors"
+                disabled={busy !== null}
+                icon={Download}
               >
-                <Download className="h-4 w-4 mr-2" />
-                {isDownloading ? "Downloading..." : "Download"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleUploadClick}
-                disabled={isUploading}
-                className="flex-1 rounded-none border-dashed border-zinc-600 hover:bg-zinc-700 hover:border-brand transition-colors"
+                {busy === "download" ? "Saving" : "Download"}
+              </SmallButton>
+              <SmallButton
+                onClick={() => fileInputRef.current?.click()}
+                disabled={busy !== null}
+                icon={Upload}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                {isUploading ? "Uploading..." : "Upload"}
-              </Button>
+                {busy === "upload" ? "Sending" : "Upload"}
+              </SmallButton>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileUpload}
-              className="hidden"
-              accept=".txt,.js,.jsx,.ts,.tsx,.py,.html,.css,.json,.md,.xml,.yaml,.yml,.sql,.sh,.bat,.cpp,.c,.java,.php,.rb,.go,.rs,.swift,.kt,.scala,.clj,.elm,.hs,.ml,.fs,.pl,.r,.m,.dart,.vue,.svelte"
-              aria-label="Upload file"
-            />
-          </div>
+          </Row>
 
-          {/* Status Display */}
-          <div className="mt-6 pt-4 border-t border-dashed border-edge">
-            <div className="flex items-center gap-2">
-              <span className="text-brand">$</span>
-              <span className="text-sm">editor.getConfiguration()</span>
-            </div>
-            <div className="pl-6 mt-2 text-xs text-ink-subtle flex flex-col gap-1">
-              <div>language: {language}</div>
-              <div>theme: {themes.find((t) => t.value === theme)?.label}</div>
-              <div>fontSize: {localFontSize}px</div>
-              <div>wordWrap: {wordWrap}</div>
-              <div>minimap: {minimap ? "enabled" : "disabled"}</div>
-              <div>fullscreen: {isFullScreen ? "enabled" : "disabled"}</div>
-            </div>
-          </div>
-        </CardContent>
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileUpload}
+            className="hidden"
+            aria-label="Upload file"
+          />
 
-        <CardFooter className="pt-6 border-t border-dashed mt-1 flex gap-4">
-          <Button
-            variant="outline"
-            className="w-full rounded-none border-dashed hover:bg-zinc-600"
+          {/* What the editor is currently configured to do, in the voice the
+              rest of the IDE uses. */}
+          <dl className="space-y-1.5 border-t border-edge px-4 py-4 font-mono text-xs">
+            {[
+              ["language", language],
+              ["theme", themes.find((t) => t.value === theme)?.label ?? theme],
+              ["fontSize", `${localFontSize}px`],
+              ["wordWrap", wordWrap],
+              ["minimap", minimap ? "on" : "off"],
+              ["fullscreen", isFullScreen ? "on" : "off"],
+            ].map(([key, value]) => (
+              <div key={key} className="flex justify-between gap-4">
+                <dt className="text-ink-subtle">{key}</dt>
+                <dd className="text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        {/* One button. Everything here applies the moment it changes, so the
+            footer's "$ apply --changes" was describing work already done, and
+            its red sibling made dismissing look destructive. */}
+        <footer className="shrink-0 border-t border-edge p-3">
+          <button
+            type="button"
             onClick={handleClose}
+            className="inline-flex h-8 w-full items-center justify-center rounded-md border border-edge text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-edge-strong hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            $ apply --changes
-          </Button>
-          <Button
-            variant="destructive"
-            className="w-full rounded-none"
-            onClick={handleClose}
-          >
-            Close
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <style jsx>{`
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #10b981;
-          cursor: pointer;
-          box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-        }
-        .slider::-moz-range-thumb {
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #10b981;
-          cursor: pointer;
-          border: none;
-          box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-        }
-      `}</style>
+            Done
+          </button>
+        </footer>
+      </div>
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+function Row({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-edge px-4 py-3">
+      <span className="text-sm text-ink">
+        {label}
+        {value ? (
+          <span className="ml-2 font-mono text-xs text-ink-subtle">
+            {value}
+          </span>
+        ) : null}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-[--duration-fast]",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        checked ? "border-brand bg-brand" : "border-edge bg-canvas",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute top-1/2 size-3.5 -translate-y-1/2 rounded-full",
+          "transition-[left,background-color] duration-[--duration-fast] ease-[--ease-out-circ]",
+          checked ? "left-[18px] bg-brand-fg" : "left-0.5 bg-ink-subtle",
+        )}
+      />
+    </button>
+  );
+}
+
+function SmallButton({
+  onClick,
+  disabled,
+  icon: Icon,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex h-7 items-center gap-1.5 rounded-sm border border-edge px-2.5",
+        "text-xs text-ink-muted transition-colors duration-[--duration-fast]",
+        "hover:border-edge-strong hover:bg-raised hover:text-ink",
+        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+        "disabled:cursor-not-allowed disabled:opacity-40",
+      )}
+    >
+      <Icon className="size-3" />
+      {children}
+    </button>
   );
 }
