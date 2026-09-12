@@ -2,53 +2,47 @@ import { NextResponse } from "next/server";
 import { getDocs } from "@/lib/docs/source";
 
 /**
- * Docs search for the global command menu.
+ * The docs index, for the global command palette.
  *
- * The in-page docs search (`components/docs/search`) matches entirely on the
- * client against an index passed down from the layout. The command menu is
- * mounted on every route, though, so shipping the same index into the root
- * layout would put the whole corpus in the bundle for visitors who never open
- * the docs. This endpoint keeps it server-side instead.
+ * ## Why this is not a search endpoint any more
+ *
+ * It used to take a `?q=` and score server-side. It also declared
+ * `dynamic = "force-static"`, which makes `request.url` carry no search params
+ * at all — so every call scored the empty string, took the `else return null`
+ * branch for every document, and answered `{"results":[]}`. Docs search in the
+ * command palette had never returned anything.
+ *
+ * Rather than make the route dynamic — a server round trip per keystroke, for
+ * a corpus of seven pages — it now serves the whole index once. The palette
+ * fetches it lazily the first time it is opened and scores on the client, so
+ * typing costs nothing and the response is cacheable forever.
+ *
+ * The in-page docs search (`components/docs/search`) still gets its index
+ * directly from the layout; it is only ever mounted under /docs, so it does
+ * not need this. The palette is mounted on every route, which is why the
+ * corpus must not go in the root layout's bundle.
  */
 export const dynamic = "force-static";
 
-export async function GET(request: Request) {
-  const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
+export interface DocsIndexEntry {
+  title: string;
+  description: string;
+  url: string;
+  section: string;
+  /** Enough body text to match on without shipping the whole corpus. */
+  excerpt: string;
+}
 
-  if (query.length < 2) {
-    return NextResponse.json({ results: [] });
-  }
-
-  const terms = query.toLowerCase().split(/\s+/);
-
-  const results = getDocs()
+export async function GET() {
+  const entries: DocsIndexEntry[] = getDocs()
     .filter((doc) => !doc.frontmatter.draft)
-    .map((doc) => {
-      const title = doc.frontmatter.title.toLowerCase();
-      const description = doc.frontmatter.description.toLowerCase();
-      const body = doc.plain.toLowerCase();
+    .map((doc) => ({
+      title: doc.frontmatter.title,
+      description: doc.frontmatter.description,
+      url: doc.url,
+      section: doc.frontmatter.section ?? "Guides",
+      excerpt: doc.plain.slice(0, 600),
+    }));
 
-      let score = 0;
-      for (const term of terms) {
-        if (title.startsWith(term)) score += 50;
-        else if (title.includes(term)) score += 30;
-        else if (description.includes(term)) score += 10;
-        else if (body.includes(term)) score += 3;
-        else return null;
-      }
-
-      return {
-        score,
-        name: doc.frontmatter.title,
-        path: doc.url,
-        type: "file" as const,
-        description: doc.frontmatter.description,
-      };
-    })
-    .filter((hit): hit is NonNullable<typeof hit> => hit !== null)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
-    .map(({ score: _score, ...rest }) => rest);
-
-  return NextResponse.json({ results });
+  return NextResponse.json({ docs: entries });
 }
