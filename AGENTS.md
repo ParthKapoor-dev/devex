@@ -80,12 +80,27 @@ component code), the animation/performance rules, MDX documentation authoring,
 and SEO. The frontend's distinctive animated look is a product asset — the brief
 is to keep it striking while keeping it cheap, not to simplify it away.
 
-Two things that bite immediately:
+The visual direction is **Graphite + Signal**: true-neutral surfaces at zero
+chroma with a single amber accent, rationed to roughly 1-2% of the pixels on
+screen. The accent means one thing — *this is the thing you are on*. Colour that
+is not the accent belongs in the backdrop, not the chrome.
+
+Things that bite immediately:
 
 - `apps/web` builds on **webpack, not Turbopack** (`npm run dev` omits the
   flag). MDX plugins cannot cross Turbopack's loader boundary on Next 15.
+- **Do not run `npm run build` while `npm run dev` is running.** They share
+  `.next`; the build overwrites artifacts the dev server has open and it fails
+  with a `MODULE_NOT_FOUND` in `_document.js` that looks like a missing
+  dependency but is not.
 - Docs are authored MDX in `apps/web/content/docs/`, not scraped READMEs. The
   old GitHub-scraping pipeline is deleted; do not reintroduce it.
+- Canvas, WebGL, Satori and the manifest cannot resolve `var()` or `oklch()`.
+  Import hex from `apps/web/lib/tokens.ts`.
+- The editor (Monaco) and the docs (Shiki) share one syntax palette. Change
+  `components/sandbox/Editor/theme.ts` and `lib/docs/shiki-theme.ts` together.
+- **The footer card is not to be changed.** Its treatment is the `glass`
+  utility; leave both alone.
 
 ## Transactional email (`apps/core/internal/email`)
 

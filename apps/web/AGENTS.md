@@ -49,22 +49,97 @@ in component code.**
 | Hairline | `border-edge` |
 | Stronger line | `border-edge-strong` |
 | Brand accent | `text-brand`, `bg-brand`, ramp `brand-50`…`brand-950` |
+| On the accent | `text-brand-fg` |
 | Status | `success`, `warning`, `danger`, `info` |
 | Terminal chrome | `term-bg`, `term-chrome`, `term-edge`, `term-ink`, `term-muted`, `term-accent` |
 
+### Graphite + Signal: the accent is rationed
+
+The palette is near-monochrome — surfaces are true neutral at **zero chroma** —
+with a single **amber** accent. That only works if the accent stays scarce.
+
+**Amber means one thing: *this is the thing you are on*.** The primary action,
+the live state, the selected row, the cursor. Aim for roughly **1–2% of the
+pixels on screen**. If you are reaching for `text-brand` a third time on one
+screen, the answer is `text-ink` or `text-ink-muted`.
+
+Things that are explicitly *not* the accent's job:
+
+- **Decoration.** No amber borders on every card, no amber icon on every list
+  item, no gradient-filled headings.
+- **Status.** `success`, `warning`, `danger`, `info` exist for that. Note
+  `warning` sits at a yellower hue than the brand on purpose — amber-on-amber
+  would make "provisioning" indistinguishable from "primary action".
+- **Terminal output.** The 16 ANSI colours and `term-accent` follow shell
+  convention. Green means passed, red means failed. Do not rebrand them.
+
+Colour that is *not* the accent belongs in the backdrop. `SiteBackdrop` and
+`AppBackdrop` carry the expressiveness so the chrome can stay quiet.
+
 Two naming traps:
 
-- **`brand` is the emerald accent. `accent` is not.** `accent` keeps its shadcn
+- **`brand` is the amber accent. `accent` is not.** `accent` keeps its shadcn
   meaning — a subtle raised background for menu and dropdown hover — because a
   lot of vendored Radix code depends on it. Mapping `accent` to the brand colour
-  turns every dropdown row bright green.
+  turns every dropdown row bright amber.
 - Prefer the existing utilities over re-deriving an effect inline: `glass`,
-  `glow-brand`, `text-gradient-brand`, `surface-card`.
+  `glow-brand`, `surface-card`, and `label` for the uppercase-mono UI voice.
+  **Do not change `glass`** — it is the footer card's original treatment, which
+  the maintainer asked to keep as-is.
 
-Motion tokens: `--duration-fast|normal|slow|slower` and the easings
-`--ease-out-quad`, `--ease-out-expo`, `--ease-spring`. Write
-`duration-[--duration-normal]`, not a hardcoded `duration-200`, so retiming the
+### Colour outside CSS
+
+Canvas 2D, WebGL shaders, Satori (`next/og`) and the web manifest all parse
+colour by hand and **cannot resolve `var()` or `oklch()`**. Passing a token to
+`strokeStyle` silently paints black; passing one to a shader silently paints
+its fallback. Import the hex mirrors from **`lib/tokens.ts`** instead, and if
+you change a `--ds-*` value in globals.css, regenerate the matching entry
+there — nothing enforces it at build time.
+
+## Typography
+
+Three families, declared in `app/fonts.ts`. Do not add a fourth.
+
+| Role | Face | Utility |
+| --- | --- | --- |
+| Display — headlines, eyebrows | Space Grotesk | `font-display` |
+| Body and UI | Geist | `font-sans` (default) |
+| Code, terminal, paths, identifiers | Commit Mono | `font-mono` |
+
+- **`font-display` means a display face, not a second mono.** It used to point
+  at JetBrains Mono, and fifteen `<kbd>` and terminal call sites were relying on
+  that. They now use `font-mono`, which is what they meant.
+- Space Grotesk is display-only: x-height 0.486em, so it thins out below ~20px,
+  and it has **no italic** — `font-style: italic` synthesises a slant.
+- Weight on display type should not exceed 500. Bold display reads as dated.
+- next/font exposes these as `--font-*-face`, deliberately *not*
+  `--font-sans`/`--font-mono`. Those are Tailwind theme keys; if next/font wrote
+  them too, `--font-sans: var(--font-sans)` would resolve to itself and every
+  stack would collapse to the browser default.
+- The mono family name is hashed by next/font, so anything outside CSS that
+  needs it (Monaco, xterm) must read `mono.style.fontFamily` from
+  `app/fonts.ts`. A literal `"Commit Mono"` will not resolve.
+
+**The UI voice is the `label` utility** — uppercase mono at 0.08em tracking.
+Use it for eyebrows, column headers, status chips and section labels. It does
+more for the product's identity than colour does, and the mono is already
+loaded for code, so it is free.
+
+## Motion
+
+Tokens: `--duration-fast|normal|slow|slower` and the easings `--ease-out-quad`,
+`--ease-out-expo`, `--ease-out-circ`, `--ease-spring`. Write
+`duration-[--duration-fast]`, not a hardcoded `duration-200`, so retiming the
 app stays a one-line edit.
+
+Two tiers, and the distinction matters:
+
+- **`fast` (80ms)** — the response to a pointer: hover, press, focus. Short
+  enough to read as instant rather than as an animation.
+- **`normal` (150ms)** — something entering or leaving.
+
+`--ease-out-circ` is the workhorse for a click response: fast travel, hard
+settle.
 
 There is **no `tailwind.config.ts`** and there must not be one. Tailwind v4
 reads `@theme` in `globals.css`. A JS config that is not wired in with `@config`
@@ -119,6 +194,62 @@ Rules learned the hard way in this codebase:
 - `will-change` pins a compositor layer and costs memory. Apply the `animating`
   utility only while something is actually moving.
 
+### React render cost, which is the other half of "fast"
+
+Bundle size is not the problem on the signed-in surfaces; re-rendering is. The
+REPL page had all of the following at once, and they compound:
+
+- **A hook returning fresh function identities.** `useSocket`'s `emit`/`on`/
+  `off` were rebuilt every render, and every consumer listed `emit` in a
+  dependency array — so all the memoisation downstream was decorative. If a
+  hook returns callbacks, memoise them; reaching through a ref makes an empty
+  dependency list safe.
+- **Object literals as props.** `<Sandbox editor={{ ... }} />` is a new
+  reference every render, which makes `React.memo` below it a no-op. `useMemo`
+  the prop object, or pass the fields flat.
+- **State that is written and never read.** Three separate cases here
+  (`isLoading`, `isTablet`, `terminalSearchTerm`) — each one a setter firing on
+  every interaction to drive nothing. Grep before you add a flag.
+- **`resize` listeners that call setters.** They fire for every pixel of a drag.
+  Use `matchMedia` and listen for `change`, which fires only when a breakpoint
+  is crossed.
+- **A ref's `.current` in a dependency array.** It does nothing: React compares
+  it on render, but mutating a ref does not schedule one. Read it at call time.
+- **Work proportional to document size on every keystroke.** The editor ran a
+  full `diff_match_patch` over the whole file per character. Coalesce on an idle
+  window and flush on unmount.
+
+Anything below the IDE shell (`Editor`, `FileTree`, `Terminal`, `Output`) must
+stay `React.memo`'d — the shell owns eleven pieces of chrome state and every one
+of them would otherwise re-render Monaco and xterm.
+
+## The sandbox / IDE
+
+`/repl/[slug]` is held to a different standard from the marketing site. It is a
+tool someone keeps open all day.
+
+- **Flat.** No gradients, no blur, no shadows, no rounded cards. Surfaces
+  separate by a 1px `border-edge` and a step in lightness, the way an editor
+  does. `rounded-xs`/`rounded-sm` at most.
+- **Dense.** Rows around 22px, `font-mono` at `text-xs` for anything showing a
+  path, an identifier or a state.
+- **Quiet.** Amber marks the open file, the active panel and the cursor. Nothing
+  else.
+- Shared chrome lives in `components/sandbox/chrome.tsx`: `IconButton`,
+  `PanelTab`, `StatusBar`, `StatusItem`, `EmptyEditorState`. Use them rather
+  than restyling a `Button` at the call site.
+- **`IconButton` requires `label`** — it is enforced by the type. `title` alone
+  is a tooltip, not an accessible name, and screen readers announced the entire
+  IDE chrome as "button".
+- A state that has not started is **grey**, not red. Red is for something that
+  went wrong; painting "terminal not opened yet" as an error trains people to
+  ignore red.
+- The editor and docs share one syntax palette —
+  `components/sandbox/Editor/theme.ts` (Monaco) and `lib/docs/shiki-theme.ts`
+  (Shiki). **Change both together.** A reader goes from a docs snippet straight
+  into the editor, and a keyword coloured two different ways makes the product
+  feel assembled from parts.
+
 ## Documentation
 
 Docs are **authored MDX** under `content/docs/`. They are no longer scraped from
@@ -154,6 +285,14 @@ browser. Keep it that way.
 Write docs as prose that explains *why*, not a reformatted API dump. Say what
 breaks and what the constraint is — a reader on the page is usually already
 stuck.
+
+Code blocks use the theme in `lib/docs/shiki-theme.ts`, wired into
+`next.config.ts`. It is a **single** theme, not a light/dark pair: the docs are
+dark-only, and a pair makes `rehype-pretty-code` emit both sets of inline
+colours on every token.
+
+Affordances in the docs must not be hover-only. The copy button used to be
+`opacity-0` until `group-hover`, which means it did not exist on a phone.
 
 ## SEO
 
@@ -191,8 +330,33 @@ Deep component-library and stack research is written up outside the repo, at
 | `docs-mdx-seo.md` | MDX stack comparison + Next 15 SEO API reference |
 | `email.md` | Email client support matrix, dark mode, bulletproof patterns |
 
+A second, deeper round is under `~/code/sandbox/void/ui/v2/`:
+
+| File | Contents |
+| --- | --- |
+| `reactbits.md` | 171 components, full source for 16 backgrounds and 12 text animations |
+| `rareui-deep.md` | HookSidebar / FluidOrb / GridReveal in depth |
+| `trees-skiper-orbs.md` | File-tree library comparison, skiper26/67, thinking-orbs |
+| `design-references.md` | 18 dev-tool sites measured from shipped CSS; brand-hue census |
+| `refs-clerk-neon-supabase.md` | Elevation, borders, motion timing techniques |
+| `registries-auth.md` | 12 component registries, licences, per-component landmines |
+| `typography.md`, `typography-display.md` | Face selection, measured metrics, next/font snippets |
+| `sandbox-audit.md` | Structural + perf audit of the IDE, with file:line findings |
+| `protected-route-regressions.md` | Verified regression audit (all fixed) |
+
 Consult these before adding a component library — several carry per-component
 performance verdicts and known upstream bugs.
+
+**Licence landmines found in that survey**, so nobody re-discovers them:
+
+- **Origin UI relicensed MIT → AGPL-3.0.** Network copyleft against a hosted
+  IDE. Do not install it. (Nothing currently depends on it.)
+- **Aceternity ships no LICENSE**, and every auth block is paywalled (`401`).
+- **shadcnblocks' free tier is proprietary** and not redistributable in a
+  public repo.
+- **21st.dev's terms forbid off-platform retrieval.**
+- **watermelon `auth-09` does not exist** — `registry.watermelon.sh/r/*.json`
+  404s repo-wide, and the underlying block is a sign-up page with no tokens.
 
 One finding worth repeating because it is easy to get wrong: **WebGL-based
 avatar fallbacks do not work in lists.** Chrome caps live WebGL contexts at
