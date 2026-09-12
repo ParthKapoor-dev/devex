@@ -180,7 +180,7 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-xl font-semibold text-white">Your Repls</h2>
           <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -350,7 +350,7 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
             </div>
           )}
         </div>
-      </main>
+      </section>
 
       {/* Create Repl Modal */}
       {showCreateModal && (
