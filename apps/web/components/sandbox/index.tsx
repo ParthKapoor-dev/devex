@@ -55,6 +55,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { isTypingTarget } from "@/lib/keyboard";
 
 interface SandboxProps {
   editor: {
@@ -89,19 +90,6 @@ interface SandboxProps {
   replId: string;
   replName?: string | null;
   isConnected: boolean;
-}
-
-/**
- * True when the event target is somewhere the user is entering text.
- *
- * Covers xterm's textarea and Monaco's hidden input as well as ordinary
- * fields — both are real focusable inputs in the DOM.
- */
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 }
 
 const Sandbox: React.FC<SandboxProps> = ({

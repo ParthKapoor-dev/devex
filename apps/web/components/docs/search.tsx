@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ShortcutHint } from "@/components/ui/shortcut-hint";
+import { isTypingTarget } from "@/lib/keyboard";
 
 export interface SearchDoc {
   title: string;
@@ -62,20 +62,26 @@ export function DocsSearch({ docs }: { docs: SearchDoc[] }) {
 
   React.useEffect(() => setSelected(0), [query]);
 
-  // Cmd/Ctrl-K to open. metaKey on Apple platforms, ctrlKey elsewhere — testing
-  // both would make Ctrl-K steal the shortcut on macOS, where it means
-  // "delete to end of line" in every text field.
+  /**
+   * `/` to open, not Cmd/Ctrl-K.
+   *
+   * This used to bind the same chord as the command palette, which is mounted
+   * in the header on every page — so on the docs one keystroke opened both,
+   * stacked, and the palette (later in the DOM, higher z-index) took the
+   * focus. `/` is the long-standing convention for "search this site" and is
+   * the key nobody else here wants.
+   *
+   * A bare key needs the typing guard, or it eats the character the moment
+   * anyone types a path or a regex into a field.
+   */
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "k") return;
-      // `navigator.platform` is deprecated and lies inside some webviews.
-      // Testing both modifiers would make Ctrl-K steal the shortcut on macOS,
-      // where it means "delete to end of line" in every text field.
-      const isApple = /mac|iphone|ipad|ipod/i.test(navigator.userAgent);
-      if (!(isApple ? event.metaKey : event.ctrlKey)) return;
+      if (event.key !== "/") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (isTypingTarget(event.target)) return;
 
       event.preventDefault();
-      setOpen((value) => !value);
+      setOpen(true);
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -124,7 +130,7 @@ export function DocsSearch({ docs }: { docs: SearchDoc[] }) {
         <Search className="size-4" aria-hidden="true" />
         <span className="flex-1 text-left">Search docs</span>
         <kbd className="hidden rounded border border-edge px-1.5 py-0.5 font-mono text-[10px] text-ink-subtle sm:inline-block">
-          <ShortcutHint keyName="K" />
+          /
         </kbd>
       </button>
 
