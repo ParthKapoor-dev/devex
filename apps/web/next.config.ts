@@ -6,7 +6,11 @@ import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
 import { shikiTheme } from "./lib/docs/shiki-theme";
+import { linkHeaderValue } from "./lib/agents";
 import type { NextConfig } from "next";
+
+/** RFC 8288 discovery, computed once at config load. See lib/agents.ts. */
+const agentLinkHeader = linkHeaderValue();
 
 /**
  * NOTE: this app builds on webpack, not Turbopack, because of MDX.
@@ -47,6 +51,16 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/:path*`,
       },
+      // Markdown twins. `/docs/quickstart.md` is the same page as
+      // `/docs/quickstart`, served as text/markdown for anything that reads
+      // rather than renders.
+      //
+      // A rewrite and not a route, because a Next dynamic segment is a whole
+      // path component: there is no way to spell "[slug] followed by .md".
+      // `/index.md` and `/pricing.md` are real handlers and are matched first
+      // — an array returned from rewrites() is checked after filesystem
+      // routes, which is exactly the precedence this needs.
+      { source: "/docs/:slug*.md", destination: "/md/docs/:slug*" },
     ];
   },
 
@@ -84,6 +98,11 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+          // RFC 8288. Tells anything that fetched a page what else this site
+          // publishes for machines, without it having to guess at paths. The
+          // value is built from lib/agents.ts so it cannot drift from the
+          // documents it advertises.
+          { key: "Link", value: agentLinkHeader },
         ],
       },
     ];

@@ -9,7 +9,7 @@ import NumberFlow from "@number-flow/react";
 import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 import { token } from "@/lib/tokens";
-import { siteConfig } from "@/lib/site";
+import { PLANS, SPEC_ROWS, type Plan } from "@/lib/pricing";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { Section, HairlineGrid } from "./section";
 
@@ -30,72 +30,6 @@ import { Section, HairlineGrid } from "./section";
  * comparison needs no table. Units are the Kubernetes ones, because that is
  * what the limits genuinely are.
  */
-
-const SPEC_ROWS = [
-  "Workspaces",
-  "CPU each",
-  "Memory each",
-  "Persisted",
-] as const;
-
-type Plan = {
-  name: string;
-  price: number;
-  yearlyPrice: number;
-  summary: string;
-  /** Indexed against SPEC_ROWS. Same length, same order, in every plan. */
-  specs: readonly string[];
-  extras: readonly string[];
-  cta: string;
-  href: string;
-  external?: boolean;
-  popular?: boolean;
-};
-
-const PLANS: readonly Plan[] = [
-  {
-    name: "Free",
-    price: 0,
-    yearlyPrice: 0,
-    summary: "Enough to keep a side project alive.",
-    specs: ["2", "125m", "256Mi", "200MB"],
-    extras: ["Every base template", "Public port forwarding", "Community support"],
-    cta: "Start coding",
-    href: "/dashboard",
-  },
-  {
-    name: "Professional",
-    price: 15,
-    yearlyPrice: 12,
-    summary: "A workspace per branch, warm and waiting.",
-    specs: ["25", "1250m", "2.5Gi", "15GB"],
-    extras: [
-      "Premium template library",
-      "GitHub Actions integration",
-      "Usage analytics",
-      "Priority support",
-    ],
-    cta: "Go professional",
-    href: "/dashboard",
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    price: 99,
-    yearlyPrice: 79,
-    summary: "Our sandboxes, running inside your product.",
-    specs: ["Unlimited", "Custom", "Custom", "Unlimited"],
-    extras: [
-      "Sandbox SDK access",
-      "10k API requests/hour",
-      "Custom integrations",
-      "SLA and a named contact",
-    ],
-    cta: "Talk to us",
-    href: siteConfig.links.call,
-    external: true,
-  },
-];
 
 export default function Pricing() {
   const [annual, setAnnual] = useState(false);
