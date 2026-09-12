@@ -273,14 +273,22 @@ const Editor = ({
     return langMap[ext.toLowerCase()];
   };
 
+  /**
+   * Register the theme *before* the editor is constructed.
+   *
+   * `onMount` is too late. `@monaco-editor/react` passes `theme` straight to
+   * `monaco.editor.create`, so naming a theme Monaco has never been handed
+   * makes it fall back to `vs-dark` — the editor came up in GitHub-ish blues
+   * and oranges instead of our palette. `beforeMount` runs after the Monaco
+   * instance exists but before the editor is created, which is exactly the
+   * window this needs.
+   */
+  const handleEditorBeforeMount = useCallback((monaco: any) => {
+    monaco.editor.defineTheme(EDITOR_THEME_NAME, editorTheme);
+  }, []);
+
   const handleEditorMount = useCallback((editor: any, monaco: any) => {
     editorRef.current = editor;
-
-    // Monaco only knows the themes it has been handed. Registering on mount
-    // rather than at module scope keeps this out of the initial chunk — the
-    // `monaco` instance does not exist until the editor has loaded anyway.
-    monaco.editor.defineTheme(EDITOR_THEME_NAME, editorTheme);
-    monaco.editor.setTheme(EDITOR_THEME_NAME);
 
     // Add custom key bindings
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
@@ -389,6 +397,7 @@ const Editor = ({
             value={code}
             onChange={(newValue) => handleCodeChange(newValue || "")}
             options={editorOptions}
+            beforeMount={handleEditorBeforeMount}
             onMount={handleEditorMount}
           />
         </div>

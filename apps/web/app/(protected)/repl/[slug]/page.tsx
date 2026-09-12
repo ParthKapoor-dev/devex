@@ -49,7 +49,6 @@ export default function ReplPage() {
       setTree({
         "": data.rootContents,
       });
-      toast.success("Workspace loaded successfully");
     });
 
     on("error", (data) => {
@@ -75,7 +74,6 @@ export default function ReplPage() {
         setCode(data.content);
         setFilePath(data.path);
         setFileType(data.path.split(".").pop()?.toLowerCase() || "txt");
-        toast.success(`File loaded: ${data.path}`);
       }
     });
 
@@ -188,7 +186,6 @@ export default function ReplPage() {
       terminalRef.current?.writeData(
         "\r\n\x1b[32m✓ Terminal connected successfully\x1b[0m\r\n",
       );
-      toast.success("Terminal connected");
       console.log("🖥️ Terminal Connected:", data);
     });
 
