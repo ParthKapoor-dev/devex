@@ -8,6 +8,15 @@ import ProductHuntBadge from "../ui/product-hunt-badge";
 import GitHubStarBadge from "../ui/github-star";
 import Preview from "./Previews";
 
+/**
+ * The opening.
+ *
+ * The badges used to be the very first thing on the page, above the eyebrow —
+ * two pieces of third-party chrome standing between the visitor and any claim
+ * about what this is. They have moved below the buttons, where they do the job
+ * they are actually good at: reassuring somebody who has already read the
+ * pitch and is deciding whether to click.
+ */
 export default function HeroSection() {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
@@ -20,20 +29,12 @@ export default function HeroSection() {
         videoSrc="https://www.youtube.com/embed/Tlck20bJeFE"
       />
 
-      <section className="px-6 pt-28 pb-16 sm:pt-32">
-        {/* Real social proof — actual star count and an actual launch. */}
-        <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
-          <GitHubStarBadge
-            owner="parthkapoor-dev"
-            repo="devex"
-            size="small"
-            theme="dark"
-            showMetric="stars"
+      <section className="px-6 pt-28 pb-4 text-center sm:pt-36">
+        <p className="label mb-6 inline-flex items-center gap-2 text-ink-subtle">
+          <span
+            className="size-1.5 rounded-full bg-term-accent"
+            aria-hidden="true"
           />
-          <ProductHuntBadge size="small" />
-        </div>
-
-        <p className="label mb-6 text-ink-subtle">
           Open source · Kubernetes native
         </p>
 
@@ -44,15 +45,15 @@ export default function HeroSection() {
         </h1>
 
         <p className="mx-auto mt-7 max-w-xl text-balance text-lg leading-relaxed text-ink-muted">
-          Containerised development environments on Kubernetes. A real
-          terminal, a real filesystem, and ports you can reach from anywhere —
-          running in seconds, in your browser.
+          Containerised development environments on Kubernetes. A real terminal,
+          a real filesystem, and ports you can reach from anywhere — running in
+          seconds, in your browser.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/login"
-            className="group inline-flex items-center gap-2 rounded-md bg-brand px-5 py-2.5 text-sm font-medium text-brand-fg transition-colors duration-[--duration-fast] hover:bg-brand-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="group inline-flex h-11 items-center gap-2 rounded-md bg-brand px-5 text-sm font-medium text-brand-fg transition-colors duration-[--duration-fast] hover:bg-brand-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             Start a workspace
             <ArrowRight
@@ -64,11 +65,23 @@ export default function HeroSection() {
           <button
             type="button"
             onClick={() => setIsVideoOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-edge bg-surface/60 px-5 py-2.5 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-edge-strong hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex h-11 items-center gap-2 rounded-md border border-edge bg-surface/60 px-5 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-edge-strong hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <Play className="size-4" aria-hidden="true" />
             Watch the demo
           </button>
+        </div>
+
+        {/* Real social proof — an actual star count and an actual launch. */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <GitHubStarBadge
+            owner="parthkapoor-dev"
+            repo="devex"
+            size="small"
+            theme="dark"
+            showMetric="stars"
+          />
+          <ProductHuntBadge size="small" />
         </div>
 
         <Preview />
