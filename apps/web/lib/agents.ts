@@ -209,12 +209,20 @@ export const AGENT_SURFACES: readonly {
   },
 ];
 
-/** The `Link:` header value advertising all of the above. RFC 8288. */
+/**
+ * The `Link:` header value advertising all of the above. RFC 8288.
+ *
+ * The media type is truncated at the first `;`. A full type can carry its own
+ * quoted parameters — the API catalogue's is
+ * `application/linkset+json;profile="…"` — and nesting those quotes inside the
+ * header's own `type="…"` produces a value no parser reads correctly. The
+ * parameters belong on the document's `Content-Type`, which is where they are.
+ */
 export function linkHeaderValue(): string {
-  return AGENT_SURFACES.map(
-    ({ path, rel, type }) =>
-      `<${absoluteUrl(path)}>; rel="${rel}"; type="${type}"`,
-  ).join(", ");
+  return AGENT_SURFACES.map(({ path, rel, type }) => {
+    const bareType = type.split(";")[0].trim();
+    return `<${absoluteUrl(path)}>; rel="${rel}"; type="${bareType}"`;
+  }).join(", ");
 }
 
 /** Convenience: the site name and origin, for documents that open with them. */

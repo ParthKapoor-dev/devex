@@ -61,6 +61,10 @@ const nextConfig: NextConfig = {
       // — an array returned from rewrites() is checked after filesystem
       // routes, which is exactly the precedence this needs.
       { source: "/docs/:slug*.md", destination: "/md/docs/:slug*" },
+      // The App Router will not route a directory whose name starts with a
+      // dot, so the /.well-known documents are authored under /well-known and
+      // rewritten onto their real paths.
+      { source: "/.well-known/:path*", destination: "/well-known/:path*" },
     ];
   },
 
