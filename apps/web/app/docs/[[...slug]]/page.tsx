@@ -135,7 +135,10 @@ export default async function DocsPage({ params }: DocsPageProps) {
 
         {/* On-page table of contents */}
         <aside className="hidden w-56 shrink-0 xl:block">
-          <div className="sticky top-24">
+          {/* Capped and scrollable in its own right: a page with thirty
+              headings would otherwise run the list off the bottom of a laptop
+              screen with no way to reach the end. */}
+          <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pb-8">
             <TableOfContents entries={doc.toc} />
 
             <div className="mt-6 space-y-2 border-t border-edge pt-4 text-xs text-ink-subtle">
