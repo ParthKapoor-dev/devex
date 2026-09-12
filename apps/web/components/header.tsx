@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useMotionValueEvent, useScroll } from "motion/react";
 import { Github } from "lucide-react";
 import {
@@ -34,6 +34,7 @@ const AUTHENTICATED_NAV = [
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -48,6 +49,19 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const navItems = isAuthenticated ? AUTHENTICATED_NAV : PUBLIC_NAV;
 
+  /**
+   * The sandbox is the one route that does not get this bar.
+   *
+   * It is a full-screen tool, and it already has a bar of its own — so the
+   * marketing header sat on top of the IDE's chrome and cost 56px of vertical
+   * space to say "devX" twice. The IDE folds the logo, the account menu and
+   * the workspace's own controls into a single row instead; see
+   * `components/sandbox/index.tsx`.
+   *
+   * Declared after every hook so the hook order never changes.
+   */
+  const isSandbox = pathname?.startsWith("/repl/") ?? false;
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -56,6 +70,8 @@ export default function Header() {
       console.error("Logout error:", error);
     }
   };
+
+  if (isSandbox) return null;
 
   return (
     <Navbar visible={visible} ref={ref}>

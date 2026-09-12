@@ -28,6 +28,7 @@ import {
   ChevronDown,
   Settings,
   FileText,
+  LayoutDashboard,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,7 +49,12 @@ import {
   PanelTab,
   StatusBar,
   StatusItem,
+  WorkspaceMark,
+  AccountMenu,
 } from "./chrome";
+import { useAuth } from "@/contexts/AuthContext";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface SandboxProps {
   editor: {
@@ -106,6 +112,20 @@ const Sandbox: React.FC<SandboxProps> = ({
   replName,
   isConnected,
 }) => {
+  // The marketing header does not render on this route, so the account menu
+  // it used to carry lives in this bar instead.
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+      router.push("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }, [logout, router]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [activeBottomPanel, setActiveBottomPanel] = useState<
@@ -387,11 +407,13 @@ const Sandbox: React.FC<SandboxProps> = ({
   }
 
   return (
-    <div className="flex h-screen w-full flex-col bg-term-bg pt-14">
+    // No `pt-14`: the marketing header hides itself on this route (see
+    // `components/header.tsx`) and the bar below is now the only one.
+    <div className="flex h-dvh w-full flex-col bg-term-bg">
       {/* Mobile header */}
       {isMobile && (
-        <div className="relative z-50 flex h-10 items-center justify-between border-b border-edge bg-surface px-2">
-          <div className="flex items-center gap-2">
+        <div className="relative z-50 flex h-10 shrink-0 items-center justify-between gap-2 border-b border-edge bg-surface px-2">
+          <div className="flex min-w-0 items-center gap-1.5">
             <IconButton
               label={mobileMenuOpen ? "Close menu" : "Open menu"}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -399,11 +421,11 @@ const Sandbox: React.FC<SandboxProps> = ({
               <Menu className="size-4" />
             </IconButton>
             <span className="truncate font-mono text-xs text-ink-muted">
-              {fileTree.filePath || "sandbox"}
+              {fileTree.filePath || replName || "sandbox"}
             </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             <FileFinder
               tree={fileTree.tree}
               handleFile={handleFetchFile}
@@ -431,12 +453,23 @@ const Sandbox: React.FC<SandboxProps> = ({
             >
               <TerminalIcon className="h-3 w-3" />
             </Button>
+
+            {user && <AccountMenu user={user} onLogout={handleLogout} />}
           </div>
 
           {/* Mobile menu overlay */}
           {mobileMenuOpen && (
             <div className="absolute inset-x-0 top-10 border-b border-edge bg-overlay p-2">
               <div className="flex flex-col gap-2">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:bg-raised hover:text-ink"
+                >
+                  <LayoutDashboard className="size-4" />
+                  Workspaces
+                </Link>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -489,6 +522,13 @@ const Sandbox: React.FC<SandboxProps> = ({
             "flex shrink-0 items-center gap-1.5 border-b border-edge bg-surface px-2",
           )}
         >
+          {/* Identity first, where the marketing header used to put it, so the
+              row reads as the same bar rather than as the IDE having eaten
+              the site's chrome. */}
+          <WorkspaceMark />
+
+          <ChromeDivider />
+
           <IconButton
             label={`${sidebarCollapsed ? "Show" : "Hide"} explorer (Ctrl+B)`}
             onClick={handleSidebarToggle}
@@ -505,7 +545,7 @@ const Sandbox: React.FC<SandboxProps> = ({
           {/* The name, with the id kept as a tooltip — you still need it
               for a bug report, but it is not what you want to read all day. */}
           <span
-            className="truncate font-mono text-xs text-ink-muted"
+            className="min-w-0 truncate font-mono text-xs text-ink-muted"
             title={replId}
           >
             {replName ?? replId}
@@ -513,7 +553,7 @@ const Sandbox: React.FC<SandboxProps> = ({
 
           <ConnectionChip connected={isConnected} />
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <FileFinder
               tree={fileTree.tree}
               handleFile={handleFetchFile}
@@ -572,6 +612,10 @@ const Sandbox: React.FC<SandboxProps> = ({
             >
               <Play className="size-4" />
             </IconButton>
+
+            <ChromeDivider />
+
+            {user && <AccountMenu user={user} onLogout={handleLogout} />}
           </div>
         </div>
       )}

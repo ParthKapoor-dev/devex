@@ -482,7 +482,7 @@ export default function ReplPage() {
 
   if (!tree || !fileTreeProps) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-term-bg">
+      <div className="flex h-dvh w-full items-center justify-center bg-term-bg">
         <div className="flex flex-col items-center gap-2 text-center">
           <p className="label text-ink-muted">Loading workspace</p>
           <p className="font-mono text-xs text-ink-subtle">

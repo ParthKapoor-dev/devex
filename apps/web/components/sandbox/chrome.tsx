@@ -1,7 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { ChevronDown, LayoutDashboard, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DevExLogoDark } from "@/components/icons/logo";
+import type { User } from "@/types/auth";
 
 /**
  * Shared chrome for the IDE.
@@ -19,11 +23,154 @@ import { cn } from "@/lib/utils";
 
 /** Heights are fixed and shared so the panels line up on a common grid. */
 export const CHROME = {
-  topBar: "h-9",
+  // 40px rather than 36px because this row now carries the site's identity and
+  // the account menu as well as the workspace's own controls — it replaced the
+  // marketing header on this route instead of sitting underneath it, which is
+  // a net saving of 52px of vertical space.
+  topBar: "h-10",
   statusBar: "h-6",
   panelTab: "h-8",
   editorTab: "h-8",
 } as const;
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The product mark, at IDE scale.
+ *
+ * Points at the dashboard, not the marketing home page. Someone inside a
+ * workspace who clicks the logo wants their other workspaces; the landing page
+ * is the last thing they are looking for.
+ */
+export function WorkspaceMark() {
+  return (
+    <Link
+      href="/dashboard"
+      aria-label="DevEx dashboard"
+      title="Back to your workspaces"
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 rounded-xs pl-0.5 pr-1",
+        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+      )}
+    >
+      <DevExLogoDark height={18} width={18} />
+      <span className="font-display text-sm font-medium tracking-[-0.02em] text-ink">
+        devX
+      </span>
+    </Link>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The account menu, in the IDE's own idiom.
+ *
+ * Deliberately not the navbar's `UserProfileDropdown`: that one is built on
+ * `motion` and a 36px avatar, and importing it here would pull an animation
+ * library into a route whose whole brief is "extremely fast". This is the same
+ * two destinations — your workspaces, and out — in about forty lines of plain
+ * CSS.
+ */
+export function AccountMenu({
+  user,
+  onLogout,
+}: {
+  user: User;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+
+  // Escape closes it, like every other dismissable surface in the IDE.
+  React.useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Account menu"
+        title={`Signed in as ${user.login}`}
+        className={cn(
+          "flex items-center gap-1 rounded-sm p-0.5 pr-1",
+          "transition-colors duration-[--duration-fast] hover:bg-raised",
+          "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+        )}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={user.avatar_url}
+          alt=""
+          className="size-5 rounded-full object-cover"
+        />
+        <ChevronDown
+          className={cn(
+            "size-3 text-ink-subtle transition-transform duration-[--duration-fast]",
+            open && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
+      </button>
+
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="Close account menu"
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-40 cursor-default"
+          />
+
+          <div
+            role="menu"
+            className={cn(
+              "absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden",
+              "rounded-md border border-edge bg-overlay",
+              "shadow-[0_16px_48px_-16px_rgb(0_0_0/0.8)]",
+            )}
+          >
+            <div className="truncate border-b border-edge px-3 py-2 font-mono text-xs text-ink-subtle">
+              @{user.login}
+            </div>
+            <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className={MENU_ROW}
+            >
+              <LayoutDashboard className="size-3.5" aria-hidden="true" />
+              Workspaces
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onLogout();
+              }}
+              className={cn(MENU_ROW, "hover:bg-danger/10 hover:text-danger")}
+            >
+              <LogOut className="size-3.5" aria-hidden="true" />
+              Log out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+const MENU_ROW = cn(
+  "flex w-full items-center gap-2 px-3 py-2 text-sm text-ink-muted",
+  "transition-colors duration-[--duration-fast] hover:bg-raised hover:text-ink",
+);
 
 /* -------------------------------------------------------------------------- */
 
@@ -117,7 +264,7 @@ export function ConnectionChip({ connected }: { connected: boolean }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[11px]",
+        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap font-mono text-[11px]",
         connected ? "text-term-accent" : "text-ink-subtle",
       )}
       title={connected ? "Connected to the runner" : "Connecting to the runner"}
