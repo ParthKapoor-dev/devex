@@ -30,11 +30,11 @@ export default function StartReplCard({ link, replName, onClose }: CardProps) {
   return (
     <div
       className={`fixed inset-0 z-50 flex h-screen w-full items-center justify-center transition-all duration-300 ${
-        isMounted ? "bg-black/40 backdrop-blur-md" : "bg-transparent"
+        isMounted ? "bg-canvas/40 backdrop-blur-md" : "bg-transparent"
       }`}
     >
       <Card
-        className={`w-full max-w-md border-dashed border-2 rounded-none shadow-none bg-zinc-900 transition-all duration-300 ${
+        className={`w-full max-w-md border-dashed border-2 rounded-none shadow-none bg-surface transition-all duration-300 ${
           isMounted ? "scale-100 opacity-100" : "scale-90 opacity-0"
         }`}
       >
@@ -71,7 +71,7 @@ export default function StartReplCard({ link, replName, onClose }: CardProps) {
         <CardFooter className="pt-6 border-t border-dashed mt-6 flex gap-4">
           <Button
             variant="outline"
-            className="w-full rounded-none border-dashed hover:bg-zinc-600"
+            className="w-full rounded-none border-dashed hover:bg-raised"
             asChild
           >
             <Link href={link}>$ cd /{replName}</Link>

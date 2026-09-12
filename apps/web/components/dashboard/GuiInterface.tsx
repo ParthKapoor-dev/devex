@@ -8,14 +8,12 @@ import {
   Trash2,
   Folder,
   Clock,
-  Code,
   ArrowRight,
   StopCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import templates from "@/lib/templates";
 import { toast } from "sonner";
-
 // Types definition
 interface StoredRepl {
   id: string;
@@ -23,7 +21,6 @@ interface StoredRepl {
   user: string;
   isActive?: boolean;
 }
-
 interface ReplDashboardProps {
   userName: string;
   getRepls: () => Promise<StoredRepl[]>;
@@ -147,51 +144,43 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-black text-gray-300">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 ">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center">
-              <Code className="w-4 h-4 text-black" />
-            </div>
-            <h1 className="text-lg font-bold text-white">devX</h1>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-white w-36 sm:w-64"
-              />
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-white text-black hover:bg-gray-200 rounded-lg transition-colors duration-200 font-semibold text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New</span>
-            </button>
-          </div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden text-ink-muted">
+      {/* Toolbar */}
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-edge px-3 py-2 sm:px-4">
+        <h2 className="label text-ink-muted">Workspaces</h2>
+        <span className="font-mono text-xs text-ink-subtle">
+          {filteredRepls.length}
+        </span>
+
+        <div className="relative ml-auto">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-ink-subtle"
+          />
+          <input
+            type="search"
+            aria-label="Search workspaces"
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-7 w-36 rounded-sm border border-edge bg-canvas pl-7 pr-2 font-mono text-xs text-ink transition-colors duration-[--duration-fast] placeholder:text-ink-subtle focus:border-brand focus:outline-none sm:w-56"
+          />
         </div>
-      </header>
+
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex h-7 items-center gap-1.5 rounded-sm bg-brand px-2.5 text-xs font-medium text-brand-fg transition-colors duration-[--duration-fast] hover:bg-brand-400 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+        >
+          <Plus className="size-3.5" />
+          New
+        </button>
+      </div>
 
       {/* Main Content */}
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-semibold text-white">Your Repls</h2>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Folder className="w-4 h-4" />
-            <span>{filteredRepls.length} repls</span>
-          </div>
-        </div>
-
-        <div className="bg-gray-950 border border-gray-800 rounded-lg">
+      <section className="min-h-0 flex-1 overflow-y-auto">
+        <div>
           {/* Table Header for Desktop */}
-          <div className="hidden md:grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 px-4 py-3 border-b border-gray-800 uppercase">
+          <div className="label sticky top-0 z-10 hidden grid-cols-12 gap-4 border-b border-edge bg-surface px-4 py-2 text-ink-subtle md:grid">
             <div className="col-span-5">Name</div>
             <div className="col-span-2">Status</div>
             <div className="col-span-2">User</div>
@@ -203,19 +192,19 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
               {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className="h-20 md:h-16 bg-gray-900/50 rounded-lg animate-pulse"
+                  className="h-20 md:h-16 bg-surface/50 rounded-lg animate-pulse"
                 ></div>
               ))}
             </div>
           ) : filteredRepls.length === 0 ? (
             <div className="text-center py-12 sm:py-16">
-              <div className="w-14 h-14 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Folder className="w-7 h-7 text-gray-600" />
+              <div className="w-14 h-14 bg-surface rounded-full flex items-center justify-center mx-auto mb-4">
+                <Folder className="w-7 h-7 text-ink-subtle" />
               </div>
-              <h3 className="text-md font-medium text-white mb-2">
+              <h3 className="text-md font-medium text-ink mb-2">
                 {searchQuery ? "No repls found" : "No repls yet"}
               </h3>
-              <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
+              <p className="text-ink-subtle text-sm mb-6 max-w-xs mx-auto">
                 {searchQuery
                   ? `No repls match your search for "${searchQuery}". Try a different query.`
                   : "Get started by creating your first repl. It's quick and easy!"}
@@ -223,7 +212,7 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
               {!searchQuery && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-lg transition-colors duration-200 font-semibold text-sm mx-auto"
+                  className="flex items-center gap-2 px-4 py-2 bg-ink text-canvas hover:bg-raised rounded-lg transition-colors duration-200 font-semibold text-sm mx-auto"
                 >
                   <Plus className="w-4 h-4" />
                   Create Repl
@@ -239,38 +228,38 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
                 return (
                   <div
                     key={repl.id}
-                    className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center hover:bg-gray-900/70 p-4 transition-colors duration-200"
+                    className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center hover:bg-surface/70 p-4 transition-colors duration-200"
                   >
                     {/* Name and Details */}
                     <div className="md:col-span-5 flex items-center gap-3">
                       <div />
                       {template.icon}
                       <div>
-                        <h3 className="font-semibold text-white truncate text-sm">
+                        <h3 className="font-semibold text-ink truncate text-sm">
                           {repl.name}
                         </h3>
-                        <p className="text-xs text-gray-400">{template.name}</p>
+                        <p className="text-xs text-ink-subtle">{template.name}</p>
                       </div>
                     </div>
 
                     {/* Status */}
                     <div className="md:col-span-2">
                       <div className="flex items-center gap-4 text-sm">
-                        <span className="text-gray-500 md:hidden text-xs uppercase font-medium">
+                        <span className="text-ink-subtle md:hidden text-xs uppercase font-medium">
                           Status
                         </span>
                         <div
                           className={cn(
                             "flex items-center gap-2 w-fit px-2 py-1 rounded-full text-xs font-medium",
                             isActive
-                              ? "bg-green-500/10 text-green-400"
-                              : "bg-gray-700/50 text-gray-400",
+                              ? "bg-term-accent/10 text-success"
+                              : "bg-raised/50 text-ink-subtle",
                           )}
                         >
                           <span
                             className={cn(
                               "w-2 h-2 rounded-full",
-                              isActive ? "bg-green-500" : "bg-gray-500",
+                              isActive ? "bg-term-accent" : "bg-gray-500",
                             )}
                           ></span>
                           {isActive ? "Running" : "Stopped"}
@@ -279,31 +268,31 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
                     </div>
 
                     {/* User */}
-                    <div className="md:col-span-2 text-sm text-gray-400">
-                      <span className="text-gray-500 md:hidden text-xs uppercase font-medium mr-4">
+                    <div className="md:col-span-2 text-sm text-ink-subtle">
+                      <span className="text-ink-subtle md:hidden text-xs uppercase font-medium mr-4">
                         User
                       </span>
                       {repl.user}
                     </div>
 
                     {/* Actions */}
-                    <div className="md:col-span-3 flex justify-start md:justify-end items-center gap-2 pt-2 md:pt-0 border-t border-gray-800/50 md:border-none">
+                    <div className="md:col-span-3 flex justify-start md:justify-end items-center gap-2 pt-2 md:pt-0 border-t border-edge/50 md:border-none">
                       {isActive ? (
                         <>
                           <Link
                             href={`/repl/${repl.id}`}
                             passHref
-                            className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-md transition-colors duration-200 font-medium text-xs text-white"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-ink/10 hover:bg-ink/20 rounded-md transition-colors duration-200 font-medium text-xs text-ink"
                           >
                             Open <ArrowRight className="w-3 h-3" />
                           </Link>
                           <button
                             onClick={() => handleDeleteReplSession(repl.id)}
                             disabled={actionLoading[repl.id] === "deleting"}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors duration-200 font-medium text-xs"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-danger/10 text-danger hover:bg-danger/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors duration-200 font-medium text-xs"
                           >
                             {actionLoading[repl.id] === "deleting" ? (
-                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <div className="w-3 h-3 border-2 border-edge-strong border-t-transparent rounded-full animate-spin" />
                             ) : (
                               <StopCircle className="w-3 h-3" />
                             )}
@@ -315,11 +304,11 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
                           <button
                             onClick={() => handleStartRepl(repl.id)}
                             disabled={actionLoading[repl.id] === "starting"}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors duration-200 font-medium text-xs text-white"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-ink/10 hover:bg-ink/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors duration-200 font-medium text-xs text-ink"
                           >
                             {actionLoading[repl.id] === "starting" ? (
                               <>
-                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <div className="w-3 h-3 border-2 border-edge-strong border-t-transparent rounded-full animate-spin" />
                                 Activating...
                               </>
                             ) : (
@@ -332,11 +321,11 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
                           <button
                             onClick={() => handleDeleteRepl(repl.id)}
                             disabled={actionLoading[repl.id] === "deleting"}
-                            className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors duration-200"
+                            className="p-1.5 text-ink-subtle hover:text-danger hover:bg-danger/10 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors duration-200"
                             title="Delete Repl"
                           >
                             {actionLoading[repl.id] === "deleting" ? (
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <div className="w-4 h-4 border-2 border-edge-strong border-t-transparent rounded-full animate-spin" />
                             ) : (
                               <Trash2 className="w-4 h-4" />
                             )}
@@ -354,22 +343,22 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
 
       {/* Create Repl Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center  p-4">
+        <div className="fixed inset-0 bg-canvas/60 backdrop-blur-sm flex items-center justify-center  p-4">
           {repls.length >= 2 ? (
-            <div className="bg-gray-950 border border-gray-800 rounded-xl p-6 w-full max-w-md">
+            <div className="bg-canvas border border-edge rounded-xl p-6 w-full max-w-md">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-red-500">
+                <h2 className="text-lg font-semibold text-danger">
                   Cannot Create More Repls
                 </h2>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="text-gray-500 hover:text-white transition-colors duration-200"
+                  className="text-ink-subtle hover:text-ink transition-colors duration-200"
                 >
                   <Plus className="w-5 h-5 rotate-45" />
                 </button>
               </div>
 
-              <p className="block text-sm font-medium text-gray-400 mb-2">
+              <p className="block text-sm font-medium text-ink-subtle mb-2">
                 Your Free Limit is Expired. Get Pro to get more Repls and
                 features
               </p>
@@ -377,26 +366,26 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-800/50 hover:bg-gray-800 text-white rounded-lg transition-colors duration-200 font-semibold text-sm"
+                  className="flex-1 px-4 py-2 bg-raised/50 hover:bg-raised text-ink rounded-lg transition-colors duration-200 font-semibold text-sm"
                 >
                   Cancel
                 </button>
                 <Link href={"/#pricing"} className="">
-                  <button className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-lg transition-colors duration-200 font-semibold flex items-center justify-center gap-2 text-sm">
+                  <button className="flex-1 px-4 py-2 bg-ink hover:bg-raised disabled:opacity-50 disabled:cursor-not-allowed text-canvas rounded-lg transition-colors duration-200 font-semibold flex items-center justify-center gap-2 text-sm">
                     Pricing Page
                   </button>
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="bg-gray-950 border border-gray-800 rounded-xl p-6 w-full max-w-md">
+            <div className="bg-canvas border border-edge rounded-xl p-6 w-full max-w-md">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold text-ink">
                   Create New Repl
                 </h2>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="text-gray-500 hover:text-white transition-colors duration-200"
+                  className="text-ink-subtle hover:text-ink transition-colors duration-200"
                 >
                   <Plus className="w-5 h-5 rotate-45" />
                 </button>
@@ -404,7 +393,7 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
 
               <div className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-ink-subtle mb-2">
                     Repl Name
                   </label>
                   <input
@@ -412,12 +401,12 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
                     value={newReplName}
                     onChange={(e) => setNewReplName(e.target.value)}
                     placeholder="my-awesome-project"
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white"
+                    className="w-full px-3 py-2 bg-surface border border-edge rounded-lg text-sm text-ink placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                  <label className="block text-sm font-medium text-ink-subtle mb-2">
                     Choose Template
                   </label>
                   <div className="grid grid-cols-1 gap-3">
@@ -428,17 +417,17 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
                         className={cn(
                           "p-3 border rounded-lg cursor-pointer transition-colors duration-200 flex items-center gap-3",
                           selectedTemplate === key
-                            ? "border-white bg-white/5"
-                            : "border-gray-800 hover:border-gray-700",
+                            ? "border-edge-strong bg-ink/5"
+                            : "border-edge hover:border-edge",
                         )}
                       >
                         <div />
                         {template.icon}
                         <div>
-                          <h3 className="font-medium text-white text-sm">
+                          <h3 className="font-medium text-ink text-sm">
                             {template.name}
                           </h3>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-ink-subtle">
                             {template.description}
                           </p>
                         </div>
@@ -451,7 +440,7 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-800/50 hover:bg-gray-800 text-white rounded-lg transition-colors duration-200 font-semibold text-sm"
+                  className="flex-1 px-4 py-2 bg-raised/50 hover:bg-raised text-ink rounded-lg transition-colors duration-200 font-semibold text-sm"
                 >
                   Cancel
                 </button>
@@ -460,7 +449,7 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
                   disabled={
                     !newReplName.trim() || !selectedTemplate || creating
                   }
-                  className="flex-1 px-4 py-2 bg-white hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-lg transition-colors duration-200 font-semibold flex items-center justify-center gap-2 text-sm"
+                  className="flex-1 px-4 py-2 bg-ink hover:bg-raised disabled:opacity-50 disabled:cursor-not-allowed text-canvas rounded-lg transition-colors duration-200 font-semibold flex items-center justify-center gap-2 text-sm"
                 >
                   {creating ? (
                     <>

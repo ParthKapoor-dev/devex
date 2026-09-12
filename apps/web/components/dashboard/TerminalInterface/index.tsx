@@ -315,22 +315,22 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
   const getTypeColor = (type: string) => {
     switch (type) {
       case "command":
-        return "text-emerald-400";
+        return "text-brand";
       case "error":
-        return "text-red-400";
+        return "text-danger";
       case "success":
-        return "text-green-400";
+        return "text-success";
       case "info":
-        return "text-blue-400";
+        return "text-info";
       default:
-        return "text-gray-300";
+        return "text-ink-muted";
     }
   };
 
   const parser = new DOMParser();
 
   return (
-    <div className="bg-gray-900 text-green-400 font-mono overflow-hidden flex flex-col h-full">
+    <div className="bg-surface text-success font-mono overflow-hidden flex flex-col h-full">
       {/* Terminal Content */}
       <div
         ref={terminalRef}
@@ -345,7 +345,7 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
               <div dangerouslySetInnerHTML={{ __html: entry.content }} />
             </pre>
             {entry.timestamp && (
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-ink-subtle mt-1">
                 [{entry.timestamp}]
               </div>
             )}
@@ -355,19 +355,19 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
         {/* Input Line */}
         {isLoading ? (
           <div className="flex items-center mt-4">
-            <span className="text-gray-400 text-xs sm:text-sm">
+            <span className="text-ink-subtle text-xs sm:text-sm">
               {loadingAnimation} Processing...
             </span>
           </div>
         ) : (
           <>
             <div className="flex items-center mt-4 relative">
-              <span className="text-emerald-400 mr-1 sm:mr-2 whitespace-nowrap text-xs sm:text-sm">
+              <span className="text-brand mr-1 sm:mr-2 whitespace-nowrap text-xs sm:text-sm">
                 ┌─ {userName}@devX ~
               </span>
             </div>
             <div ref={inputContainerRef} className="flex items-center relative">
-              <span className="text-emerald-400 mr-1 sm:mr-2 text-xs sm:text-sm">
+              <span className="text-brand mr-1 sm:mr-2 text-xs sm:text-sm">
                 └─$
               </span>
               <div className="relative flex-1">
@@ -377,7 +377,7 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
                   value={input}
                   onChange={(e) => handleInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="bg-transparent border-none outline-none text-green-400 font-mono w-full text-xs sm:text-sm"
+                  className="bg-transparent border-none outline-none text-success font-mono w-full text-xs sm:text-sm"
                   autoFocus
                   autoComplete="off"
                   spellCheck="false"
@@ -403,14 +403,14 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
                 {!isLoading && showSuggestions && suggestions.length > 0 && (
                   <div
                     ref={suggestionsRef}
-                    className={`absolute left-0 z-50 bg-gray-800 border border-gray-600 rounded-md shadow-lg max-h-32 sm:max-h-48 overflow-y-auto min-w-48 sm:min-w-64 w-full max-w-xs sm:max-w-md ${
+                    className={`absolute left-0 z-50 bg-raised border border-edge rounded-md shadow-lg max-h-32 sm:max-h-48 overflow-y-auto min-w-48 sm:min-w-64 w-full max-w-xs sm:max-w-md ${
                       suggestionPosition === "above"
                         ? "bottom-full mb-2"
                         : "top-full mt-2"
                     }`}
                   >
-                    <div className="px-2 sm:px-3 py-1 sm:py-2 bg-gray-700 border-b border-gray-600">
-                      <span className="text-xs text-gray-400 font-semibold">
+                    <div className="px-2 sm:px-3 py-1 sm:py-2 bg-raised border-b border-edge">
+                      <span className="text-xs text-ink-subtle font-semibold">
                         {suggestionLabel}
                       </span>
                     </div>
@@ -418,16 +418,16 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
                       {suggestions.map((suggestion, index) => (
                         <div
                           key={index}
-                          className="px-2 sm:px-3 py-1 sm:py-2 hover:bg-gray-700 cursor-pointer text-green-400 text-xs sm:text-sm flex items-center transition-colors"
+                          className="px-2 sm:px-3 py-1 sm:py-2 hover:bg-raised cursor-pointer text-success text-xs sm:text-sm flex items-center transition-colors"
                           onClick={() => handleSuggestionClick(suggestion)}
                         >
-                          <span className="text-gray-500 mr-1 sm:mr-2">▸</span>
+                          <span className="text-ink-subtle mr-1 sm:mr-2">▸</span>
                           <span className="truncate">{suggestion}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="px-2 sm:px-3 py-1 bg-gray-750 border-t border-gray-600">
-                      <span className="text-xs text-gray-500">
+                    <div className="px-2 sm:px-3 py-1 bg-gray-750 border-t border-edge">
+                      <span className="text-xs text-ink-subtle">
                         <span className="hidden sm:inline">
                           ↹ Tab to complete • ↑↓ Navigate • Esc to close
                         </span>
@@ -443,10 +443,10 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
       </div>
 
       {/* Status Bar */}
-      <div className="flex-shrink-0 bg-gray-800 px-2 sm:px-4 py-1 sm:py-2 border-t border-gray-700 flex items-center justify-between text-xs sm:text-sm">
-        <div className="flex items-center gap-2 sm:gap-4 text-gray-400 overflow-x-auto">
+      <div className="flex-shrink-0 bg-raised px-2 sm:px-4 py-1 sm:py-2 border-t border-edge flex items-center justify-between text-xs sm:text-sm">
+        <div className="flex items-center gap-2 sm:gap-4 text-ink-subtle overflow-x-auto">
           <div className="flex items-center whitespace-nowrap">
-            <Activity className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-green-500" />
+            <Activity className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-success" />
             <span className="hidden sm:inline">Ready</span>
             <span className="sm:hidden">✓</span>
           </div>
@@ -474,8 +474,8 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
             <span className="sm:hidden">{repls.length}</span>
           </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2 text-gray-400">
-          <Wifi className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+        <div className="flex items-center gap-1 sm:gap-2 text-ink-subtle">
+          <Wifi className="w-3 h-3 sm:w-4 sm:h-4 text-success" />
           <span className="hidden sm:inline">Connected</span>
           <span className="sm:hidden">✓</span>
         </div>
