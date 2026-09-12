@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, LayoutDashboard, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DevExLogoDark } from "@/components/icons/logo";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import type { User } from "@/types/auth";
 
 /**
@@ -106,12 +107,7 @@ export function AccountMenu({
           "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
         )}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={user.avatar_url}
-          alt=""
-          className="size-5 rounded-full object-cover"
-        />
+        <UserAvatar user={user} size={20} />
         <ChevronDown
           className={cn(
             "size-3 text-ink-subtle transition-transform duration-[--duration-fast]",

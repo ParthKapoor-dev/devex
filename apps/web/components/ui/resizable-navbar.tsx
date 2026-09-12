@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { Cmd } from "../commandMenu";
 import { DevExLogoDark } from "../icons/logo";
+import { UserAvatar } from "./user-avatar";
 
 /**
  * The site header.
@@ -209,12 +210,7 @@ export const UserProfileDropdown = ({
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         )}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={user.avatar_url}
-          alt=""
-          className="size-7 rounded-full object-cover"
-        />
+        <UserAvatar user={user} size={28} />
         {!visible && (
           <span className="hidden font-mono text-xs text-ink-muted sm:block">
             {user.login}
@@ -281,12 +277,7 @@ export const MobileUserProfile = ({
 function AccountHeader({ user }: { user: User }) {
   return (
     <div className="flex items-center gap-2.5 border-b border-edge p-3">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={user.avatar_url}
-        alt=""
-        className="size-8 rounded-full object-cover"
-      />
+      <UserAvatar user={user} size={32} />
       <div className="min-w-0">
         <div className="truncate text-sm font-medium text-ink">
           {user.name || user.login}

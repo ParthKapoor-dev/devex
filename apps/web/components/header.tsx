@@ -21,6 +21,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { siteConfig } from "@/lib/site";
 import { Cmd } from "./commandMenu";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const PUBLIC_NAV = [
   { name: "Docs", link: "/docs" },
@@ -129,12 +130,7 @@ export default function Header() {
           <NavbarLogo />
           <div className="flex items-center gap-2">
             {isAuthenticated && user && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.avatar_url}
-                alt=""
-                className="size-7 rounded-full object-cover"
-              />
+              <UserAvatar user={user} size={28} />
             )}
             <MobileNavToggle
               isOpen={isMobileMenuOpen}
