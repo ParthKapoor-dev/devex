@@ -56,7 +56,9 @@ interface SettingsPopupProps {
 const EXIT_MS = 150;
 
 const SELECT_CLASS = cn(
-  "h-7 min-w-36 rounded-sm border border-edge bg-canvas px-2",
+  // `w-36`, not `min-w-36`. A minimum is a floor the flex row cannot get under,
+  // so on a narrow viewport the select pushed the dialog wider than itself.
+  "h-7 w-36 min-w-0 rounded-sm border border-edge bg-canvas px-2",
   "font-mono text-xs text-ink",
   "transition-colors duration-[--duration-fast]",
   "focus:border-brand focus:outline-none",
@@ -203,7 +205,12 @@ export default function EditorSettingsPopup({
           </Row>
 
           <Row label="Font size" value={`${localFontSize}px`}>
-            <div className="flex w-36 items-center gap-2">
+            {/* `min-w-0` on both the track and the range itself. A flex item's
+                automatic minimum size is its *intrinsic* width, and for a
+                replaced control like `input[type=range]` that is ~130px in
+                Chrome — so `flex-1` could not shrink it, the row overflowed
+                its `w-36`, and the panel grew a horizontal scrollbar. */}
+            <div className="flex w-36 min-w-0 items-center gap-2">
               <span className="font-mono text-[10px] text-ink-subtle">10</span>
               <input
                 type="range"
@@ -215,7 +222,7 @@ export default function EditorSettingsPopup({
                 // `accent-color` gets the native thumb and fill in one
                 // property, which replaces the styled-jsx block that was
                 // painting the thumb `#10b981` with a green glow.
-                className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-edge-strong accent-[var(--color-brand)]"
+                className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-edge-strong accent-[var(--color-brand)]"
               />
               <span className="font-mono text-[10px] text-ink-subtle">24</span>
             </div>
@@ -276,8 +283,8 @@ export default function EditorSettingsPopup({
               ["fullscreen", isFullScreen ? "on" : "off"],
             ].map(([key, value]) => (
               <div key={key} className="flex justify-between gap-4">
-                <dt className="text-ink-subtle">{key}</dt>
-                <dd className="text-ink">{value}</dd>
+                <dt className="shrink-0 text-ink-subtle">{key}</dt>
+                <dd className="min-w-0 truncate text-ink">{value}</dd>
               </div>
             ))}
           </dl>
@@ -313,7 +320,7 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-edge px-4 py-3">
-      <span className="text-sm text-ink">
+      <span className="min-w-0 text-sm text-ink">
         {label}
         {value ? (
           <span className="ml-2 font-mono text-xs text-ink-subtle">
