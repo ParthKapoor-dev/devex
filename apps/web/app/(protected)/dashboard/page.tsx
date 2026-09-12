@@ -131,13 +131,15 @@ const NavigationTabs = ({
   setActiveTab: (tab: "terminal" | "ui") => void;
 }) => {
   return (
-    <div className="flex gap-2 max-md:justify-around w-full lg:gap-5 bg-gray-900 rounded-lg p-2">
+    <div className="flex w-full gap-2 rounded-lg border border-edge bg-surface p-2 max-md:justify-around lg:gap-5">
       <Button
+        variant="ghost"
         onClick={() => setActiveTab("ui")}
-        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 w-full ${
+        aria-pressed={activeTab === "ui"}
+        className={`flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors duration-[--duration-normal] sm:px-4 sm:text-sm ${
           activeTab === "ui"
-            ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25"
-            : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+            ? "bg-brand text-brand-fg hover:bg-brand/90"
+            : "bg-transparent text-ink-muted hover:bg-raised hover:text-ink"
         }`}
       >
         <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -147,28 +149,33 @@ const NavigationTabs = ({
         <span>Live</span>
       </Button>
       <Button
-        className={`flex gap-2 sm:gap-3 justify-center items-center px-3 sm:px-4 py-2 text-xs sm:text-sm w-full ${
+        variant="ghost"
+        aria-pressed={activeTab === "terminal"}
+        className={`flex w-full items-center justify-center gap-2 px-3 py-2 text-xs transition-colors duration-[--duration-normal] sm:gap-3 sm:px-4 sm:text-sm ${
           activeTab === "terminal"
-            ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25"
-            : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+            ? "bg-brand text-brand-fg hover:bg-brand/90"
+            : "bg-transparent text-ink-muted hover:bg-raised hover:text-ink"
         }`}
         onClick={() => setActiveTab("terminal")}
       >
         <Terminal
           className={cn(
-            "w-4 h-4 sm:w-5 sm:h-5 text-emerald-400",
-            activeTab == "terminal" && "text-teal-900",
+            "h-4 w-4 sm:h-5 sm:w-5",
+            activeTab === "terminal" ? "text-brand-fg" : "text-brand",
           )}
         />
-        <span className="font-semibold text-gray-200 hidden sm:inline">
-          devX Terminal
+        <span className="hidden font-semibold sm:inline">devX Terminal</span>
+        <span className="font-semibold sm:hidden">Terminal</span>
+        <span
+          className={cn(
+            "hidden rounded-full px-1.5 py-0.5 text-xs sm:inline sm:px-2",
+            activeTab === "terminal"
+              ? "bg-brand-fg/15 text-brand-fg"
+              : "bg-warning/15 text-warning",
+          )}
+        >
+          Beta
         </span>
-        <span className="font-semibold text-gray-200 sm:hidden">Terminal</span>
-        <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500">
-          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 sm:px-2 py-0.5 rounded-full">
-            Beta
-          </span>
-        </div>
       </Button>
     </div>
   );

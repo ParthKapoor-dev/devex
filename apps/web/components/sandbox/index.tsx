@@ -369,6 +369,7 @@ const Sandbox: React.FC<SandboxProps> = ({
             />
 
             <Button
+              variant="ghost"
               onClick={() =>
                 fileTree.filePath == ""
                   ? toast("Open/Create a file to continue")
@@ -490,7 +491,7 @@ const Sandbox: React.FC<SandboxProps> = ({
               title={`Terminal: ${terminal.status}`}
             />
 
-            <Button onClick={() => setShowHelp(true)}>
+            <Button variant="ghost" onClick={() => setShowHelp(true)}>
               <kbd className=" transition-colors duration-150 hover:bg-emerald-800 select-none items-center gap-1 rounded border hover:border-emerald-950 border-border bg-muted px-2 text-sm font-display font-medium opacity-100 ml-auto flex">
                 Shft + /
               </kbd>
@@ -504,6 +505,7 @@ const Sandbox: React.FC<SandboxProps> = ({
             />
 
             <Button
+              variant="ghost"
               onClick={() =>
                 fileTree.filePath == ""
                   ? toast("Open/Create a file to continue")

@@ -99,6 +99,7 @@ const URLConverter = ({
             {/* Action Buttons */}
             <div className="flex gap-2">
               <Button
+                variant="ghost"
                 onClick={handleCopy}
                 size="sm"
                 className="flex items-center gap-2 bg-black"
@@ -107,7 +108,7 @@ const URLConverter = ({
                 {copied ? "Copied!" : "Copy"}
               </Button>
               <Link href={convertedUrl} target="_blank">
-                <Button className="flex items-center gap-2 bg-black" size="sm">
+                <Button variant="ghost" className="flex items-center gap-2 border border-edge bg-term-bg text-ink" size="sm">
                   <ExternalLink className="h-3 w-3" />
                   Open
                 </Button>
