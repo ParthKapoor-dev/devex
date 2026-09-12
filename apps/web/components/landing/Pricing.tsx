@@ -1,373 +1,326 @@
 "use client";
 
-import { buttonVariants } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
+import { useCallback, useState } from "react";
+import Link from "next/link";
+import { Check } from "lucide-react";
 // `framer-motion` is not a dependency — it only resolved because `motion`
 // happens to depend on it. Import from `motion/react`, as everywhere else.
-import { motion } from "motion/react";
-import { token } from "@/lib/tokens";
-import {
-  Star,
-  Zap,
-  Code,
-  Database,
-  Cpu,
-  HardDrive,
-  GitBranch,
-  Box,
-  Shield,
-  Sparkles,
-} from "lucide-react";
-import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
-import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
+import confetti from "canvas-confetti";
+import { cn } from "@/lib/utils";
+import { token } from "@/lib/tokens";
 import { siteConfig } from "@/lib/site";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { Section, HairlineGrid } from "./section";
 
-// Define your plans with DevX-specific features
-const plans = [
+/**
+ * Pricing, as a spec sheet.
+ *
+ * The previous version was the last section left over from before the
+ * redesign, and it broke the accent rule harder than anything else on the
+ * site: twenty-two amber icon bubbles, an amber glow, an amber savings pill and
+ * an amber gradient wash, on a page whose whole premise is that amber means
+ * "this is the thing you are on". Everything was centred, in a bold weight the
+ * display face is not meant to carry, inside cards that looked nothing like
+ * the hairline grid directly above them.
+ *
+ * What replaced it leans on the one thing a developer actually reads a pricing
+ * page for: the numbers. The plans share an identical set of spec rows, so
+ * `2 / 25 / Unlimited` line up horizontally across the three columns and the
+ * comparison needs no table. Units are the Kubernetes ones, because that is
+ * what the limits genuinely are.
+ */
+
+const SPEC_ROWS = [
+  "Workspaces",
+  "CPU each",
+  "Memory each",
+  "Persisted",
+] as const;
+
+type Plan = {
+  name: string;
+  price: number;
+  yearlyPrice: number;
+  summary: string;
+  /** Indexed against SPEC_ROWS. Same length, same order, in every plan. */
+  specs: readonly string[];
+  extras: readonly string[];
+  cta: string;
+  href: string;
+  external?: boolean;
+  popular?: boolean;
+};
+
+const PLANS: readonly Plan[] = [
   {
-    name: "FREE",
-    price: "0",
-    yearlyPrice: "0",
-    period: "forever",
-    badge: "Perfect for Learning",
-    features: [
-      { icon: Code, text: "Up to 2 REPLs" },
-      { icon: Cpu, text: "125m CPU per REPL" },
-      { icon: HardDrive, text: "256Mi RAM per REPL" },
-      { icon: Database, text: "200MB backup storage" },
-      { icon: Box, text: "Basic container templates" },
-      { icon: Shield, text: "Community support" },
-    ],
-    description: "Get started with cloud development for free",
-    buttonText: "Start Coding",
+    name: "Free",
+    price: 0,
+    yearlyPrice: 0,
+    summary: "Enough to keep a side project alive.",
+    specs: ["2", "125m", "256Mi", "200MB"],
+    extras: ["Every base template", "Public port forwarding", "Community support"],
+    cta: "Start coding",
     href: "/dashboard",
-    isPopular: false,
-    tint: "from-ink-subtle/10 to-transparent",
   },
   {
-    name: "PROFESSIONAL",
-    price: "15",
-    yearlyPrice: "12",
-    period: "per month",
-    badge: "Most popular",
-    features: [
-      { icon: Code, text: "Up to 25 REPLs" },
-      { icon: Cpu, text: "1.25 CPU cores per REPL" },
-      { icon: HardDrive, text: "2.5GB RAM per REPL" },
-      { icon: Database, text: "15GB backup storage" },
-      { icon: Sparkles, text: "Premium templates library" },
-      { icon: GitBranch, text: "GitHub Actions integration" },
-      { icon: Shield, text: "Priority support" },
-      { icon: Zap, text: "Advanced analytics" },
+    name: "Professional",
+    price: 15,
+    yearlyPrice: 12,
+    summary: "A workspace per branch, warm and waiting.",
+    specs: ["25", "1250m", "2.5Gi", "15GB"],
+    extras: [
+      "Premium template library",
+      "GitHub Actions integration",
+      "Usage analytics",
+      "Priority support",
     ],
-    description: "Perfect for professional developers and teams",
-    buttonText: "Go Professional",
+    cta: "Go professional",
     href: "/dashboard",
-    isPopular: true,
-    tint: "from-brand/20 to-transparent",
+    popular: true,
   },
   {
-    name: "ENTERPRISE SDK",
-    price: "99",
-    yearlyPrice: "79",
-    period: "per month",
-    badge: "For Businesses",
-    features: [
-      { icon: Code, text: "Unlimited REPLs" },
-      { icon: Cpu, text: "Custom resource allocation" },
-      { icon: Database, text: "Unlimited backup storage" },
-      { icon: Box, text: "DevX Sandbox SDK access" },
-      { icon: Zap, text: "API rate limiting: 10k/hour" },
-      { icon: GitBranch, text: "Custom integrations" },
-      { icon: Shield, text: "SLA & dedicated support" },
-      { icon: Sparkles, text: "White-label options" },
+    name: "Enterprise",
+    price: 99,
+    yearlyPrice: 79,
+    summary: "Our sandboxes, running inside your product.",
+    specs: ["Unlimited", "Custom", "Custom", "Unlimited"],
+    extras: [
+      "Sandbox SDK access",
+      "10k API requests/hour",
+      "Custom integrations",
+      "SLA and a named contact",
     ],
-    description: "Integrate DevX sandboxes into your applications",
-    buttonText: "Contact Sales",
-    href: "https://parthkapoor.me",
-    isPopular: false,
-    tint: "from-info/15 to-transparent",
+    cta: "Talk to us",
+    href: siteConfig.links.call,
+    external: true,
   },
 ];
 
-interface PricingFeature {
-  icon: any;
-  text: string;
-}
+export default function Pricing() {
+  const [annual, setAnnual] = useState(false);
+  const reducedMotion = useReducedMotion();
 
-interface PricingPlan {
-  name: string;
-  price: string;
-  yearlyPrice: string;
-  period: string;
-  badge: string;
-  features: PricingFeature[];
-  description: string;
-  buttonText: string;
-  href: string;
-  isPopular: boolean;
-  tint: string;
-}
+  const choose = useCallback(
+    (next: boolean, event: React.MouseEvent<HTMLButtonElement>) => {
+      setAnnual(next);
 
-export default function DevXPricing() {
-  const [isMonthly, setIsMonthly] = useState(true);
-  const switchRef = useRef<HTMLButtonElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
+      // A small reward for finding the cheaper option, fired from the button
+      // itself so the burst starts where the pointer already is. Suppressed
+      // outright under reduced motion rather than slowed down.
+      if (!next || reducedMotion) return;
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  const handleToggle = (checked: boolean) => {
-    setIsMonthly(!checked);
-    if (checked && switchRef.current) {
-      const rect = switchRef.current.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-
+      const rect = event.currentTarget.getBoundingClientRect();
       confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: {
-          x: x / window.innerWidth,
-          y: y / window.innerHeight,
-        },
-        // Brand ramp only. canvas-confetti parses hex itself, so these
-        // come from the token mirrors rather than the CSS variables.
-        colors: [token.brand300, token.brand400, token.brand500, token.brand600],
-        ticks: 200,
+        particleCount: 44,
+        spread: 62,
+        startVelocity: 26,
         gravity: 1.2,
-        decay: 0.94,
-        startVelocity: 30,
+        decay: 0.93,
+        ticks: 160,
+        scalar: 0.8,
+        origin: {
+          x: (rect.left + rect.width / 2) / window.innerWidth,
+          y: (rect.top + rect.height / 2) / window.innerHeight,
+        },
+        // canvas-confetti parses hex itself and cannot resolve `var()` or
+        // `oklch()` — these come from the token mirrors in lib/tokens.
+        colors: [token.brand300, token.brand400, token.brand500, token.brand600],
         shapes: ["circle", "square"],
+        disableForReducedMotion: true,
       });
-    }
-  };
+    },
+    [reducedMotion],
+  );
 
   return (
-    <div className="container py-20 max-md:px-8">
-      {/* Header */}
-      <div className="mb-16 flex flex-col gap-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <p className="label mb-3 text-ink-subtle">Pricing</p>
-          <h2 className="font-display text-4xl font-medium tracking-[-0.03em] text-ink sm:text-5xl">
-            Start free. <span className="text-brand">Scale when you do.</span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-balance text-lg leading-relaxed text-ink-muted">
-            Every plan runs the same containers on the same cluster. What
-            changes is how many you get at once and how long they stay warm.
-          </p>
-        </motion.div>
-
-        {/* Billing Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-center items-center gap-4"
-        >
-          <span
-            className={cn(
-              "font-semibold transition-colors",
-              isMonthly ? "text-ink" : "text-ink-subtle",
-            )}
-          >
-            Monthly
-          </span>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <Switch
-              ref={switchRef as any}
-              checked={!isMonthly}
-              onCheckedChange={handleToggle}
-              className="relative"
-            />
-          </label>
-          <span
-            className={cn(
-              "font-semibold transition-colors",
-              !isMonthly ? "text-ink" : "text-ink-subtle",
-            )}
-          >
-            Annual
-          </span>
-          <span className="ml-2 rounded-full bg-brand px-2.5 py-1 text-sm font-semibold text-brand-fg">
-            Save 20%
-          </span>
-        </motion.div>
-      </div>
-
-      {/* Pricing Cards */}
-      <div className="grid grid-cols-1 gap-0 max-md:gap-4 md:grid-cols-3 max-w-7xl mx-auto">
-        {plans.map((plan, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={
-              !isMobile
-                ? { opacity: 1, y: plan.isPopular ? -12 : 0 }
-                : { opacity: 1, y: 0 }
-            }
-            viewport={{ once: true }}
-            transition={{
-              duration: 0.5,
-              type: "spring",
-              stiffness: 140,
-              damping: 22,
-              delay: index * 0.06,
-            }}
-            className={cn(
-              "relative flex flex-col rounded-lg border bg-surface/70 p-8 text-center",
-              plan.isPopular
-                ? "border-brand/40 glow-brand"
-                : "border-edge",
-              "transform-gpu transition-colors duration-[--duration-fast] hover:border-edge-strong",
-              plan.isPopular ? "z-10" : "z-0",
-            )}
-          >
-            {/* Background Gradient */}
-            <div
-              className={cn(
-                "pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-br",
-                plan.tint,
-              )}
-            />
-
-            {/* Popular Badge */}
-            {plan.isPopular && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="flex items-center gap-2 rounded-full bg-brand px-4 py-1.5">
-                  <Star className="size-3.5 fill-current text-brand-fg" />
-                  <span className="text-sm font-semibold text-brand-fg">
-                    Most popular
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="relative z-10 flex flex-1 flex-col">
-              {/* Plan Header */}
-              <div className="mb-6">
-                <h3 className="mb-2 text-xl font-bold tracking-tight text-ink">
-                  {plan.name}
-                </h3>
-                <p className="text-sm font-medium text-ink-subtle">
-                  {plan.badge}
-                </p>
-              </div>
-
-              {/* Pricing */}
-              <div className="mb-6">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-5xl font-bold text-ink">
-                    <NumberFlow
-                      value={
-                        isMonthly
-                          ? Number(plan.price)
-                          : Number(plan.yearlyPrice)
-                      }
-                      format={{
-                        style: "currency",
-                        currency: "USD",
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }}
-                      transformTiming={{
-                        duration: 500,
-                        easing: "ease-out",
-                      }}
-                      willChange
-                      className="font-variant-numeric: tabular-nums"
-                    />
-                  </span>
-                  {plan.period !== "forever" && (
-                    <span className="text-sm text-ink-muted">
-                      / {plan.period}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-ink-subtle">
-                  {plan.period === "forever"
-                    ? "No credit card required"
-                    : isMonthly
-                      ? "billed monthly"
-                      : "billed annually"}
-                </p>
-              </div>
-
-              {/* Features */}
-              <ul className="flex flex-col gap-2 mb-8 flex-1">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/15">
-                      <feature.icon className="size-3 text-brand" />
-                    </div>
-                    <span className="text-left text-sm text-ink-muted">
-                      {feature.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA Button */}
-              <Link
-                href={plan.href}
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "group relative w-full gap-2 overflow-hidden rounded-lg py-6 text-base font-semibold tracking-tight transition-colors duration-[--duration-normal]",
-                  plan.isPopular
-                    ? "border-0 bg-brand text-brand-fg hover:bg-brand-400"
-                    : "border-edge-strong bg-transparent text-ink hover:border-brand/50 hover:bg-raised",
-                )}
-              >
-                {plan.buttonText}
-              </Link>
-
-              {/* Description */}
-              <p className="mt-4 text-xs leading-relaxed text-ink-subtle">
-                {plan.description}
-              </p>
-            </div>
-          </motion.div>
+    <Section
+      id="pricing"
+      eyebrow="Pricing"
+      title={
+        <>
+          Start free. <span className="text-brand">Scale when you do.</span>
+        </>
+      }
+      lead="Every plan runs the same containers on the same cluster. What changes is how many you get at once, and how much you can ask of each."
+      aside={<BillingToggle annual={annual} onChange={choose} />}
+    >
+      <HairlineGrid className="grid-cols-1 md:grid-cols-3">
+        {PLANS.map((plan) => (
+          <PlanCell key={plan.name} plan={plan} annual={annual} />
         ))}
+      </HairlineGrid>
+
+      <p className="mt-6 text-sm text-ink-subtle">
+        Self-hosting is free and always will be —{" "}
+        <Link
+          href="/docs/self-hosting"
+          className="text-ink-muted underline decoration-edge-strong underline-offset-4 transition-colors duration-[--duration-fast] hover:text-brand hover:decoration-brand"
+        >
+          bring your own cluster
+        </Link>{" "}
+        and none of the above applies.
+      </p>
+    </Section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A segmented control, matching the dashboard's.
+ *
+ * It was a `Switch` with a word either side, which is the one control shape
+ * where nobody can tell at a glance which of the two labels is currently
+ * selected — both are always visible and only the slider's position says which
+ * one won. Two buttons with an explicit selected state cannot have that
+ * problem.
+ */
+function BillingToggle({
+  annual,
+  onChange,
+}: {
+  annual: boolean;
+  onChange: (annual: boolean, event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Billing period"
+      className="inline-flex items-center gap-0.5 rounded-md border border-edge bg-canvas p-0.5"
+    >
+      {[
+        { value: false, label: "Monthly", note: null },
+        { value: true, label: "Annual", note: "−20%" },
+      ].map(({ value, label, note }) => {
+        const active = annual === value;
+        return (
+          <button
+            key={label}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={(event) => onChange(value, event)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-sm px-3 py-1.5 font-mono text-xs",
+              "transition-colors duration-[--duration-fast]",
+              "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+              active
+                ? "bg-raised text-ink"
+                : "bg-transparent text-ink-subtle hover:text-ink-muted",
+            )}
+          >
+            {label}
+            {note ? (
+              // A discount is information, not the primary action, so it is
+              // never amber. Green only once it is the live choice.
+              <span className={active ? "text-success" : "text-ink-subtle"}>
+                {note}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PlanCell({ plan, annual }: { plan: Plan; annual: boolean }) {
+  const price = annual ? plan.yearlyPrice : plan.price;
+
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col p-6 transition-colors duration-[--duration-fast]",
+        plan.popular ? "bg-surface" : "bg-canvas hover:bg-surface/60",
+      )}
+    >
+      {/* The only amber on the whole section: a hairline over the plan we
+          actually want people to take. */}
+      {plan.popular ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-px bg-brand"
+        />
+      ) : null}
+
+      <div className="flex items-center justify-between">
+        <span className="label text-ink">{plan.name}</span>
+        {plan.popular ? (
+          <span className="label text-brand">Most popular</span>
+        ) : null}
       </div>
 
-      {/* Bottom CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.4 }}
-        className="mt-16 text-center"
+      <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+        {plan.summary}
+      </p>
+
+      <div className="mt-6 flex items-baseline gap-1.5">
+        <span className="font-display text-4xl font-medium tracking-[-0.03em] text-ink tabular-nums">
+          <NumberFlow
+            value={price}
+            format={{
+              style: "currency",
+              currency: "USD",
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }}
+            transformTiming={{ duration: 420, easing: "ease-out" }}
+            willChange
+          />
+        </span>
+        {price > 0 ? (
+          <span className="font-mono text-xs text-ink-subtle">/ month</span>
+        ) : null}
+      </div>
+      <p className="mt-1.5 font-mono text-xs text-ink-subtle">
+        {price === 0
+          ? "forever, no card"
+          : annual
+            ? "billed annually"
+            : "billed monthly"}
+      </p>
+
+      <Link
+        href={plan.href}
+        {...(plan.external
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : {})}
+        className={cn(
+          "mt-6 inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium",
+          "transition-colors duration-[--duration-fast]",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          plan.popular
+            ? "bg-brand text-brand-fg hover:bg-brand-400"
+            : "border border-edge-strong text-ink hover:bg-raised",
+        )}
       >
-        <p className="mb-4 text-ink-muted">
-          Need something custom? We&apos;re here to help.
-        </p>
-        <Link
-          /* There is no /contact route — this was a 404. Book a call instead. */
-          href={siteConfig.links.call}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 font-semibold text-brand transition-colors duration-[--duration-fast] hover:text-brand-300"
-        >
-          Contact our team <Zap className="h-4 w-4" />
-        </Link>
-      </motion.div>
+        {plan.cta}
+      </Link>
+
+      {/* The spec block. Every plan declares the same rows in the same order,
+          so the values line up across the three columns and the reader can
+          compare down a line without a table. */}
+      <dl className="mt-8 space-y-2 border-t border-edge pt-6 font-mono text-xs">
+        {SPEC_ROWS.map((row, index) => (
+          <div key={row} className="flex items-baseline justify-between gap-4">
+            <dt className="text-ink-subtle">{row}</dt>
+            <dd className="tabular-nums text-ink">{plan.specs[index]}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <ul className="mt-6 space-y-2 border-t border-edge pt-6">
+        {plan.extras.map((extra) => (
+          <li key={extra} className="flex gap-2.5 text-sm text-ink-muted">
+            <Check
+              className="mt-[3px] size-3.5 shrink-0 text-ink-subtle"
+              aria-hidden="true"
+            />
+            {extra}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
