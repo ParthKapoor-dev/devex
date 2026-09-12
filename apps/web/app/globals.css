@@ -112,6 +112,10 @@
 
   --animate-fade-in: fade-in var(--duration-normal) var(--ease-out-quad) both;
   --animate-rise: rise var(--duration-slow) var(--ease-out-expo) both;
+  /* Longer and softer than `rise`: this is display type travelling most of
+     its own height, not a card nudging 12px. */
+  --animate-line-rise: line-rise var(--duration-slower) var(--ease-out-expo)
+    both;
   --animate-shimmer: shimmer 2s linear infinite;
   --animate-pulse-ring: pulse-ring 2.4s var(--ease-out-quad) infinite;
 }
@@ -329,6 +333,20 @@
   }
 }
 
+/* A line of display type arriving from behind its own baseline.
+   Used with a parent that clips: the line starts fully below the mask and
+   travels up into it, which reads as the type being *set* rather than as a
+   box fading in. Slightly overshooting the start (110%) keeps the tallest
+   ascenders out of view until they should be. */
+@keyframes line-rise {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 @keyframes shimmer {
   from {
     background-position: 200% 0;
@@ -444,6 +462,11 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    /* Delays too. A staggered entrance is choreography, and with
+       `animation-fill-mode: both` a delay that survives leaves the element
+       sitting at its hidden start state — so zeroing only the duration turns
+       a stagger into a flash of invisible content. */
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
