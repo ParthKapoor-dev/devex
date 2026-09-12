@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import HeroSection from "@/components/landing/Hero";
-import FeaturedPills from "@/components/landing/FeaturedPills";
+import Features from "@/components/landing/FeaturedPills";
 import Pricing from "@/components/landing/Pricing";
 import Footer from "@/components/landing/Footer";
 import SiteBackdrop from "@/components/landing/SiteBackdrop";
@@ -18,7 +18,7 @@ export default function LandingPage() {
 
       <div className="relative z-10 mx-auto max-w-6xl text-center">
         <HeroSection />
-        <FeaturedPills />
+        <Features />
         <Pricing />
         <Footer />
       </div>

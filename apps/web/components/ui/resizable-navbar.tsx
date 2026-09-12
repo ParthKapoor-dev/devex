@@ -129,7 +129,7 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
       }}
       className={cn(
         "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start bg-transparent px-32 py-2 lg:flex dark:bg-transparent",
-        visible && "bg-white/80 dark:bg-neutral-950/80 rounded-full px-4",
+        visible && "bg-ink/80 dark:bg-canvas/80 rounded-full px-4",
         className,
       )}
     >
@@ -145,7 +145,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
     <motion.div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center justify-center gap-2 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 lg:flex lg:gap-0",
+        "absolute inset-0 hidden flex-1 flex-row items-center justify-center gap-2 text-sm font-medium text-ink-subtle transition duration-200 hover:text-zinc-800 lg:flex lg:gap-0",
         className,
       )}
     >
@@ -160,7 +160,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
           {hovered === idx && (
             <motion.div
               layoutId="hovered"
-              className="absolute inset-0 h-full w-full rounded-full bg-gray-100 dark:bg-neutral-800"
+              className="absolute inset-0 h-full w-full rounded-full bg-raised dark:bg-raised"
             />
           )}
           <span className="relative z-20">{item.name}</span>
@@ -183,7 +183,7 @@ export const UserProfileDropdown = ({
     <div className={cn("relative", className)}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-200"
+        className="flex items-center gap-2 rounded-full p-1 hover:bg-raised dark:hover:bg-raised transition-colors duration-200"
       >
         <img
           src={user.avatar_url}
@@ -195,7 +195,7 @@ export const UserProfileDropdown = ({
             {user.login}
           </span>
         )}
-        <IconChevronDown className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+        <IconChevronDown className="h-4 w-4 text-neutral-500 dark:text-ink-subtle" />
       </button>
 
       <AnimatePresence>
@@ -213,9 +213,9 @@ export const UserProfileDropdown = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="absolute right-0 top-full mt-2 w-48 z-[80] rounded-lg bg-white dark:bg-neutral-900 shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] border border-gray-200 dark:border-neutral-700"
+              className="absolute right-0 top-full mt-2 w-48 z-[80] rounded-lg bg-ink dark:bg-surface shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] border border-edge dark:border-neutral-700"
             >
-              <div className="p-3 border-b border-gray-200 dark:border-neutral-700">
+              <div className="p-3 border-b border-edge dark:border-neutral-700">
                 <div className="flex items-center gap-2">
                   <img
                     src={user.avatar_url}
@@ -226,7 +226,7 @@ export const UserProfileDropdown = ({
                     <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                       {user.name || user.login}
                     </div>
-                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                    <div className="text-xs text-neutral-500 dark:text-ink-subtle">
                       @{user.login}
                     </div>
                   </div>
@@ -238,7 +238,7 @@ export const UserProfileDropdown = ({
                   href="https://parthkapoor.me"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-200"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-raised dark:hover:bg-raised transition-colors duration-200"
                   onClick={() => setIsOpen(false)}
                 >
                   <IconUser className="h-4 w-4" />
@@ -250,7 +250,7 @@ export const UserProfileDropdown = ({
                     setIsOpen(false);
                     onLogout();
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-danger hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
                 >
                   <IconLogout className="h-4 w-4" />
                   Logout
@@ -272,7 +272,7 @@ export const MobileUserProfile = ({
 }: MobileUserProfileProps) => {
   return (
     <div className={cn("w-full", className)}>
-      <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-neutral-700">
+      <div className="flex items-center gap-3 p-3 border-b border-edge dark:border-neutral-700">
         <img
           src={user.avatar_url}
           alt={user.name || user.login}
@@ -282,7 +282,7 @@ export const MobileUserProfile = ({
           <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
             {user.name || user.login}
           </div>
-          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="text-xs text-neutral-500 dark:text-ink-subtle">
             @{user.login}
           </div>
         </div>
@@ -293,7 +293,7 @@ export const MobileUserProfile = ({
           href="https://parthkapoor.me"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-200"
+          className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-raised dark:hover:bg-raised transition-colors duration-200"
           onClick={onClose}
         >
           <IconUser className="h-4 w-4" />
@@ -305,7 +305,7 @@ export const MobileUserProfile = ({
             onClose();
             onLogout();
           }}
-          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-danger hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
         >
           <IconLogout className="h-4 w-4" />
           Logout
@@ -336,7 +336,7 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
       }}
       className={cn(
         "relative z-50 mx-auto flex w-full max-w-[calc(100vw-2rem)] flex-col items-center justify-between bg-transparent px-0 py-2 lg:hidden",
-        visible && "bg-white/80 dark:bg-neutral-950/80",
+        visible && "bg-ink/80 dark:bg-canvas/80",
         className,
       )}
     >
@@ -375,7 +375,7 @@ export const MobileNavMenu = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className={cn(
-            "absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 rounded-lg bg-white px-4 py-8 shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] dark:bg-neutral-950",
+            "absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 rounded-lg bg-ink px-4 py-8 shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] dark:bg-canvas",
             className,
           )}
         >
@@ -395,12 +395,12 @@ export const MobileNavToggle = ({
 }) => {
   return isOpen ? (
     <IconX
-      className="text-black dark:text-white cursor-pointer"
+      className="text-canvas dark:text-ink cursor-pointer"
       onClick={onClick}
     />
   ) : (
     <IconMenu2
-      className="text-black dark:text-white cursor-pointer"
+      className="text-canvas dark:text-ink cursor-pointer"
       onClick={onClick}
     />
   );
@@ -410,11 +410,11 @@ export const NavbarLogo = () => {
   return (
     <Link
       href="/"
-      className="relative z-20 mr-4 flex items-center gap-2 px-2 py-1 text-sm font-normal text-black"
+      className="relative z-20 mr-4 flex items-center gap-2 px-2 py-1 text-sm font-normal text-canvas"
     >
       <DevExLogoDark />
 
-      <span className="font-medium text-lg text-black dark:text-white">
+      <span className="font-medium text-lg text-canvas dark:text-ink">
         devX
       </span>
     </Link>
@@ -439,15 +439,15 @@ export const NavbarButton = ({
   | React.ComponentPropsWithoutRef<"button">
 )) => {
   const baseStyles =
-    "px-4 py-2 rounded-md bg-white button bg-white text-black text-sm font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center";
+    "px-4 py-2 rounded-md bg-ink button bg-ink text-canvas text-sm font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center";
 
   const variantStyles = {
     primary:
       "shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
-    secondary: "bg-transparent shadow-none dark:text-white",
-    dark: "bg-black text-white shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
+    secondary: "bg-transparent shadow-none dark:text-ink",
+    dark: "bg-canvas text-ink shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
     gradient:
-      "bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset]",
+      "bg-gradient-to-b from-blue-500 to-blue-700 text-ink shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset]",
   };
 
   return (

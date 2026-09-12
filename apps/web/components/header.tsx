@@ -146,13 +146,13 @@ export default function Header() {
               />
 
               {/* Navigation Items */}
-              <div className="w-full border-t border-gray-200 dark:border-neutral-700 pt-4">
+              <div className="w-full border-t border-edge dark:border-neutral-700 pt-4">
                 {navItems.map((item, idx) => (
                   <Link
                     key={`mobile-link-${idx}`}
                     href={item.link}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block px-3 py-2 text-neutral-600 dark:text-neutral-300 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-200 rounded-md"
+                    className="block px-3 py-2 text-neutral-600 dark:text-neutral-300 hover:bg-raised dark:hover:bg-raised transition-colors duration-200 rounded-md"
                   >
                     <span className="block">{item.name}</span>
                   </Link>
@@ -160,7 +160,7 @@ export default function Header() {
               </div>
 
               {/* Action Button */}
-              <div className="w-full border-t border-gray-200 dark:border-neutral-700 pt-4 flex flex-col gap-4">
+              <div className="w-full border-t border-edge dark:border-neutral-700 pt-4 flex flex-col gap-4">
                 <Cmd />
                 <NavbarButton
                   onClick={() => {

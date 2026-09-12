@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 // `framer-motion` is not a dependency — it only resolved because `motion`
 // happens to depend on it. Import from `motion/react`, as everywhere else.
 import { motion } from "motion/react";
+import { token } from "@/lib/tokens";
 import {
   Star,
   Zap,
@@ -51,7 +52,7 @@ const plans = [
     price: "15",
     yearlyPrice: "12",
     period: "per month",
-    badge: "Most Popular",
+    badge: "Most popular",
     features: [
       { icon: Code, text: "Up to 25 REPLs" },
       { icon: Cpu, text: "1.25 CPU cores per REPL" },
@@ -141,9 +142,9 @@ export default function DevXPricing() {
           x: x / window.innerWidth,
           y: y / window.innerHeight,
         },
-        // Brand ramp only — the old mix pulled in purple and amber, which
-        // appear nowhere else in the product.
-        colors: ["#6ee7b7", "#34d399", "#10b981", "#059669"],
+        // Brand ramp only. canvas-confetti parses hex itself, so these
+        // come from the token mirrors rather than the CSS variables.
+        colors: [token.brand300, token.brand400, token.brand500, token.brand600],
         ticks: 200,
         gravity: 1.2,
         decay: 0.94,
@@ -163,13 +164,13 @@ export default function DevXPricing() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-gradient-brand text-4xl font-bold tracking-tight sm:text-5xl">
-            Power Up Your Development
+          <p className="label mb-3 text-ink-subtle">Pricing</p>
+          <h2 className="font-display text-4xl font-medium tracking-[-0.03em] text-ink sm:text-5xl">
+            Start free. <span className="text-brand">Scale when you do.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted">
-            From learning to enterprise-scale applications, DevX scales with
-            your needs. Choose the perfect plan for your cloud development
-            journey.
+          <p className="mx-auto mt-4 max-w-xl text-balance text-lg leading-relaxed text-ink-muted">
+            Every plan runs the same containers on the same cluster. What
+            changes is how many you get at once and how long they stay warm.
           </p>
         </motion.div>
 
@@ -219,35 +220,30 @@ export default function DevXPricing() {
             initial={{ opacity: 0, y: 50 }}
             whileInView={
               !isMobile
-                ? {
-                    opacity: 1,
-                    y: plan.isPopular ? -10 : 0,
-                    x: index === 2 ? -20 : index === 0 ? 20 : 0,
-                    scale: index === 0 || index === 2 ? 0.95 : 1.0,
-                  }
+                ? { opacity: 1, y: plan.isPopular ? -12 : 0 }
                 : { opacity: 1, y: 0 }
             }
             viewport={{ once: true }}
             transition={{
-              duration: 0.8,
+              duration: 0.5,
               type: "spring",
-              stiffness: 100,
-              damping: 20,
-              delay: index * 0.1,
+              stiffness: 140,
+              damping: 22,
+              delay: index * 0.06,
             }}
             className={cn(
-              "relative flex flex-col rounded-2xl border bg-surface/70 p-8 text-center",
+              "relative flex flex-col rounded-lg border bg-surface/70 p-8 text-center",
               plan.isPopular
-                ? "border-brand/50 glow-brand"
+                ? "border-brand/40 glow-brand"
                 : "border-edge",
-              "transform-gpu transition-colors duration-[--duration-normal] hover:border-brand/40",
-              index === 0 || index === 2 ? "z-0" : "z-10",
+              "transform-gpu transition-colors duration-[--duration-fast] hover:border-edge-strong",
+              plan.isPopular ? "z-10" : "z-0",
             )}
           >
             {/* Background Gradient */}
             <div
               className={cn(
-                "pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br",
+                "pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-br",
                 plan.tint,
               )}
             />
@@ -258,7 +254,7 @@ export default function DevXPricing() {
                 <div className="flex items-center gap-2 rounded-full bg-brand px-4 py-1.5">
                   <Star className="size-3.5 fill-current text-brand-fg" />
                   <span className="text-sm font-semibold text-brand-fg">
-                    Most Popular
+                    Most popular
                   </span>
                 </div>
               </div>
