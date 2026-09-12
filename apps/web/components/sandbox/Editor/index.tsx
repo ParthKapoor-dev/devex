@@ -28,16 +28,14 @@ import { diff_match_patch } from "diff-match-patch";
 import EditorSettingsPopup from "./settings";
 import { Button } from "@/components/ui/button";
 import { mono } from "@/app/fonts";
+import { EDITOR_THEME_NAME, editorTheme } from "./theme";
 
 // Dynamically import Monaco Editor (SSR disabled)
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-        <p className="text-emerald-400 font-medium">Loading Editor...</p>
-      </div>
+    <div className="flex h-full w-full items-center justify-center bg-term-bg">
+      <p className="label text-ink-subtle">Loading editor</p>
     </div>
   ),
 });
@@ -67,7 +65,7 @@ const Editor = ({
 }) => {
   const editorRef = useRef<any>(null);
   const [language, setLanguage] = useState<string>("javascript");
-  const [theme, setTheme] = useState<string>("vs-dark");
+  const [theme, setTheme] = useState<string>(EDITOR_THEME_NAME);
   const prevCodeRef = useRef<string>(code);
   /** The buffer as of the last keystroke, whether or not it has synced. */
   const latestCodeRef = useRef<string>(code);
@@ -122,9 +120,10 @@ const Editor = ({
 
   const themes: Theme[] = useMemo(
     () => [
-      { value: "vs", label: "Light" },
+      { value: EDITOR_THEME_NAME, label: "DevEx" },
       { value: "vs-dark", label: "Dark" },
-      { value: "hc-black", label: "High Contrast Dark" },
+      { value: "vs", label: "Light" },
+      { value: "hc-black", label: "High Contrast" },
     ],
     [],
   );
@@ -277,6 +276,12 @@ const Editor = ({
   const handleEditorMount = useCallback((editor: any, monaco: any) => {
     editorRef.current = editor;
 
+    // Monaco only knows the themes it has been handed. Registering on mount
+    // rather than at module scope keeps this out of the initial chunk — the
+    // `monaco` instance does not exist until the editor has loaded anyway.
+    monaco.editor.defineTheme(EDITOR_THEME_NAME, editorTheme);
+    monaco.editor.setTheme(EDITOR_THEME_NAME);
+
     // Add custom key bindings
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       handleSave();
@@ -371,17 +376,12 @@ const Editor = ({
 
   return (
     <div
-      className={`flex flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white border border-emerald-500/20  overflow-hidden shadow-2xl shadow-black/50 ${
-        isFullscreen ? "fixed inset-0 z-50 rounded-none" : "h-full"
+      className={`flex flex-col overflow-hidden bg-term-bg text-ink ${
+        isFullscreen ? "fixed inset-0 z-50" : "h-full"
       }`}
     >
-      {/* Editor Container */}
-      <div className="flex-1 relative overflow-hidden">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-5 bg-[radial-gradient(circle_at_1px_1px,_rgba(16,185,129,0.3)_1px,_transparent_0)] bg-[length:20px_20px]" />
-
-        {/* Editor */}
-        <div className="relative z-10 h-full">
+      <div className="relative flex-1 overflow-hidden">
+        <div className="h-full">
           <MonacoEditor
             height="100%"
             language={language}
@@ -393,28 +393,24 @@ const Editor = ({
           />
         </div>
 
-        {/* Corner accent */}
-        <div className="absolute bottom-0 right-0 w-16 h-16 bg-gradient-to-tl from-emerald-500/10 to-transparent pointer-events-none" />
       </div>
 
       <style jsx>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #10b981;
+          height: 12px;
+          width: 12px;
+          border-radius: 2px;
+          background: var(--color-brand);
           cursor: pointer;
-          box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
         .slider::-moz-range-thumb {
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #10b981;
+          height: 12px;
+          width: 12px;
+          border-radius: 2px;
+          background: var(--color-brand);
           cursor: pointer;
           border: none;
-          box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
       `}</style>
       {showSettings && (

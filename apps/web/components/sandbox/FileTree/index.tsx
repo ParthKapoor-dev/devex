@@ -76,7 +76,6 @@ export default function VSCodeFileTree({
   setActivePath,
 }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set([""]));
-  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
   const [contextMenuPath, setContextMenuPath] = useState<string | null>(null);
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [dialogState, setDialogState] = useState<{
@@ -196,7 +195,6 @@ export default function VSCodeFileTree({
       const entryPath = currentPath
         ? `${currentPath}/${entry.name}`
         : entry.name;
-      const isHovered = hoveredPath === entryPath;
       const isActive = activePath === entryPath;
       const isExpanded = expanded.has(entryPath);
       const isCut = clipboard?.type === "cut" && clipboard.path === entryPath;
@@ -218,13 +216,14 @@ export default function VSCodeFileTree({
             >
               <div
                 className={cn(
-                  "flex items-center gap-1 px-1 py-0.5 text-sm cursor-pointer transition-colors group relative",
-                  "hover:bg-gray-700/50",
-                  isActive && "bg-gray-700/70",
-                  isCut && "opacity-50",
+                  "group relative flex cursor-pointer items-center gap-1 py-[3px] pr-2 font-mono text-xs",
+                  "transition-colors duration-[--duration-fast]",
+                  "before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-transparent",
+                  "hover:bg-raised/60",
+                  isActive && "bg-raised text-ink before:bg-brand",
+                  !isActive && "text-ink-muted",
+                  isCut && "opacity-40",
                 )}
-                onMouseEnter={() => setHoveredPath(entryPath)}
-                onMouseLeave={() => setHoveredPath(null)}
                 onClick={() => {
                   setActivePath(entryPath);
                   handleToggleFolder(entryPath);
@@ -233,12 +232,12 @@ export default function VSCodeFileTree({
               >
                 <div className="flex items-center gap-1 flex-1 min-w-0">
                   {isExpanded ? (
-                    <ChevronDown className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    <ChevronDown className="size-3 shrink-0 text-ink-subtle" />
                   ) : (
-                    <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    <ChevronRight className="size-3 shrink-0 text-ink-subtle" />
                   )}
                   {getFolderIcon(entry.name, isExpanded)}
-                  <span className="truncate text-gray-200 text-xs font-medium">
+                  <span className="truncate">
                     {entry.name}
                   </span>
                 </div>
@@ -266,13 +265,14 @@ export default function VSCodeFileTree({
             >
               <div
                 className={cn(
-                  "flex items-center gap-2 px-1 py-0.5 text-sm cursor-pointer transition-colors group relative",
-                  "hover:bg-gray-700/50",
-                  isActive && "bg-gray-700/70",
-                  isCut && "opacity-50",
+                  "group relative flex cursor-pointer items-center gap-2 py-[3px] pr-2 font-mono text-xs",
+                  "transition-colors duration-[--duration-fast]",
+                  "before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-transparent",
+                  "hover:bg-raised/60",
+                  isActive && "bg-raised text-ink before:bg-brand",
+                  !isActive && "text-ink-muted",
+                  isCut && "opacity-40",
                 )}
-                onMouseEnter={() => setHoveredPath(entryPath)}
-                onMouseLeave={() => setHoveredPath(null)}
                 onClick={async () => {
                   setActivePath(entryPath);
                   await fetchContent(entryPath);
@@ -281,7 +281,7 @@ export default function VSCodeFileTree({
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {getFileIcon(entry.name)}
-                  <span className="truncate text-gray-300 text-xs">
+                  <span className="truncate">
                     {entry.name}
                   </span>
                 </div>
@@ -294,11 +294,11 @@ export default function VSCodeFileTree({
   };
 
   return (
-    <div className="flex h-full w-full flex-col  bg-gradient-to-br from-gray-900 via-black to-gray-900  text-gray-100 border-r border-gray-700">
+    <div className="flex h-full w-full flex-col border-r border-edge bg-surface text-ink">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 bg-gray-800/50">
+      <div className="flex h-9 shrink-0 items-center justify-between border-b border-edge px-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <h2 className="text-xs font-semibold text-gray-200 uppercase tracking-wide truncate">
+          <h2 className="label truncate text-ink-muted">
             {projectName}
           </h2>
         </div>
@@ -307,7 +307,7 @@ export default function VSCodeFileTree({
             variant="ghost"
             size="sm"
             onClick={() => handleCreateFile("")}
-            className="h-6 w-6 p-0 hover:bg-gray-700 text-gray-400 hover:text-gray-200"
+            className="size-6 p-0 text-ink-subtle hover:bg-raised hover:text-ink"
             title="New File"
           >
             <FilePlus className="w-3 h-3" />
@@ -316,7 +316,7 @@ export default function VSCodeFileTree({
             variant="ghost"
             size="sm"
             onClick={() => handleCreateFolder("")}
-            className="h-6 w-6 p-0 hover:bg-gray-700 text-gray-400 hover:text-gray-200"
+            className="size-6 p-0 text-ink-subtle hover:bg-raised hover:text-ink"
             title="New Folder"
           >
             <FolderPlus className="w-3 h-3" />
@@ -325,7 +325,7 @@ export default function VSCodeFileTree({
             variant="ghost"
             size="sm"
             onClick={() => setShowSearch(!showSearch)}
-            className="h-6 w-6 p-0 hover:bg-gray-700 text-gray-400 hover:text-gray-200"
+            className="size-6 p-0 text-ink-subtle hover:bg-raised hover:text-ink"
             title="Search"
           >
             <Search className="w-3 h-3" />
@@ -334,7 +334,7 @@ export default function VSCodeFileTree({
             variant="ghost"
             size="sm"
             onClick={() => fetchDir("")}
-            className="h-6 w-6 p-0 hover:bg-gray-700 text-gray-400 hover:text-gray-200"
+            className="size-6 p-0 text-ink-subtle hover:bg-raised hover:text-ink"
             title="Refresh"
           >
             <RefreshCw className="w-3 h-3" />
@@ -344,21 +344,21 @@ export default function VSCodeFileTree({
 
       {/* Search Bar */}
       {showSearch && (
-        <div className="px-3 py-2 border-b border-gray-700 bg-gray-800/30">
+        <div className="border-b border-edge px-2 py-1.5">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
+            <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-ink-subtle" />
             <Input
               placeholder="Search files..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-7 pr-7 h-6 text-xs bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-400 focus:border-blue-500"
+              className="h-6 border-edge bg-canvas pl-7 pr-7 font-mono text-xs text-ink placeholder:text-ink-subtle focus-visible:border-brand"
             />
             {searchQuery && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-4 w-4 p-0 hover:bg-gray-700 text-gray-400"
+                className="absolute right-1 top-1/2 size-4 -translate-y-1/2 p-0 text-ink-subtle hover:bg-raised hover:text-ink"
               >
                 <X className="w-3 h-3" />
               </Button>
@@ -373,13 +373,13 @@ export default function VSCodeFileTree({
       </div>
 
       {/* Status Bar */}
-      <div className="px-3 py-1 border-t border-gray-700 bg-gray-800/30">
+      <div className="shrink-0 border-t border-edge px-2 py-1">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">
+          <span className="label text-ink-subtle">
             {Object.keys(tree).length} folders
           </span>
           {clipboard && (
-            <span className="text-xs text-blue-400">
+            <span className="label text-brand">
               {clipboard.type === "copy" ? "Copied" : "Cut"}:{" "}
               {clipboard.path.split("/").pop()}
             </span>
@@ -392,9 +392,9 @@ export default function VSCodeFileTree({
         open={!!dialogState.type}
         onOpenChange={() => setDialogState({ type: null, path: "" })}
       >
-        <DialogContent className="sm:max-w-[425px] bg-gray-800 border-gray-700 text-gray-100">
+        <DialogContent className="border-edge bg-overlay text-ink sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-gray-100">
+            <DialogTitle>
               {dialogState.type === "create-file" && "Create New File"}
               {dialogState.type === "create-folder" && "Create New Folder"}
               {dialogState.type === "rename" && "Rename"}
@@ -402,7 +402,7 @@ export default function VSCodeFileTree({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name" className="text-gray-200">
+              <Label htmlFor="name" className="text-ink-muted">
                 {dialogState.type === "rename" ? "New name" : "Name"}
               </Label>
               <Input
@@ -421,12 +421,12 @@ export default function VSCodeFileTree({
                       ? "folder-name"
                       : "new-name"
                 }
-                className="bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400 focus:border-blue-500"
+                className="border-edge bg-canvas font-mono text-ink placeholder:text-ink-subtle focus-visible:border-brand"
                 autoFocus
               />
             </div>
             {dialogState.path && (
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-ink-subtle">
                 Location: {dialogState.path || "Root"}
               </div>
             )}
@@ -435,14 +435,14 @@ export default function VSCodeFileTree({
             <Button
               variant="outline"
               onClick={() => setDialogState({ type: null, path: "" })}
-              className="border-gray-600 text-gray-200 hover:bg-gray-700"
+              className="border-edge text-ink-muted hover:bg-raised hover:text-ink"
             >
               Cancel
             </Button>
             <Button
               onClick={handleDialogSubmit}
               disabled={!inputValue.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-brand hover:bg-brand-600 text-ink"
             >
               {dialogState.type === "rename" ? "Rename" : "Create"}
             </Button>

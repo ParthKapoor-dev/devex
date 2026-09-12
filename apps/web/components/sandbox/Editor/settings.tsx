@@ -143,17 +143,17 @@ export default function EditorSettingsPopup({
   return (
     <div
       className={`fixed inset-0 z-50 flex h-screen w-full items-center justify-center transition-all duration-300 ${
-        isMounted ? "bg-black/40 backdrop-blur-md" : "bg-transparent"
+        isMounted ? "bg-canvas/40 backdrop-blur-md" : "bg-transparent"
       }`}
     >
       <Card
-        className={`w-full max-w-lg border-dashed border-2 border-zinc-400 rounded-none shadow-none bg-zinc-900 transition-all duration-300 max-h-[80vh] overflow-scroll ${
+        className={`w-full max-w-lg border-dashed border-2 border-zinc-400 rounded-none shadow-none bg-surface transition-all duration-300 max-h-[80vh] overflow-scroll ${
           isMounted ? "scale-100 opacity-100" : "scale-90 opacity-0"
         }`}
       >
         <CardHeader className="border-b border-dashed pb-4 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-emerald-500" />
+            <Settings className="h-5 w-5 text-brand" />
             <span className="text-sm font-mono">Editor Configuration</span>
           </div>
           <Button variant="ghost" size="icon" onClick={handleClose}>
@@ -165,13 +165,13 @@ export default function EditorSettingsPopup({
           {/* Theme Selection */}
           <div className="flex gap-4">
             <div className="flex items-center gap-2">
-              <Palette className="h-4 w-4 text-emerald-500" />
+              <Palette className="h-4 w-4 text-brand" />
               <span className="text-sm font-medium">Theme</span>
             </div>
             <select
               value={theme}
               onChange={(e) => onThemeChange(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-none px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full bg-raised border border-edge rounded-none px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               {themes.map((themeOption) => (
                 <option key={themeOption.value} value={themeOption.value}>
@@ -184,12 +184,12 @@ export default function EditorSettingsPopup({
           {/* Font Size */}
           <div className="flex gap-4 flex-col">
             <div className="flex items-center gap-2">
-              <Type className="h-4 w-4 text-emerald-500" />
+              <Type className="h-4 w-4 text-brand" />
               <span className="text-sm font-medium">Font Size</span>
-              <span className="text-xs text-zinc-400">({localFontSize}px)</span>
+              <span className="text-xs text-ink-subtle">({localFontSize}px)</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-zinc-400">10</span>
+              <span className="text-xs text-ink-subtle">10</span>
               <input
                 type="range"
                 min="10"
@@ -198,14 +198,14 @@ export default function EditorSettingsPopup({
                 onChange={(e) => handleFontSizeChange(parseInt(e.target.value))}
                 className="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer slider"
               />
-              <span className="text-xs text-zinc-400">24</span>
+              <span className="text-xs text-ink-subtle">24</span>
             </div>
           </div>
 
           {/* Word Wrap */}
           <div className="flex gap-4">
             <div className="flex items-center gap-2">
-              <Monitor className="h-4 w-4 text-emerald-500" />
+              <Monitor className="h-4 w-4 text-brand" />
               <span className="text-sm font-medium">Word Wrap</span>
             </div>
             <select
@@ -215,7 +215,7 @@ export default function EditorSettingsPopup({
                   e.target.value as "off" | "on" | "wordWrapColumn",
                 )
               }
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-none px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="w-full bg-raised border border-edge rounded-none px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="off">Off</option>
               <option value="on">On</option>
@@ -226,7 +226,7 @@ export default function EditorSettingsPopup({
           {/* Minimap Toggle */}
           <div className="flex gap-4">
             <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-emerald-500" />
+              <Eye className="h-4 w-4 text-brand" />
               <span className="text-sm font-medium">Minimap</span>
             </div>
             <ModernCheckbox
@@ -238,7 +238,7 @@ export default function EditorSettingsPopup({
           {/* Fullscreen Mode Toggle */}
           <div className="flex gap-4">
             <div className="flex items-center gap-2">
-              <Maximize2 className="h-4 w-4 text-emerald-500" />
+              <Maximize2 className="h-4 w-4 text-brand" />
               <span className="text-sm font-medium">Fullscreen Mode</span>
             </div>
             <ModernCheckbox
@@ -250,7 +250,7 @@ export default function EditorSettingsPopup({
           {/* File Operations */}
           <div className="flex gap-4 flex-col">
             <div className="flex items-center gap-2">
-              <Code2 className="h-4 w-4 text-emerald-500" />
+              <Code2 className="h-4 w-4 text-brand" />
               <span className="text-sm font-medium">File Operations</span>
             </div>
             <div className="flex gap-2">
@@ -259,7 +259,7 @@ export default function EditorSettingsPopup({
                 size="sm"
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className="flex-1 rounded-none border-dashed border-zinc-600 hover:bg-zinc-700 hover:border-emerald-500 transition-colors"
+                className="flex-1 rounded-none border-dashed border-zinc-600 hover:bg-zinc-700 hover:border-brand transition-colors"
               >
                 <Download className="h-4 w-4 mr-2" />
                 {isDownloading ? "Downloading..." : "Download"}
@@ -269,7 +269,7 @@ export default function EditorSettingsPopup({
                 size="sm"
                 onClick={handleUploadClick}
                 disabled={isUploading}
-                className="flex-1 rounded-none border-dashed border-zinc-600 hover:bg-zinc-700 hover:border-emerald-500 transition-colors"
+                className="flex-1 rounded-none border-dashed border-zinc-600 hover:bg-zinc-700 hover:border-brand transition-colors"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 {isUploading ? "Uploading..." : "Upload"}
@@ -286,12 +286,12 @@ export default function EditorSettingsPopup({
           </div>
 
           {/* Status Display */}
-          <div className="mt-6 pt-4 border-t border-dashed border-zinc-700">
+          <div className="mt-6 pt-4 border-t border-dashed border-edge">
             <div className="flex items-center gap-2">
-              <span className="text-emerald-500">$</span>
+              <span className="text-brand">$</span>
               <span className="text-sm">editor.getConfiguration()</span>
             </div>
-            <div className="pl-6 mt-2 text-xs text-zinc-400 flex flex-col gap-1">
+            <div className="pl-6 mt-2 text-xs text-ink-subtle flex flex-col gap-1">
               <div>language: {language}</div>
               <div>theme: {themes.find((t) => t.value === theme)?.label}</div>
               <div>fontSize: {localFontSize}px</div>

@@ -107,7 +107,7 @@ export default function ShortcutKeysPopup({ onClose }: ShortcutKeysPopupProps) {
   const renderShortcutKey = (keys: string) => {
     return keys.split("+").map((key, index, array) => (
       <span key={index} className="inline-flex items-center">
-        <kbd className="px-2 py-1 text-xs font-mono bg-zinc-800 border border-zinc-600 rounded shadow-sm">
+        <kbd className="px-2 py-1 text-xs font-mono bg-raised border border-zinc-600 rounded shadow-sm">
           {key}
         </kbd>
         {index < array.length - 1 && (
@@ -120,22 +120,22 @@ export default function ShortcutKeysPopup({ onClose }: ShortcutKeysPopupProps) {
   return (
     <div
       className={`fixed inset-0 z-50 flex h-screen w-full items-center justify-center transition-all duration-300 ${
-        isMounted ? "bg-black/40 backdrop-blur-md" : "bg-transparent"
+        isMounted ? "bg-canvas/40 backdrop-blur-md" : "bg-transparent"
       }`}
     >
       <div
-        className={`w-full max-w-4xl border-dashed border-2 border-zinc-400 rounded-none shadow-none bg-zinc-900 transition-all duration-300 max-h-[90vh] overflow-hidden ${
+        className={`w-full max-w-4xl border-dashed border-2 border-zinc-400 rounded-none shadow-none bg-surface transition-all duration-300 max-h-[90vh] overflow-hidden ${
           isMounted ? "scale-100 opacity-100" : "scale-90 opacity-0"
         }`}
       >
         <div className="border-b border-dashed pb-4 flex flex-row items-center justify-between p-6">
           <div className="flex items-center gap-2">
-            <span className="text-emerald-500">⌨️</span>
+            <span className="text-brand">⌨️</span>
             <span className="text-sm font-mono">Keyboard Shortcuts</span>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-zinc-800 transition-colors rounded"
+            className="p-2 hover:bg-raised transition-colors rounded"
           >
             <svg
               className="h-5 w-5"
@@ -158,11 +158,11 @@ export default function ShortcutKeysPopup({ onClose }: ShortcutKeysPopupProps) {
             {shortcutCategories.map((category) => (
               <div
                 key={category.title}
-                className="border border-dashed border-zinc-700 p-4 bg-zinc-800/50"
+                className="border border-dashed border-edge p-4 bg-raised/50"
               >
-                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-dashed border-zinc-700">
-                  <span className="text-emerald-500">{category.icon}</span>
-                  <span className="text-sm font-medium text-emerald-400">
+                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-dashed border-edge">
+                  <span className="text-brand">{category.icon}</span>
+                  <span className="text-sm font-medium text-brand">
                     {category.title}
                   </span>
                 </div>
@@ -173,11 +173,11 @@ export default function ShortcutKeysPopup({ onClose }: ShortcutKeysPopupProps) {
                       className="flex items-center justify-between gap-4 text-xs"
                     >
                       <div className="flex items-center gap-2 flex-1">
-                        <span className="text-zinc-300">
+                        <span className="text-ink-muted">
                           {shortcut.description}
                         </span>
                         {shortcut.context && (
-                          <span className="text-zinc-500 text-xs px-2 py-1 bg-zinc-800 border border-zinc-600 rounded">
+                          <span className="text-zinc-500 text-xs px-2 py-1 bg-raised border border-zinc-600 rounded">
                             {shortcut.context}
                           </span>
                         )}
@@ -193,12 +193,12 @@ export default function ShortcutKeysPopup({ onClose }: ShortcutKeysPopupProps) {
           </div>
 
           {/* Command Palette Style Status */}
-          <div className="mt-6 pt-4 border-t border-dashed border-zinc-700">
+          <div className="mt-6 pt-4 border-t border-dashed border-edge">
             <div className="flex items-center gap-2">
-              <span className="text-emerald-500">$</span>
+              <span className="text-brand">$</span>
               <span className="text-sm">shortcuts.getAll()</span>
             </div>
-            <div className="pl-6 mt-2 text-xs text-zinc-400 flex flex-col gap-1">
+            <div className="pl-6 mt-2 text-xs text-ink-subtle flex flex-col gap-1">
               <div>platform: {navigator.platform}</div>
               <div>
                 total shortcuts:{" "}
@@ -210,7 +210,7 @@ export default function ShortcutKeysPopup({ onClose }: ShortcutKeysPopupProps) {
               <div>context-aware: enabled</div>
               <div className="flex items-center gap-1">
                 tip: Use
-                <kbd className="px-1 py-0.5 bg-zinc-800 border border-zinc-600 rounded text-xs mx-1">
+                <kbd className="px-1 py-0.5 bg-raised border border-zinc-600 rounded text-xs mx-1">
                   Ctrl+Shift+P
                 </kbd>
                 to access settings

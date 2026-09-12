@@ -30,6 +30,8 @@ import React, {
   useState,
 } from "react";
 import "@xterm/xterm/css/xterm.css"; // Required CSS for xterm.js styling
+import { token } from "@/lib/tokens";
+import { mono } from "@/app/fonts";
 
 /**
  * Props interface for the Terminal component
@@ -218,32 +220,41 @@ export interface TerminalRef {
 }
 
 /**
- * Default color theme for the terminal
+ * Default colour theme for the terminal.
  *
- * This theme provides a dark background with bright text colors,
- * similar to popular terminal applications like VS Code's integrated terminal.
+ * The surface colours come from `lib/tokens` so the terminal is the same
+ * material as the editor rather than a slightly different shade of dark
+ * sitting next to it. xterm parses these itself and takes hex only.
+ *
+ * The 16 ANSI slots are deliberately *not* rebranded. Programs choose these
+ * by index and users read them by convention — green means passed, red means
+ * failed. Retinting them to fit a palette would be actively user-hostile, so
+ * they stay a conventional set, only nudged for legibility on a near-black
+ * background.
  */
 const defaultTheme = {
-  background: "#1e1e1e", // Dark background
-  foreground: "#d4d4d4", // Light gray text
-  cursor: "#d4d4d4", // Light gray cursor
-  selection: "#264f78", // Blue selection highlight
-  black: "#000000", // Pure black
-  red: "#cd3131", // Red for errors
-  green: "#0dbc79", // Green for success
-  yellow: "#e5e510", // Yellow for warnings
-  blue: "#2472c8", // Blue for info
-  magenta: "#bc3fbc", // Magenta for special text
-  cyan: "#11a8cd", // Cyan for highlights
-  white: "#e5e5e5", // Off-white
-  brightBlack: "#666666", // Gray
-  brightRed: "#f14c4c", // Bright red
-  brightGreen: "#23d18b", // Bright green
-  brightYellow: "#f5f543", // Bright yellow
-  brightBlue: "#3b8eea", // Bright blue
-  brightMagenta: "#d670d6", // Bright magenta
-  brightCyan: "#29b8db", // Bright cyan
-  brightWhite: "#e5e5e5", // Bright white
+  background: token.termBg,
+  foreground: token.termInk,
+  cursor: token.brand500,
+  cursorAccent: token.termBg,
+  selectionBackground: "#ffffff26",
+
+  black: "#1c1c1c",
+  red: "#f0524f",
+  green: "#5cba6a",
+  yellow: "#e0b040",
+  blue: "#4a8fe0",
+  magenta: "#c464c4",
+  cyan: "#3ba9c4",
+  white: "#c7c7c7",
+  brightBlack: "#5c5c5c",
+  brightRed: "#ff6b6b",
+  brightGreen: "#73d68a",
+  brightYellow: "#f2cc60",
+  brightBlue: "#6aa9f0",
+  brightMagenta: "#dc8adc",
+  brightCyan: "#5cc4dd",
+  brightWhite: "#f2f2f2",
 };
 
 /**
@@ -276,7 +287,7 @@ const TerminalComponent = forwardRef<TerminalRef, TerminalProps>(
       onTerminalResize,
       theme = defaultTheme,
       fontSize = 14,
-      fontFamily = 'Monaspace, "Cascadia Code", "Fira Code", "SF Mono", Monaco, "Inconsolata", "Roboto Mono", "Source Code Pro"',
+      fontFamily = mono.style.fontFamily,
       cols = 80,
       rows = 24,
       onReady,
