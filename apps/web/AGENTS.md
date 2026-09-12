@@ -250,6 +250,26 @@ tool someone keeps open all day.
   into the editor, and a keyword coloured two different ways makes the product
   feel assembled from parts.
 
+## The marketing page
+
+Every section below the hero goes through `components/landing/section.tsx`.
+`Section` supplies the frame — hairline rule, uppercase eyebrow, display
+heading, optional lead, optional control on the right of the heading row — and
+`HairlineGrid` supplies the cell grid. Do not hand-roll either at a call site;
+the page had five different heading treatments before they existed, and the
+wrapper's `text-center` meant each section had to opt out of centring by hand.
+
+Centring belongs to the hero and nothing else.
+
+The product shot in `Previews.tsx` must keep matching
+`components/sandbox/chrome.tsx` — the same tab strip, the same amber-marks-the-
+open-file rule, the same status bar. A marketing shot that does not match the
+product is worse than no shot, because the mismatch is the first thing a new
+user notices. **Change them together.**
+
+No fake window chrome. Three grey circles are a macOS window's traffic lights,
+and neither the dashboard nor the hero mock is a macOS window.
+
 ## Documentation
 
 Docs are **authored MDX** under `content/docs/`. They are no longer scraped from
@@ -293,6 +313,26 @@ colours on every token.
 
 Affordances in the docs must not be hover-only. The copy button used to be
 `opacity-0` until `group-hover`, which means it did not exist on a phone.
+
+**In the docs, amber means a link and nothing else.** Inline code was
+`text-brand-300`, which put the accent on every identifier, filename and flag —
+dozens of fragments per screen on a page like self-hosting — and left the one
+thing a reader can act on indistinguishable from ordinary nouns. Step numbers,
+card icons and the blockquote rail were amber for no reason beyond being
+available. Code is marked by the mono face and its fill.
+
+`DocsIndex` generates the section listing on `/docs` from the same source the
+sidebar reads. Never hand-write a list of pages in MDX — the one that was there
+named four of seven and would have gone stale on the next addition.
+
+## Shortcut hints
+
+Every hint was hardcoded to `⌘K` while the handlers behind them accept
+`metaKey || ctrlKey`, so most of this audience was told to press a key their
+keyboard does not have. Use `useModifierKey()` from `hooks/use-modifier-key`.
+It resolves after mount on purpose: the server cannot know the platform, so
+anything baked into the static HTML is either a hydration mismatch or wrong for
+half the readers.
 
 ## SEO
 
