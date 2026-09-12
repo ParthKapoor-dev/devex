@@ -29,7 +29,7 @@ import React, {
   useImperativeHandle,
   useState,
 } from "react";
-import "xterm/css/xterm.css"; // Required CSS for xterm.js styling
+import "@xterm/xterm/css/xterm.css"; // Required CSS for xterm.js styling
 
 /**
  * Props interface for the Terminal component
@@ -371,10 +371,10 @@ const TerminalComponent = forwardRef<TerminalRef, TerminalProps>(
 
         // Dynamic imports for code splitting
         // This allows the terminal libraries to be loaded only when needed
-        const { Terminal } = await import("xterm");
-        const { FitAddon } = await import("xterm-addon-fit");
-        const { WebLinksAddon } = await import("xterm-addon-web-links");
-        const { SearchAddon } = await import("xterm-addon-search");
+        const { Terminal } = await import("@xterm/xterm");
+        const { FitAddon } = await import("@xterm/addon-fit");
+        const { WebLinksAddon } = await import("@xterm/addon-web-links");
+        const { SearchAddon } = await import("@xterm/addon-search");
 
         // Create the main terminal instance with configuration
         const terminal = new Terminal({

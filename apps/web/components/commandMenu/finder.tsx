@@ -31,7 +31,6 @@ import {
   File,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { RunIcon } from "@codesandbox/sandpack-react";
 import { Tree, DirEntry } from "../sandbox/FileTree";
 
 // Utility function to detect OS and return appropriate modifier key

@@ -70,6 +70,19 @@ interface SandboxProps {
   isConnected: boolean;
 }
 
+/**
+ * True when the event target is somewhere the user is entering text.
+ *
+ * Covers xterm's textarea and Monaco's hidden input as well as ordinary
+ * fields — both are real focusable inputs in the DOM.
+ */
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
 const Sandbox: React.FC<SandboxProps> = ({
   editor,
   fileTree,
@@ -159,6 +172,12 @@ const Sandbox: React.FC<SandboxProps> = ({
       // Disable some shortcuts on mobile
       if (isMobile) return;
 
+      // Never steal a keystroke from something the user is typing into.
+      // Without this, typing `?` in Monaco, in the rename box, or in the
+      // terminal opened the shortcuts modal — the bare-key shortcuts below
+      // have no modifier to tell them apart from ordinary text.
+      if (isTypingTarget(event.target)) return;
+
       // Ctrl+Shift+E: Focus sidebar (Explorer)
       if (isCtrlOrCmd && shiftKey && key.toLowerCase() === "e") {
         event.preventDefault();
@@ -179,7 +198,6 @@ const Sandbox: React.FC<SandboxProps> = ({
       // Shift+/: Open Shortcuts
       if (key.toLowerCase() === "?") {
         event.preventDefault();
-        console.log("Hello World");
         setShowHelp(true);
         return;
       }
@@ -281,6 +299,9 @@ const Sandbox: React.FC<SandboxProps> = ({
     [
       isMobile,
       sidebarCollapsed,
+      // Read by the Ctrl+` branch below. Omitting it pinned the handler to
+      // whatever the panel state was when it was first registered.
+      bottomPanelCollapsed,
       activeBottomPanel,
       clearTerminal,
       resetTerminal,

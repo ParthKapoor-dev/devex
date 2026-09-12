@@ -27,6 +27,7 @@ import React, {
 import { diff_match_patch } from "diff-match-patch";
 import EditorSettingsPopup from "./settings";
 import { Button } from "@/components/ui/button";
+import { mono } from "@/app/fonts";
 
 // Dynamically import Monaco Editor (SSR disabled)
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -40,6 +41,9 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
     </div>
   ),
 });
+
+/** Idle window before a run of keystrokes is diffed and sent. */
+const DIFF_DEBOUNCE_MS = 300;
 
 interface Theme {
   value: string;
@@ -65,6 +69,9 @@ const Editor = ({
   const [language, setLanguage] = useState<string>("javascript");
   const [theme, setTheme] = useState<string>("vs-dark");
   const prevCodeRef = useRef<string>(code);
+  /** The buffer as of the last keystroke, whether or not it has synced. */
+  const latestCodeRef = useRef<string>(code);
+  const pendingFlushRef = useRef<number | null>(null);
   const [fontSize, setFontSize] = useState<number>(14);
   const [editor, setEditor] = useState<any>(null);
   const [wordWrap, setWordWrap] = useState<"off" | "on" | "wordWrapColumn">(
@@ -84,7 +91,10 @@ const Editor = ({
 
   // Update Prev Code Ref on code change
   useEffect(() => {
-    if (prevCodeRef.current != code) prevCodeRef.current = code;
+    if (prevCodeRef.current != code) {
+      prevCodeRef.current = code;
+      latestCodeRef.current = code;
+    }
   }, [code]);
 
   // Supported languages and themes
@@ -123,7 +133,8 @@ const Editor = ({
   const editorOptions: editor.IStandaloneEditorConstructionOptions = useMemo(
     () => ({
       fontSize,
-      fontFamily: "Jetbrains mono",
+      // next/font hashes the family name, so it has to come from the loader.
+      fontFamily: mono.style.fontFamily,
       wordWrap,
       minimap: { enabled: minimap },
       automaticLayout: true,
@@ -139,10 +150,25 @@ const Editor = ({
     [fontSize, wordWrap, minimap],
   );
 
-  // Handlers
-  function handleCodeChange(newValue: string) {
-    const currentCode = (newValue || "").replace(/\r\n/g, "\n");
+  /**
+   * Diff the buffer against the last synced copy and ship the patch.
+   *
+   * `diff_match_patch` is O(n*m) on the two texts, so running it inline on
+   * every keystroke made typing cost grow with file length — on a large file
+   * that is a diff of the whole document per character, on the main thread,
+   * between the keypress and the glyph appearing.
+   *
+   * Coalescing on a short idle window collapses a burst of typing into one
+   * diff and one socket frame without the user ever noticing a delay. The
+   * patch is still computed against `prevCodeRef`, so a coalesced run
+   * produces exactly the patch the per-keystroke runs would have summed to.
+   */
+  const flushDiff = useCallback(() => {
+    pendingFlushRef.current = null;
+
+    const currentCode = latestCodeRef.current.replace(/\r\n/g, "\n");
     const prevCode = prevCodeRef.current.replace(/\r\n/g, "\n");
+    if (currentCode === prevCode) return;
 
     const dmp = new diff_match_patch();
     const diffs = dmp.diff_main(prevCode, currentCode);
@@ -153,7 +179,27 @@ const Editor = ({
       sendDiff(patchText);
       prevCodeRef.current = currentCode;
     }
+  }, [sendDiff]);
+
+  function handleCodeChange(newValue: string) {
+    latestCodeRef.current = newValue || "";
+
+    if (pendingFlushRef.current !== null) {
+      window.clearTimeout(pendingFlushRef.current);
+    }
+    pendingFlushRef.current = window.setTimeout(flushDiff, DIFF_DEBOUNCE_MS);
   }
+
+  // Never lose the tail of a burst: flush whatever is pending when the editor
+  // goes away or the debounce identity changes.
+  useEffect(() => {
+    return () => {
+      if (pendingFlushRef.current !== null) {
+        window.clearTimeout(pendingFlushRef.current);
+        flushDiff();
+      }
+    };
+  }, [flushDiff]);
 
   const getFileExtension = (lang: string): string => {
     const extensions: Record<string, string> = {

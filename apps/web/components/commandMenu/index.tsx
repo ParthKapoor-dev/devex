@@ -30,9 +30,9 @@ import {
   ArrowLeft,
   File,
   LogOut,
+  Play,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { RunIcon } from "@codesandbox/sandpack-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Types
@@ -151,7 +151,7 @@ export const Cmd = () => {
     {
       type: "action",
       name: "Activate a Repl",
-      icon: <RunIcon />,
+      icon: <Play className="size-4" />,
       action: () => router.push("/dashboard"),
       // shortcut: "cmd+u",
     },
