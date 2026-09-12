@@ -2,10 +2,23 @@
 
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { LoginButton } from "@/components/Auth/LoginButton";
-import Squares from "@/components/ui/background-squares";
+import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthShell } from "@/components/Auth/AuthShell";
+import { LoginButton } from "@/components/Auth/LoginButton";
+
+const ERROR_MESSAGES: Record<string, string> = {
+  session_error: "Your session expired. Try signing in again.",
+  invalid_state:
+    "That sign-in link did not match this browser session. Start again from this page.",
+  exchange_failed: "GitHub did not complete the handshake. Try again.",
+  user_fetch_failed: "Signed in, but your GitHub profile could not be read.",
+  session_save_failed: "Signed in, but the session could not be saved.",
+};
+
+const getErrorMessage = (errorCode: string) =>
+  ERROR_MESSAGES[errorCode] ?? "Something went wrong signing in. Try again.";
 
 function LoginPageContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -27,8 +40,8 @@ function LoginPageContent() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="label text-ink-subtle">Checking session</p>
       </div>
     );
   }
@@ -37,56 +50,35 @@ function LoginPageContent() {
     return null;
   }
 
-  const getErrorMessage = (errorCode: string) => {
-    switch (errorCode) {
-      case "session_error":
-        return "Session error occurred. Please try again.";
-      case "invalid_state":
-        return "Invalid state parameter. Please try again.";
-      case "exchange_failed":
-        return "Failed to exchange code for token. Please try again.";
-      case "user_fetch_failed":
-        return "Failed to fetch user information. Please try again.";
-      case "session_save_failed":
-        return "Failed to save session. Please try again.";
-      default:
-        return "An error occurred during authentication. Please try again.";
-    }
-  };
-
   return (
-    <div className="flex items-center justify-center min-h-screen max-md:mx-6">
-      <Squares
-        speed={0.5}
-        squareSize={80}
-        direction="diagonal"
-        borderColor="black"
-        hoverFillColor="#222"
-      />
-      <div className="z-10 max-w-md w-full flex flex-col gap-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-200">
-            Sign in to your account
-          </h2>
+    <AuthShell
+      title="Sign in"
+      subtitle="Spin up a containerised dev environment in your browser."
+      footer="By continuing you agree to the Terms of Service and Privacy Policy."
+    >
+      {error && (
+        <div
+          role="alert"
+          className="mb-5 flex items-start gap-2.5 rounded-md border border-danger/30 bg-danger/8 p-3"
+        >
+          <AlertCircle
+            className="mt-px size-4 shrink-0 text-danger"
+            aria-hidden="true"
+          />
+          <p className="text-xs leading-relaxed text-ink-muted">
+            {getErrorMessage(error)}
+          </p>
         </div>
+      )}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="text-sm text-red-600">{getErrorMessage(error)}</div>
-          </div>
-        )}
-
-        <div className="text-center">
-          <LoginButton />
-        </div>
-      </div>
-    </div>
+      <LoginButton />
+    </AuthShell>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+    <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
       <LoginPageContent />
     </Suspense>
   );
