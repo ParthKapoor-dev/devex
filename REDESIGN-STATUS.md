@@ -51,9 +51,28 @@ Not decoration, not status, not terminal output.
 
 ## 3. What shipped
 
-All 10 commits since the last checkpoint:
+The second pass on the marketing site and docs:
 
 ```
+d2cde51 fix(web): align the header with the content under it
+d0fea99 feat(web): put the docs on the same backdrop as everything else
+d3236ba feat(web): ask once more at the bottom of the page
+dfdf2a0 feat(web): make the hero shot look like the product
+ddb7a30 fix(web): stop telling Linux users to press ⌘
+5cc4f1b fix(web): the header was never migrated onto the tokens
+44965c4 fix(web): the docs were amber everywhere
+d4d0c64 feat(web): give /docs an actual front door
+4049a10 feat(web): stop opening the page with third-party badges
+4fee30e feat(web): explain how a workspace actually starts
+5bbb053 feat(web): rebuild pricing as a spec sheet
+f80b9d6 feat(web): give the landing page one section frame
+```
+
+The first pass:
+
+```
+d5b0fa5 fix(web): editor came up in the wrong theme, and every file click toasted
+2c1bce8 docs: record the redesign in AGENTS.md and the status file
 e6886c7 perf(web): stop the sandbox re-rendering Monaco and xterm on every interaction
 d9ac723 feat(web): redesign the docs
 b467eaf feat(web): redesign the landing page
@@ -73,7 +92,7 @@ Earlier, pre-checkpoint: `61e8d12` `d5b6530` `e188de8` `c7a2680` `a5686da`
 
 | | Before | After |
 | --- | --- | --- |
-| Landing First Load JS | 194 kB | **188 kB** (with more on the page) |
+| Landing First Load JS | 194 kB | **185 kB** (with two more sections) |
 | Docs First Load JS | 448 kB | **115 kB** |
 | Fonts shipped | 90.8 kB / 3 families | **85.2 kB / 3 families** |
 | Waves point-updates/sec | 1.21M | 138K |
@@ -120,6 +139,30 @@ Worth remembering because the *causes* recur:
 - **A `docs-prose` class with no rule defined anywhere** made the docs look
   centrally styled when the measure was simply never set.
 
+Found in the second pass, all in the header and the marketing page:
+
+- **`bg-ink` used as a background in five places** in the vendored navbar.
+  `ink` is the *text* colour, so the primary call to action on every page was
+  a near-white pill rather than the brand.
+- **Nav items were bare `<a href>`** — every click on "Docs" threw away the
+  client and did a full document load.
+- **`hover:text-zinc-800` on the nav row**: dark grey text, on hover, on a
+  near-black background.
+- **The shrink-on-scroll animated `width` to 40% under `minWidth: 800px`**, so
+  below a 2000px viewport the clamp won and the pill barely moved. The bar also
+  rested at 1152px with `px-32`, aligning with nothing on the page.
+- **`router.push()` with an external URL** for "Book a call" — no new tab, no
+  `rel`, and the address hardcoded beside the one already in `siteConfig`.
+- **Every shortcut hint said `⌘K`** while the handlers all accept
+  `metaKey || ctrlKey`, so Linux and Windows were told to press a key they do
+  not have.
+- **Inline code in the docs was `text-brand-300`** — dozens of amber fragments
+  per screen, which left links indistinguishable from ordinary nouns.
+- **Pricing was still pre-redesign**: 22 amber icon bubbles, an amber glow, an
+  amber savings pill and an amber gradient wash, plus a `resize` listener
+  firing a setState per pixel of a window drag to offset one card by 12px.
+- **"Where to go next" in `index.mdx`** hand-listed four of seven docs pages.
+
 ### Three assumptions the audit REFUTED — do not "fix" these
 
 - The body background is byte-identical before and after.
@@ -145,10 +188,10 @@ Worth remembering because the *causes* recur:
 
 ## 6. Open / not done
 
-1. **Nothing has been seen rendered in a browser.** The Chrome extension is not
-   connected to this session, so every visual claim is inferred from the served
-   CSS and HTML, not observed. `/repl/[slug]` in particular needs eyes — it
-   requires a login.
+1. **Nothing has been seen rendered in a browser.** The Chrome extension is
+   still not connected to this session, so every visual claim is inferred from
+   the served CSS and HTML, not observed. `/repl/[slug]` in particular needs
+   eyes — it requires a login.
 2. **`isTerminalMaximized` is set but the maximise behaviour is not wired** in
    the desktop layout (pre-existing).
 3. Two backend papercuts, out of scope: `internal/redis/store.go` logs
