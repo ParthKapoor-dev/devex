@@ -188,10 +188,16 @@ Found in the second pass, all in the header and the marketing page:
 
 ## 6. Open / not done
 
-1. **Nothing has been seen rendered in a browser.** The Chrome extension is
-   still not connected to this session, so every visual claim is inferred from
-   the served CSS and HTML, not observed. `/repl/[slug]` in particular needs
-   eyes — it requires a login.
+1. **The signed-in surfaces have still not been seen rendered.** The public
+   routes now have: Chromium is driven headless via the copy of
+   `playwright-core` that ships with VS Code
+   (`/usr/lib/code/node_modules/playwright-core`, browser at
+   `/usr/bin/chromium`), which is how the sticky-sidebar, hero-clamp and
+   navbar-opacity fixes were verified and how every route is checked for
+   horizontal overflow at 320/375/414/768/1024/1440. `/dashboard` and
+   `/repl/[slug]` sit behind a real GitHub login, so they are still reasoned
+   about rather than observed — the merged sandbox bar was checked by
+   rendering its chrome on a throwaway route, not the live IDE.
 2. **`isTerminalMaximized` is set but the maximise behaviour is not wired** in
    the desktop layout (pre-existing).
 3. Two backend papercuts, out of scope: `internal/redis/store.go` logs
