@@ -13,10 +13,15 @@ import { useActiveInView } from "@/hooks/use-active-in-view";
  * mock re-themes with the tokens and stays sharp on any display, which a PNG
  * does not.
  *
- * It is deliberately the *only* animated thing below the fold: one line of
- * type-on text, which stops permanently once it finishes. The previous
- * version of this section ran three uncapped timers with no reduced-motion
- * branch and no check for whether it was on screen.
+ * It mirrors the real IDE's chrome deliberately: the same tab strip, the same
+ * amber-marks-the-open-file rule, the same monospace status bar along the
+ * bottom. A marketing shot that does not match the product is worse than no
+ * shot, because the mismatch is the first thing a new user notices.
+ *
+ * It is also the *only* animated thing below the fold: one line of type-on
+ * text, which stops permanently once it finishes. The version before this ran
+ * three uncapped timers with no reduced-motion branch and no check for whether
+ * it was on screen.
  */
 
 const TREE = [
@@ -29,13 +34,25 @@ const TREE = [
 ];
 
 const CODE: { text: string; tone?: "kw" | "str" | "fn" | "com" | "num" }[][] = [
-  [{ text: "import", tone: "kw" }, { text: " { serve } " }, { text: "from", tone: "kw" }, { text: " " }, { text: '"./server"', tone: "str" }],
+  [
+    { text: "import", tone: "kw" },
+    { text: " { serve } " },
+    { text: "from", tone: "kw" },
+    { text: " " },
+    { text: '"./server"', tone: "str" },
+  ],
   [],
   [{ text: "// one container, one session", tone: "com" }],
   [{ text: "const", tone: "kw" }, { text: " port = " }, { text: "3000", tone: "num" }],
   [],
   [{ text: "serve", tone: "fn" }, { text: "({ port }, () => {" }],
-  [{ text: "  console." }, { text: "log", tone: "fn" }, { text: "(" }, { text: "`up on :${port}`", tone: "str" }, { text: ")" }],
+  [
+    { text: "  console." },
+    { text: "log", tone: "fn" },
+    { text: "(" },
+    { text: "`up on :${port}`", tone: "str" },
+    { text: ")" },
+  ],
   [{ text: "})" }],
 ];
 
@@ -68,27 +85,34 @@ export default function Preview() {
   const finished = reducedMotion || done;
 
   return (
-    <div ref={hostRef} className="mx-auto mt-16 w-full max-w-5xl px-0">
-      <div className="overflow-hidden rounded-lg border border-edge bg-surface shadow-[0_0_0_1px_rgb(0_0_0/0.3),0_24px_60px_-20px_rgb(0_0_0/0.7)]">
-        {/* Window bar */}
-        <div className="flex h-9 items-center gap-2 border-b border-edge px-3">
-          <span className="flex gap-1.5" aria-hidden="true">
-            <span className="size-2.5 rounded-full bg-edge-strong" />
-            <span className="size-2.5 rounded-full bg-edge-strong" />
-            <span className="size-2.5 rounded-full bg-edge-strong" />
+    <div ref={hostRef} className="mx-auto mt-16 w-full max-w-5xl text-left">
+      <div className="overflow-hidden rounded-lg border border-edge bg-surface shadow-[0_0_0_1px_rgb(0_0_0/0.3),0_32px_80px_-24px_rgb(0_0_0/0.8)]">
+        {/* Title bar. The three grey circles that used to sit here were a
+            macOS window's traffic lights, drawn on something that is not a
+            macOS window — the same fake chrome that came out of the dashboard.
+            The space says what the workspace is instead. */}
+        <div className="flex h-9 items-center gap-3 border-b border-edge bg-surface px-3">
+          <span className="truncate font-mono text-xs text-ink-muted">
+            devex<span className="text-ink-subtle"> / </span>api
           </span>
-          <span className="ml-2 truncate font-mono text-xs text-ink-subtle">
-            devex / api
+          <span className="rounded-xs border border-edge px-1.5 py-px font-mono text-[10px] text-ink-subtle">
+            node:20
           </span>
-          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 font-mono text-[10px] text-brand">
-            <span className="size-1.5 rounded-full bg-brand" aria-hidden="true" />
+          <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-[11px] text-term-accent">
+            <span
+              className="size-1.5 rounded-full bg-term-accent"
+              aria-hidden="true"
+            />
             running
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr]">
+        <div className="grid grid-cols-1 sm:grid-cols-[172px_1fr]">
           {/* Explorer */}
-          <aside className="hidden border-r border-edge py-2 sm:block">
+          <aside className="hidden border-r border-edge py-1.5 sm:block">
+            <p className="label px-3 pb-1.5 pt-1 text-[9px] text-ink-subtle">
+              Explorer
+            </p>
             {TREE.map((entry) => (
               <div
                 key={entry.name}
@@ -107,6 +131,22 @@ export default function Preview() {
           </aside>
 
           <div className="min-w-0">
+            {/* Tab strip — the same shape the real editor uses, down to the
+                amber underline marking the open file. */}
+            <div className="flex h-8 items-stretch border-b border-edge bg-surface">
+              <span className="relative inline-flex items-center gap-2 border-r border-edge bg-term-bg px-3 font-mono text-xs text-ink">
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 top-0 h-px bg-brand"
+                />
+                index.ts
+                <span className="size-1.5 rounded-full bg-ink-subtle" />
+              </span>
+              <span className="inline-flex items-center border-r border-edge px-3 font-mono text-xs text-ink-subtle">
+                server.ts
+              </span>
+            </div>
+
             {/* Editor */}
             <div className="overflow-x-auto bg-term-bg px-4 py-3">
               <pre className="font-mono text-[13px] leading-[1.7]">
@@ -121,7 +161,7 @@ export default function Preview() {
                       </span>
                       <span className="text-ink">
                         {line.length === 0 ? (
-                          " "
+                          " "
                         ) : (
                           line.map((part, j) => (
                             <span
@@ -140,41 +180,63 @@ export default function Preview() {
             </div>
 
             {/* Terminal */}
-            <div className="border-t border-edge bg-term-bg px-4 py-3 font-mono text-[13px] leading-[1.7]">
-              <div className="flex">
-                <span className="mr-2 text-term-accent" aria-hidden="true">
-                  $
-                </span>
-                <span className="text-term-ink">
-                  {shown}
-                  {!finished && (
-                    <span
-                      aria-hidden="true"
-                      className="terminal-caret ml-px inline-block h-[1.1em] w-[0.5em] translate-y-[0.15em] bg-term-ink"
-                    />
-                  )}
-                </span>
+            <div className="border-t border-edge bg-term-bg">
+              <div className="flex items-center gap-3 border-b border-edge px-4 py-1.5">
+                <span className="label text-[9px] text-ink">Terminal</span>
+                <span className="label text-[9px] text-ink-subtle">Ports</span>
               </div>
 
-              {finished && (
-                <div className="animate-fade-in text-ink-muted">
-                  <div>
-                    <span className="text-brand">▲</span> ready in 412ms
-                  </div>
-                  <div>
-                    <span className="text-ink-subtle">➜</span> local{"   "}
-                    <span className="text-ink">http://localhost:3000</span>
-                  </div>
-                  <div>
-                    <span className="text-ink-subtle">➜</span> public{"  "}
-                    <span className="text-ink">
-                      https://a7f2.repl.devx.parthkapoor.me
-                    </span>
-                  </div>
+              <div className="px-4 py-3 font-mono text-[13px] leading-[1.7]">
+                <div className="flex">
+                  <span className="mr-2 text-term-accent" aria-hidden="true">
+                    $
+                  </span>
+                  <span className="text-term-ink">
+                    {shown}
+                    {!finished && (
+                      <span
+                        aria-hidden="true"
+                        className="terminal-caret ml-px inline-block h-[1.1em] w-[0.5em] translate-y-[0.15em] bg-term-ink"
+                      />
+                    )}
+                  </span>
                 </div>
-              )}
+
+                {finished && (
+                  <div className="animate-fade-in text-ink-muted">
+                    <div>
+                      <span className="text-brand">▲</span> ready in 412ms
+                    </div>
+                    <div>
+                      <span className="text-ink-subtle">➜</span> local{"   "}
+                      <span className="text-ink">http://localhost:3000</span>
+                    </div>
+                    <div>
+                      <span className="text-ink-subtle">➜</span> public{"  "}
+                      <span className="text-ink">
+                        https://a7f2.repl.devx.parthkapoor.me
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Status bar, matching components/sandbox/chrome.tsx. */}
+        <div className="flex h-6 items-center gap-4 border-t border-edge bg-surface px-3 font-mono text-[11px] leading-none text-ink-subtle">
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className="size-1.5 rounded-full bg-term-accent"
+              aria-hidden="true"
+            />
+            connected
+          </span>
+          <span className="hidden sm:inline">src/index.ts</span>
+          <span className="ml-auto hidden sm:inline">TypeScript</span>
+          <span>UTF-8</span>
+          <span className="text-brand">:3000</span>
         </div>
       </div>
     </div>
