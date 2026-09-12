@@ -1,0 +1,87 @@
+/*
+ * Candidate palettes for the redesign, scoped to a wrapper element.
+ *
+ * These override the `--ds-*` source variables rather than the `--color-*`
+ * ones. Because globals.css declares its theme with `@theme inline`, every
+ * Tailwind utility still points at `var(--ds-…)` at runtime — so re-declaring
+ * the sources on a wrapper re-themes everything inside it, with no rebuild and
+ * no duplicated utility classes.
+ *
+ * Only used by /design. Delete this file once a direction is chosen and the
+ * winner is promoted into globals.css.
+ */
+
+/* ── A · Signal Violet ────────────────────────────────────────────────────
+   A full-colour direction. Violet reads as infrastructure and compute rather
+   than "growth/success", which is the association emerald carries and which
+   every second dev tool is currently using. It also sits far from the warm
+   end, so terminal output (reds, ambers, greens) never collides with it.       */
+[data-palette="violet"] {
+  --ds-brand-50: oklch(0.969 0.016 293.756);
+  --ds-brand-100: oklch(0.943 0.029 294.588);
+  --ds-brand-200: oklch(0.894 0.057 293.283);
+  --ds-brand-300: oklch(0.811 0.111 293.571);
+  --ds-brand-400: oklch(0.702 0.183 293.541);
+  --ds-brand-500: oklch(0.606 0.25 292.717);
+  --ds-brand-600: oklch(0.541 0.281 293.009);
+  --ds-brand-700: oklch(0.491 0.27 292.581);
+  --ds-brand-800: oklch(0.432 0.232 292.759);
+  --ds-brand-900: oklch(0.38 0.189 293.745);
+  --ds-brand-950: oklch(0.283 0.141 291.089);
+  --ds-brand-fg: oklch(0.985 0 0);
+
+  /* Surfaces carry a faint cool cast so the accent feels native, not pasted on. */
+  --ds-canvas: oklch(0.145 0.008 285);
+  --ds-surface: oklch(0.185 0.01 285);
+  --ds-raised: oklch(0.225 0.012 285);
+  --ds-overlay: oklch(0.205 0.012 285);
+  --ds-ink: oklch(0.985 0 0);
+  --ds-ink-muted: oklch(0.72 0.008 285);
+  --ds-ink-subtle: oklch(0.556 0.01 285);
+  --ds-edge: oklch(1 0 0 / 11%);
+  --ds-edge-strong: oklch(1 0 0 / 22%);
+
+  --ds-term-accent: oklch(0.78 0.19 152);
+}
+
+/* ── B · Graphite + Signal ────────────────────────────────────────────────
+   Near-monochrome. Surfaces are a true neutral ramp and the accent appears
+   only on the one thing that matters per screen — the primary action, the
+   live state, the selected row. The backdrop becomes the colour event, so the
+   shader does the expressive work instead of the chrome.
+
+   Amber is chosen over a cool accent because on pure greyscale a warm accent
+   reads as "attention" rather than "decoration", and it stays legible at the
+   1-2% coverage this direction implies.                                        */
+[data-palette="graphite"] {
+  --ds-brand-50: oklch(0.987 0.022 95.277);
+  --ds-brand-100: oklch(0.962 0.059 95.617);
+  --ds-brand-200: oklch(0.924 0.12 95.746);
+  --ds-brand-300: oklch(0.879 0.169 91.605);
+  --ds-brand-400: oklch(0.828 0.189 84.429);
+  --ds-brand-500: oklch(0.769 0.188 70.08);
+  --ds-brand-600: oklch(0.666 0.179 58.318);
+  --ds-brand-700: oklch(0.555 0.163 48.998);
+  --ds-brand-800: oklch(0.473 0.137 46.201);
+  --ds-brand-900: oklch(0.414 0.112 45.904);
+  --ds-brand-950: oklch(0.279 0.077 45.635);
+  --ds-brand-fg: oklch(0.18 0.02 60);
+
+  /* A true neutral: zero chroma, so nothing competes with the accent. */
+  --ds-canvas: oklch(0.135 0 0);
+  --ds-surface: oklch(0.175 0 0);
+  --ds-raised: oklch(0.215 0 0);
+  --ds-overlay: oklch(0.195 0 0);
+  --ds-ink: oklch(0.98 0 0);
+  --ds-ink-muted: oklch(0.7 0 0);
+  --ds-ink-subtle: oklch(0.52 0 0);
+  --ds-edge: oklch(1 0 0 / 9%);
+  --ds-edge-strong: oklch(1 0 0 / 18%);
+
+  --ds-term-accent: oklch(0.78 0.19 152);
+}
+
+/* ── C · Current (emerald) — the control ──────────────────────────────── */
+[data-palette="emerald"] {
+  /* Inherits globals.css unchanged; declared so the switcher has a third state. */
+}
