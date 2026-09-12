@@ -25,7 +25,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 
 const PUBLIC_NAV = [
   { name: "Docs", link: "/docs" },
-  { name: "Pricing", link: "/#pricing" },
+  { name: "Pricing", link: "/pricing" },
 ];
 
 const AUTHENTICATED_NAV = [

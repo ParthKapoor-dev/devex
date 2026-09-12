@@ -29,8 +29,9 @@ const COLUMNS: {
     links: [
       { label: "Start a workspace", href: "/login" },
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Pricing", href: "/#pricing" },
+      { label: "Pricing", href: "/pricing" },
       { label: "How it works", href: "/#how-it-works" },
+      { label: "Status", href: "/ping" },
     ],
   },
   {
@@ -52,6 +53,17 @@ const COLUMNS: {
       },
       { label: "MCP server", href: "/docs/mcp" },
       { label: "Book a call", href: siteConfig.links.call, external: true },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+      { label: "Privacy", href: "/privacy" },
+      // The index an agent reads first. A footer is where a person looks for
+      // the site map; this is the same thing for everything that is not one.
+      { label: "llms.txt", href: "/llms.txt" },
     ],
   },
 ];
@@ -102,7 +114,7 @@ export default function Footer() {
           {/* Index */}
           <nav
             aria-label="Footer"
-            className="grid grid-cols-2 gap-8 sm:grid-cols-3"
+            className="grid grid-cols-2 gap-8 sm:grid-cols-4"
           >
             {COLUMNS.map((column) => (
               <div key={column.title}>
