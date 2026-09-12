@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useModifierKey } from "@/hooks/use-modifier-key";
+import { ShortcutHint } from "@/components/ui/shortcut-hint";
 
 export interface SearchDoc {
   title: string;
@@ -24,7 +24,6 @@ export interface SearchDoc {
  */
 export function DocsSearch({ docs }: { docs: SearchDoc[] }) {
   const router = useRouter();
-  const modifier = useModifierKey();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState(0);
@@ -125,7 +124,7 @@ export function DocsSearch({ docs }: { docs: SearchDoc[] }) {
         <Search className="size-4" aria-hidden="true" />
         <span className="flex-1 text-left">Search docs</span>
         <kbd className="hidden rounded border border-edge px-1.5 py-0.5 font-mono text-[10px] text-ink-subtle sm:inline-block">
-          {modifier}K
+          <ShortcutHint keyName="K" />
         </kbd>
       </button>
 

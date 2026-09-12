@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/command-menu";
 import { Folder, File } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useModifierKey } from "@/hooks/use-modifier-key";
+import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import { Tree, DirEntry } from "../sandbox/FileTree";
 
 type FileItem = {
@@ -37,7 +37,6 @@ export const FileFinder = ({
 }) => {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
-  const modifier = useModifierKey();
 
   useFinderMenuShortcut(() => setOpen(true));
 
@@ -134,7 +133,7 @@ export const FileFinder = ({
             "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
           )}
         >
-          {modifier}P
+          <ShortcutHint keyName="P" />
         </button>
       </CommandMenuTrigger>
       <CommandMenuContent className="rounded-lg border-edge bg-overlay">

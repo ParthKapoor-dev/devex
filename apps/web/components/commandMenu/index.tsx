@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/command-menu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useModifierKey } from "@/hooks/use-modifier-key";
+import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -109,7 +109,6 @@ function scoreDoc(doc: DocEntry, terms: string[]): number {
 export const Cmd = ({ compact = false }: { compact?: boolean } = {}) => {
   const router = useRouter();
   const { isAuthenticated, logout } = useAuth();
-  const modifier = useModifierKey();
 
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -336,14 +335,14 @@ export const Cmd = ({ compact = false }: { compact?: boolean } = {}) => {
             )}
           >
             <Search size={12} aria-hidden="true" />
-            {modifier}K
+            <ShortcutHint keyName="K" />
           </button>
         ) : (
           <Button className="w-full gap-2" variant={"outline"}>
             <Search size={16} />
             Command palette
             <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center rounded border border-edge bg-raised px-1.5 font-mono text-[10px] text-ink-subtle">
-              {modifier}K
+              <ShortcutHint keyName="K" />
             </kbd>
           </Button>
         )}
