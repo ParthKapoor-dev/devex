@@ -315,12 +315,25 @@
    ========================================================================== */
 
 @utility glass {
-  /* Backdrop blur is the single most expensive effect on the page. Keep the
-     radius small and never stack two blurred layers. */
-  background: color-mix(in oklab, var(--color-surface) 70%, transparent);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  border: 1px solid var(--color-edge);
+  /* The footer's original treatment, promoted into the design system.
+     It used to live in a `<style jsx global>` block inside Footer.tsx, which
+     meant the footer silently restyled every other `.glass` element on the
+     page. The radial tint is what gives it depth — a flat translucent fill
+     reads as much cheaper.
+
+     Backdrop blur is the most expensive effect on the page: keep the radius
+     modest and never stack two blurred layers. */
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-surface) 90%, transparent) 0%,
+    color-mix(in srgb, var(--color-brand-950) 40%, transparent) 60%,
+    color-mix(in srgb, var(--color-canvas) 98%, transparent) 100%
+  );
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--color-brand) 30%, transparent);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
 }
 
 @utility glow-brand {
