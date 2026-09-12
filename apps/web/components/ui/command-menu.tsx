@@ -198,10 +198,10 @@ const CommandMenuContent = React.forwardRef<
 
               {showShortcut && (
                 <div className="absolute end-12 top-3 flex items-center justify-center gap-1 text-sm text-muted-foreground">
-                  <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-display font-medium opacity-100 ml-auto flex">
+                  <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono font-medium opacity-100 ml-auto flex">
                     {getModifierKey().symbol}
                   </kbd>
-                  <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-display font-medium opacity-100 ml-auto flex">
+                  <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono font-medium opacity-100 ml-auto flex">
                     K
                   </kbd>
                 </div>
@@ -409,7 +409,7 @@ const CommandMenuItem = React.forwardRef<
                   <span className="text-muted-foreground text-xs">+</span>
                 )}
 
-                <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-display font-medium opacity-100 ml-auto flex text-sm text-muted-foreground">
+                <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono font-medium opacity-100 ml-auto flex text-sm text-muted-foreground">
                   {key === "cmd" || key === "⌘"
                     ? getModifierKey().symbol
                     : key === "shift"

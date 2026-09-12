@@ -9,7 +9,7 @@ export default function Page() {
     router.push("https://www.youtube.com/embed/Tlck20bJeFE");
   }, []);
   return (
-    <div className="fixed inset-0 flex text-3xl md:text-4xl h-screen w-screen items-center justify-center font-display">
+    <div className="fixed inset-0 flex text-3xl md:text-4xl h-screen w-screen items-center justify-center font-mono">
       Redirecting to yt demo
     </div>
   );

@@ -91,16 +91,23 @@
   --radius-xl: 1rem;
   --radius-2xl: 1.25rem;
 
-  /* Typography. */
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Typography. Three families, declared in app/fonts.ts.
+     `--font-display` is a *display* face now, not a second mono — every
+     `font-display` call site in the codebase was a <kbd> or terminal label
+     that actually wanted mono, and they were migrated to `font-mono`. */
+  --font-sans: var(--font-sans-face), ui-sans-serif, system-ui, sans-serif;
   --font-mono:
-    var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --font-display: var(--font-jetbrains-mono), var(--font-geist-mono), monospace;
+    var(--font-mono-face), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-display:
+    var(--font-display-face), var(--font-sans-face), ui-sans-serif, sans-serif;
 
   /* Motion. Durations and easings are tokens so timing stays consistent
      across Tailwind utilities, CSS keyframes and Motion components. */
   --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Fast travel, hard settle. The workhorse for anything that moves in
+     response to a click — it arrives before it looks like it started. */
+  --ease-out-circ: cubic-bezier(0.075, 0.82, 0.165, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   --animate-fade-in: fade-in var(--duration-normal) var(--ease-out-quad) both;
@@ -112,10 +119,15 @@
 :root {
   /* Durations are plain custom properties (not @theme) so they can be zeroed
      wholesale by the reduced-motion block below. */
-  --duration-fast: 120ms;
-  --duration-normal: 220ms;
-  --duration-slow: 420ms;
-  --duration-slower: 700ms;
+  /* Two-tier timing. `fast` is for the response to a pointer — hover, press,
+     focus — and is deliberately short enough to read as instant rather than
+     as an animation. `normal` is for something entering or leaving. The old
+     scale ran roughly half again as slow at every step, which is most of why
+     the UI felt heavier than it was. */
+  --duration-fast: 80ms;
+  --duration-normal: 150ms;
+  --duration-slow: 300ms;
+  --duration-slower: 550ms;
 
   /* Graphite + Signal.
      Amber is the single brand accent, and it is rationed: one thing per
@@ -354,6 +366,19 @@
   border: 1px solid color-mix(in srgb, var(--color-brand) 30%, transparent);
   border-radius: var(--radius-2xl);
   box-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
+}
+
+/* The UI voice for eyebrows, column headers, status chips and section
+   labels. Uppercase mono at wide tracking does more for a developer-tool
+   identity than any amount of colour, and it costs nothing — the mono is
+   already loaded for code. Keep it small; it is unreadable as body text. */
+@utility label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 @utility glow-brand {

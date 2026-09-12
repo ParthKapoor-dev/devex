@@ -1,28 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
+import { display, mono, sans } from "./fonts";
 import "./globals.css";
 import Header from "@/components/header";
 import Providers from "@/providers";
 import { siteConfig } from "@/lib/site";
+import { token } from "@/lib/tokens";
 import { organizationJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const jetBrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   // Required for `alternates.canonical` and OG image paths to resolve to
@@ -72,7 +55,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: dark)", color: token.canvas },
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
   ],
   colorScheme: "dark light",
@@ -86,7 +69,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${jetBrainsMono.variable} antialiased`}
+        className={`${sans.variable} ${display.variable} ${mono.variable} antialiased`}
         suppressHydrationWarning
       >
         {/* Structured data. Inlined in the body so it ships with the initial
