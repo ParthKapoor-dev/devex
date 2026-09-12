@@ -3,6 +3,7 @@ import HeroSection from "@/components/landing/Hero";
 import Features from "@/components/landing/FeaturedPills";
 import Lifecycle from "@/components/landing/Lifecycle";
 import Pricing from "@/components/landing/Pricing";
+import Faq from "@/components/landing/Faq";
 import Closing from "@/components/landing/Closing";
 import Footer from "@/components/landing/Footer";
 import SiteBackdrop from "@/components/landing/SiteBackdrop";
@@ -26,6 +27,7 @@ export default function LandingPage() {
         <Features />
         <Lifecycle />
         <Pricing />
+        <Faq />
         <Closing />
         <Footer />
       </div>

@@ -15,7 +15,7 @@ import {
   getDocs,
   getNeighbours,
 } from "@/lib/docs/source";
-import { buildMetadata, breadcrumbJsonLd, techArticleJsonLd } from "@/lib/seo";
+import { buildMetadata, docJsonLd } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 import { TableOfContents } from "@/components/docs/table-of-contents";
 import { DocsIndex } from "@/components/docs/docs-index";
@@ -74,15 +74,17 @@ export default async function DocsPage({ params }: DocsPageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([
-            techArticleJsonLd({
-              title: doc.frontmatter.title,
-              description: doc.frontmatter.description,
-              path: doc.url,
-              modifiedTime: doc.lastModified,
-            }),
-            breadcrumbJsonLd(breadcrumbs),
-          ]),
+          __html: JSON.stringify(
+            docJsonLd(
+              {
+                title: doc.frontmatter.title,
+                description: doc.frontmatter.description,
+                path: doc.url,
+                modifiedTime: doc.lastModified,
+              },
+              breadcrumbs,
+            ),
+          ),
         }}
       />
 

@@ -5,7 +5,7 @@ import Header from "@/components/header";
 import Providers from "@/providers";
 import { siteConfig } from "@/lib/site";
 import { token } from "@/lib/tokens";
-import { organizationJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
+import { siteJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   // Required for `alternates.canonical` and OG image paths to resolve to
@@ -73,16 +73,15 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {/* Structured data. Inlined in the body so it ships with the initial
-            HTML; crawlers read it without executing anything. */}
+            HTML; crawlers read it without executing anything.
+
+            One `@graph`, not an array of separate documents — the nodes refer
+            to each other by `@id`, and that linking is what turns five facts
+            into one identifiable entity. See lib/seo.ts. */}
         <script
           type="application/ld+json"
           // The payload is built from static config, never user input.
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify([
-              softwareApplicationJsonLd(),
-              organizationJsonLd(),
-            ]),
-          }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}
         />
         <a
           href="#main"
