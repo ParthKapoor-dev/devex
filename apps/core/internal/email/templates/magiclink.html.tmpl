@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Sign in to DevEx</title>
+<!--[if mso]>
+<noscript><xml><o:OfficeDocumentSettings>
+  <o:PixelsPerInch>96</o:PixelsPerInch>
+</o:OfficeDocumentSettings></xml></noscript>
+<![endif]-->
+<style>
+  :root { color-scheme: light dark; supported-color-schemes: light dark; }
+
+  /* Reset — clients that keep <style> only. Inline styles remain the source of truth. */
+  body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+  table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; border-collapse:collapse; }
+  img { -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
+  a { text-decoration:none; }
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+
+  /* ---- Mobile ---- */
+  @media screen and (max-width:600px) {
+    .sm-full     { width:100% !important; max-width:100% !important; }
+    .sm-px       { padding-left:22px !important; padding-right:22px !important; }
+    .sm-py       { padding-top:28px !important; padding-bottom:28px !important; }
+    .sm-h1       { font-size:25px !important; line-height:32px !important; }
+    .sm-btn      { width:100% !important; }
+    .sm-center   { text-align:center !important; }
+  }
+
+  /* ---- Dark mode: Apple Mail, iOS, Outlook.com, new Outlook ---- */
+  @media (prefers-color-scheme: dark) {
+    .bg-page   { background-color:#0B0D10 !important; }
+    .bg-card   { background-color:#14171D !important; }
+    .bg-inset  { background-color:#0E1116 !important; }
+    .bd        { border-color:#262B33 !important; }
+    .bd-top    { border-top-color:#262B33 !important; }
+    .ink       { color:#F2F4F7 !important; }
+    .ink-2     { color:#D6DBE3 !important; }
+    .muted     { color:#98A1AE !important; }
+    .faint     { color:#6C7683 !important; }
+    .accent    { color:#34D399 !important; }
+    .code      { color:#6EE7B7 !important; }
+    .chip      { background-color:#0F2A21 !important; color:#6EE7B7 !important; }
+    .chip-bd   { border-color:#1C4A3A !important; }
+    a.ink, a.muted, a.accent { color:inherit !important; }
+  }
+
+  /* ---- Dark mode: Outlook app (iOS/Android) + OWA. Attribute repeated per selector. ---- */
+  [data-ogsc] .bg-page,  [data-ogsb] .bg-page  { background-color:#0B0D10 !important; }
+  [data-ogsc] .bg-card,  [data-ogsb] .bg-card  { background-color:#14171D !important; }
+  [data-ogsc] .bg-inset, [data-ogsb] .bg-inset { background-color:#0E1116 !important; }
+  [data-ogsc] .bd     { border-color:#262B33 !important; }
+  [data-ogsc] .bd-top { border-top-color:#262B33 !important; }
+  [data-ogsc] .ink,   [data-ogsc] .ink a   { color:#F2F4F7 !important; }
+  [data-ogsc] .ink-2, [data-ogsc] .ink-2 a { color:#D6DBE3 !important; }
+  [data-ogsc] .muted, [data-ogsc] .muted a { color:#98A1AE !important; }
+  [data-ogsc] .faint, [data-ogsc] .faint a { color:#6C7683 !important; }
+  [data-ogsc] .accent,[data-ogsc] .accent a{ color:#34D399 !important; }
+  [data-ogsc] .code,  [data-ogsc] .code a  { color:#6EE7B7 !important; }
+  [data-ogsc] .chip,  [data-ogsb] .chip    { background-color:#0F2A21 !important; color:#6EE7B7 !important; }
+  [data-ogsc] .chip-bd { border-color:#1C4A3A !important; }
+</style>
+</head>
+
+<body class="bg-page" style="margin:0;padding:0;width:100%;background-color:#F1F1F3;">
+
+<!-- Preheader: 40-100 chars, then zero-width padding so body copy doesn't leak into preview -->
+<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;color:transparent;">
+  Your DevEx sign-in link is ready. It expires in {{.ExpiryText}}.
+  &#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;
+</div>
+
+<div role="article" aria-roledescription="email" aria-label="Sign in to DevEx" lang="en" dir="ltr"
+     style="font-size:medium;font-size:max(16px, 1rem);">
+
+<table role="presentation" class="bg-page" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#F1F1F3;width:100%;">
+<tr>
+<td align="center" style="padding:32px 12px;">
+
+  <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+  <table role="presentation" class="sm-full" width="600" cellpadding="0" cellspacing="0" border="0"
+         style="width:600px;max-width:600px;margin:0 auto;">
+
+    <!-- ══ Brand ══════════════════════════════════════════════════════ -->
+    <tr>
+      <td style="padding:0 0 26px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <!-- Logo tile: pure table cell. Square in classic Outlook, rounded elsewhere. -->
+            <td width="42" height="42" align="center" valign="middle" bgcolor="#059669"
+                style="width:42px;height:42px;background-color:#059669;border-radius:11px;
+                       font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+                       font-size:21px;font-weight:700;color:#FFFFFF;line-height:42px;text-align:center;">D</td>
+            <td width="12" style="width:12px;">&nbsp;</td>
+            <td align="left" valign="middle"
+                style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div class="ink" style="font-size:17px;font-weight:700;color:#101319;line-height:20px;letter-spacing:-0.2px;">DevEx</div>
+              <div class="faint" style="font-size:12px;color:#79818F;line-height:16px;padding-top:2px;">Cloud development environments</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- ══ Card ═══════════════════════════════════════════════════════ -->
+    <tr>
+      <td class="bg-card bd" bgcolor="#FDFDFD"
+          style="background-color:#FDFDFD;border:1px solid #E4E4E7;border-radius:14px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+
+          <!-- Faux-gradient accent bar: four solid bgcolor cells. No CSS gradients anywhere. -->
+          <tr>
+            <td style="font-size:0;line-height:0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+                <tr>
+                  <td width="25%" height="3" bgcolor="#047857" style="height:3px;line-height:3px;font-size:0;background-color:#047857;">&nbsp;</td>
+                  <td width="25%" height="3" bgcolor="#059669" style="height:3px;line-height:3px;font-size:0;background-color:#059669;">&nbsp;</td>
+                  <td width="25%" height="3" bgcolor="#10B981" style="height:3px;line-height:3px;font-size:0;background-color:#10B981;">&nbsp;</td>
+                  <td width="25%" height="3" bgcolor="#34D399" style="height:3px;line-height:3px;font-size:0;background-color:#34D399;">&nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Eyebrow + headline + body -->
+          <tr>
+            <td class="sm-px sm-py" style="padding:40px 44px 0 44px;
+                       font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p class="accent" style="margin:0 0 14px 0;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                        text-transform:uppercase;color:#059669;line-height:14px;">Secure sign-in</p>
+
+              <h1 class="ink sm-h1" style="margin:0 0 16px 0;font-size:29px;line-height:36px;font-weight:700;
+                        color:#101319;letter-spacing:-0.6px;">Sign in to DevEx</h1>
+
+              <p class="ink-2" style="margin:0;font-size:16px;line-height:26px;color:#3D4552;">
+                Use the button below to sign in. For your security this link works
+                <strong class="ink" style="color:#101319;font-weight:600;">once</strong> and expires in
+                <strong class="ink" style="color:#101319;font-weight:600;">{{.ExpiryText}}</strong>.
+              </p>
+            </td>
+          </tr>
+
+          <!-- ── Bulletproof button ─────────────────────────────────── -->
+          <tr>
+            <td class="sm-px" align="left" style="padding:30px 44px 0 44px;">
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"
+                           xmlns:w="urn:schemas-microsoft-com:office:word"
+                           href="{{.MagicLink}}"
+                           style="height:52px;v-text-anchor:middle;width:264px;"
+                           arcsize="20%" stroke="f" fillcolor="#059669">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:bold;">Sign in to DevEx</center>
+              </v:roundrect>
+              <![endif]-->
+              <!--[if !mso]><!-- -->
+              <a href="{{.MagicLink}}" class="sm-btn"
+                 style="display:inline-block;width:264px;background-color:#059669;color:#FFFFFF;
+                        font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+                        font-size:16px;font-weight:600;line-height:52px;text-align:center;
+                        text-decoration:none;border-radius:10px;letter-spacing:-0.1px;
+                        -webkit-text-size-adjust:none;mso-hide:all;">Sign in to DevEx</a>
+              <!--<![endif]-->
+            </td>
+          </tr>
+
+          <!-- Expiry chip -->
+          <tr>
+            <td class="sm-px" style="padding:18px 44px 0 44px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="chip chip-bd" bgcolor="#ECFDF5"
+                      style="background-color:#ECFDF5;border:1px solid #C4EEDC;border-radius:20px;
+                             padding:6px 13px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+                             font-size:12px;font-weight:600;color:#05704E;line-height:16px;letter-spacing:0.1px;">
+                    Expires in {{.ExpiryText}}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── Fallback link ──────────────────────────────────────── -->
+          <tr>
+            <td class="sm-px" style="padding:32px 44px 0 44px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="bg-inset bd" bgcolor="#F6F6F8"
+                      style="background-color:#F6F6F8;border:1px solid #E4E4E7;border-radius:10px;padding:16px 18px;
+                             font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <p class="muted" style="margin:0 0 9px 0;font-size:12px;line-height:16px;color:#5A6472;font-weight:600;">
+                      Button not working? Paste this into your browser:
+                    </p>
+                    <a href="{{.MagicLink}}" class="code accent"
+                       style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace;
+                              font-size:12px;line-height:19px;color:#047857;text-decoration:none;
+                              word-break:break-all;overflow-wrap:break-word;">{{.MagicLink}}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── "You didn't request this" ──────────────────────────── -->
+          <tr>
+            <td class="sm-px" style="padding:28px 44px 0 44px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td class="bd-top" style="border-top:1px solid #E9E9EC;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="sm-px" style="padding:22px 44px 40px 44px;
+                       font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <p class="muted" style="margin:0;font-size:13px;line-height:21px;color:#5A6472;">
+                <strong class="ink-2" style="color:#3D4552;font-weight:600;">Didn't request this?</strong>
+                You can safely ignore this email &mdash; someone may have typed your address by mistake.
+                Your account stays secure as long as you don't open the link above.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+
+    <!-- ══ Footer ═════════════════════════════════════════════════════ -->
+    <tr>
+      <td class="sm-px" align="center" style="padding:26px 24px 8px 24px;
+                 font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <p class="faint" style="margin:0 0 6px 0;font-size:12px;line-height:19px;color:#79818F;">
+          This message was sent to <span class="muted" style="color:#5A6472;">{{.Recipient}}</span>
+          because a sign-in was requested for DevEx.
+        </p>
+        <p class="faint" style="margin:0;font-size:12px;line-height:19px;color:#79818F;">
+          &copy; {{.Year}} DevEx &nbsp;&middot;&nbsp; Automated message, please don't reply
+        </p>
+      </td>
+    </tr>
+
+  </table>
+  <!--[if mso]></td></tr></table><![endif]-->
+
+</td>
+</tr>
+</table>
+</div>
+</body>
+</html>

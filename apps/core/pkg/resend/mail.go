@@ -10,13 +10,18 @@ type Resend struct {
 	client *resend.Client
 }
 
-func (r *Resend) SendEmail(email, subject, body string) error {
+// SendEmail delivers a multipart message.
+//
+// `text` is the text/plain alternative. Always send one: clients that can't or
+// won't render HTML fall back to it, and spam filters penalise HTML-only mail.
+func (r *Resend) SendEmail(email, subject, htmlBody, text string) error {
 
 	params := &resend.SendEmailRequest{
-		From:    "no-reply@devx.parthkapoor.me",
+		From:    dotenv.EnvString("EMAIL_FROM", "DevEx <no-reply@devx.parthkapoor.me>"),
 		To:      []string{email},
 		Subject: subject,
-		Html:    body,
+		Html:    htmlBody,
+		Text:    text,
 	}
 
 	_, err := r.client.Emails.Send(params)

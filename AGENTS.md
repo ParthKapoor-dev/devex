@@ -69,3 +69,44 @@ Devex is a cloud development IDE with sandboxed “repl” sessions. The system 
 - The system relies on `hostNetwork: true` for simplicity and cost.
 - The core service is the orchestrator; runner instances are ephemeral and created per repl session.
 - If you change protobufs in `packages/proto/`, regenerate via `make generate-proto`.
+
+---
+
+## Frontend
+
+**Working on `apps/web`? Read [`apps/web/AGENTS.md`](./apps/web/AGENTS.md) first.**
+It covers the design-token system (raw Tailwind palette shades are banned in
+component code), the animation/performance rules, MDX documentation authoring,
+and SEO. The frontend's distinctive animated look is a product asset — the brief
+is to keep it striking while keeping it cheap, not to simplify it away.
+
+Two things that bite immediately:
+
+- `apps/web` builds on **webpack, not Turbopack** (`npm run dev` omits the
+  flag). MDX plugins cannot cross Turbopack's loader boundary on Next 15.
+- Docs are authored MDX in `apps/web/content/docs/`, not scraped READMEs. The
+  old GitHub-scraping pipeline is deleted; do not reintroduce it.
+
+## Transactional email (`apps/core/internal/email`)
+
+The magic-link email is a table-based HTML template in
+`internal/email/templates/`, rendered by `render.go`.
+
+- **It is parsed with `text/template`, NOT `html/template`.** `html/template`
+  strips every HTML comment, which silently deletes the MSO conditional comments
+  carrying the bulletproof VML button and the Outlook ghost tables. There is no
+  error — the button just breaks in Outlook. `render_test.go` guards this; if it
+  starts failing, someone switched the package.
+- Escaping is therefore ours. Every field on `magicLinkData` is escaped at
+  construction in `newMagicLinkData`. Anything added must be too.
+- **The template is authored light and enhanced to dark**, not authored dark.
+  Gmail iOS, Outlook 2021 Windows and Office 365 Windows force a full colour
+  invert, which mangles a dark-authored email. Dark mode comes from
+  `prefers-color-scheme` plus Outlook's `[data-ogsc]`/`[data-ogsb]`.
+- Banned in email HTML: `backdrop-filter`, `linear-gradient`, `display:flex`,
+  `position:absolute`, web fonts. Tests assert their absence. Use nested tables
+  and solid `bgcolor` cells — the accent bar is four adjacent coloured cells,
+  not a gradient.
+- Always send the `text/plain` alternative; HTML-only mail is a spam signal.
+- Preview it:
+  `EMAIL_PREVIEW_DIR=/tmp go test ./internal/email/ -run TestWriteEmailPreview`
