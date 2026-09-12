@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "audit:agents": "npx --yes ax audit devx.parthkapoor.me",
+    "audit:agents:force": "npx --yes ax audit devx.parthkapoor.me --force"
   },
   "dependencies": {
     "@fontsource/commit-mono": "^5.3.0",

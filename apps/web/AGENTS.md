@@ -356,6 +356,103 @@ Twitter card.
   fix for a year. Hashed `/_next/static/*` assets are the only immutable things
   here.
 
+## Agent readability — run the audit on every frontend change
+
+**`npm run audit:agents` before you call a frontend change done.** It runs
+`npx ax audit devx.parthkapoor.me`, which scores how well an AI agent can
+discover, read and use the site — the same thing search once measured, for the
+clients that are now doing the discovering.
+
+Production scored **30/100 (grade D)** the first time it was run, on
+2026-09-12. Almost every deduction was a missing file rather than a missing
+feature: the site had no robots.txt, no sitemap, no llms.txt, no JSON-LD, no
+`/pricing` page and no published description of an API that has been public the
+whole time.
+
+The audit reads the **live** origin, so it grades whatever is deployed, not
+your working tree. Two consequences:
+
+- After a frontend change, the number does not move until it ships.
+- `--force` bypasses the cache and spends one of six forced scans a day. Use
+  the cached result (`npm run audit:agents`) while iterating.
+- `npx ax audit <url> --json` gives the full payload — per-check status,
+  `estScoreGain` and the recommendation text — which is far more useful than
+  the table when you are deciding what to fix next.
+
+### What is published, and what feeds it
+
+Every agent-facing surface reads from `lib/agents.ts` (the crawler policy, the
+product brief, the when-to-use list, the FAQ) and `lib/pricing.ts` (the plan
+table). Change a fact there and every document below follows. Do not hardcode
+any of it a second time.
+
+| Surface | Built by | Answers |
+| --- | --- | --- |
+| `/robots.txt` | `app/robots.txt/route.ts` | Per-crawler policy + Content-Signal |
+| `/sitemap.xml` | `app/sitemap.ts` | Every public URL |
+| `/llms.txt` | `lib/llms.ts` | The index, and the when-to-use section |
+| `/llms-full.txt` | `lib/llms.ts` | Index + every doc inlined |
+| `/docs/llms.txt` | `lib/llms.ts` | The index, scoped to docs |
+| `/index.md`, `/pricing.md` | their own route handlers | Markdown twins |
+| `/docs/<slug>.md` | `app/md/docs/[[...slug]]` | Markdown twin of each page |
+| `/openapi.json` | `lib/openapi.ts` | OpenAPI 3.1, 14 operations |
+| `/.well-known/ard.json` | `lib/well-known.ts` | Agentic Resource Discovery |
+| `/.well-known/api-catalog` | `lib/well-known.ts` | RFC 9727 linkset |
+| `/.well-known/agent-skills/index.json` | `lib/well-known.ts` | What an agent can do here |
+| JSON-LD `@graph` | `lib/seo.ts` | Organization, WebSite, SoftwareApplication, SoftwareSourceCode, FAQPage |
+| `Link:` response header | `lib/agents.ts` → `next.config.ts` | RFC 8288 pointers to all of the above |
+
+Three mechanical traps in that list:
+
+- The App Router will not route a directory whose name begins with a dot. The
+  `/.well-known/*` documents live under `app/well-known/` and are rewritten in
+  `next.config.ts`.
+- A Next dynamic segment is a whole path component, so `[slug].md` is not a
+  thing. The `.md` twins are a rewrite onto `app/md/docs/[[...slug]]`.
+- The `Link` header truncates each media type at the first `;`. The API
+  catalogue's real type carries a quoted `profile` parameter, and nesting those
+  quotes inside the header's own `type="…"` produces a value no parser reads.
+
+### The rule these documents are written under
+
+**Only publish what exists.** A discovery catalogue that advertises a hosted
+MCP endpoint we do not run fails its own reachability check and wastes the time
+of anything that believed it. That is why the MCP server appears in `ard.json`
+as documentation and a source tree rather than a `serverUrl` — it runs inside a
+workspace over stdio, per session, so there is no public URL to point at.
+
+Same rule for the OpenAPI description: it documents `apps/core` as written, not
+as it should have been. `POST /api/repl/new` answers 200 with the JSON string
+`"Success"`; the free-tier limit comes back as a 500 reading `Free Account
+Limit Reached`; `GET /api/repl/session/{id}` is a GET that creates cluster
+resources. All three are in the spec. A spec describing an idealised API is
+worse than no spec, because an agent will believe it.
+
+The FAQ has the same constraint from the other direction: `FAQPage` JSON-LD
+must correspond to content a visitor can see, which is why
+`components/landing/Faq.tsx` and the markup both read `FAQ` from
+`lib/agents.ts`.
+
+### What is still failing, and why it is not a frontend fix
+
+These need backend or off-site work and should not be faked in the frontend:
+
+| Check | Worth | Why it is open |
+| --- | --- | --- |
+| `brand-search-accuracy` | ~6.7 | "Devex" does not resolve to this domain in search. Off-site. |
+| `public-api` | ~5.5 | The API is reachable but every useful route needs a browser session. Needs an API key or token, in `apps/core`. |
+| `mcp-server` | ~4.7 | Needs a hosted Streamable-HTTP MCP endpoint. Today it is stdio, per workspace. |
+| `oauth-support`, `scoped-permissions` | ~7.8 | No OAuth 2.0 authorisation server of our own; GitHub OAuth is the client side only. |
+| `wikipedia-presence` | ~5.1 | Off-site. |
+| `webmcp`, `nlweb-ask` | ~7.9 | New protocols; both need real endpoints, not manifests. |
+| `cli-tool` | ~2.3 | There is no `devx` CLI. |
+
+One that *is* a frontend fix and is only partly done: `content-no-js` wants at
+least 5% of the homepage HTML to be readable text. Adding the FAQ took it from
+3.1% to 4.8%. The remaining gap is the RSC flight payload, which dominates the
+document; shrinking it means shipping less client JavaScript on the landing
+page.
+
 ## Where the UI research lives
 
 Deep component-library and stack research is written up outside the repo, at

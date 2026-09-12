@@ -51,6 +51,18 @@ Not decoration, not status, not terminal output.
 
 ## 3. What shipped
 
+The agent-readability pass, plus the routes the redesign had not reached:
+
+```
+fd0ba65 refactor(web): delete what nothing imports
+aa262fd fix(web): /ping, the 404 and /demo were still pre-redesign
+6646ede feat(web): /pricing, /about, /contact, /privacy
+c468dfe feat(web): one linked JSON-LD graph, and the FAQ it describes
+f2a0a08 feat(web): describe the API, and publish the discovery catalogues
+28c5b4b feat(web): llms.txt, and a markdown twin for every page
+39c398b feat(web): robots.txt now states a policy, not a list
+```
+
 The second pass on the marketing site and docs:
 
 ```
@@ -99,7 +111,23 @@ Earlier, pre-checkpoint: `61e8d12` `d5b6530` `e188de8` `c7a2680` `a5686da`
 | Waves backing store | 29.3 MB | 17.8 MB |
 
 `/repl` is unchanged at 261 kB. The sandbox work was about render cost, not
-bundle size.
+bundle size. After the dead-code sweep it is 265 kB, and the landing page
+186 kB with the FAQ section added.
+
+**Agent readability** (`npx ax audit devx.parthkapoor.me`, first run
+2026-09-12): production scored **30/100, grade D**. Discovery 2/10, Access
+25/56, Usability 14/57. Almost every deduction was a missing file rather than
+a missing feature — no robots.txt, no sitemap, no llms.txt, no JSON-LD, no
+`/pricing`, and no published description of an API that has been public all
+along.
+
+This branch addresses roughly 25 points of that: the robots policy, the
+llms.txt family, the markdown twins, the OpenAPI description, the three
+`/.well-known` catalogues, the linked JSON-LD graph, the four new routes and
+the recoverable 404. The score will not move until it deploys — the audit
+reads the live origin. `npm run audit:agents` re-runs it; see
+`apps/web/AGENTS.md` for the full table of what feeds what, and for the list
+of checks that need backend or off-site work instead.
 
 ---
 
@@ -203,9 +231,22 @@ Found in the second pass, all in the header and the marketing page:
 3. Two backend papercuts, out of scope: `internal/redis/store.go` logs
    "Failed to connect" then unconditionally logs "Connected" on the next line,
    and `redis.ParseURL`'s error is discarded so a malformed URL nil-panics.
-4. `components/navbar-components/user-menu.tsx` still carries a placeholder
-   Origin UI demo email string. Harmless, but it should be scrubbed. (No AGPL
-   dependency exists — checked.)
+4. ~~`components/navbar-components/user-menu.tsx` still carries a placeholder
+   Origin UI demo email string.~~ Done — the file was unreachable from any
+   entry point and was deleted in `fd0ba65` along with fourteen others.
+5. **`content-no-js` is at 4.8%, target 5%.** The audit wants that share of
+   the homepage HTML to be readable text; the FAQ section took it from 3.1%.
+   What remains is the RSC flight payload, which dominates the document.
+   Closing the gap means shipping less client JavaScript on the landing page,
+   not writing more copy.
+6. **The Vercel preview cannot be audited.** `devex-wip.vercel.app` answers
+   302 to `vercel.com/sso-api` — Deployment Protection is on, so every probe
+   sees the SSO redirect and nothing else. To score the branch before merging,
+   turn protection off for that deployment or use a protection-bypass token.
+7. **`--ds-brand-hex: #ff9d2e` in `globals.css` disagrees with the true sRGB
+   clamp of `--ds-brand-500`, which is `#fe9a00`** (what `lib/tokens.ts` has).
+   The file says to keep them in sync. It only feeds the canvas backdrop.
+   Still unanswered from an earlier session.
 
 ---
 

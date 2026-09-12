@@ -101,6 +101,15 @@ Things that bite immediately:
   `components/sandbox/Editor/theme.ts` and `lib/docs/shiki-theme.ts` together.
 - **The footer card is not to be changed.** Its treatment is the `glass`
   utility; leave both alone.
+- **Run `npm run audit:agents` before calling a frontend change done.** It
+  scores how readable the site is to an AI agent (`npx ax audit
+  devx.parthkapoor.me`). Production was 30/100 when first measured. The audit
+  reads the deployed origin, not your working tree, so the number only moves
+  after a deploy. Every agent-facing document — robots.txt, llms.txt, the
+  markdown twins, the OpenAPI spec, the `/.well-known` catalogues — is
+  generated from `apps/web/lib/agents.ts`; change a fact there, not in the
+  documents. `apps/web/AGENTS.md` has the full table and the list of checks
+  that need backend work instead.
 
 ## Transactional email (`apps/core/internal/email`)
 
@@ -114,10 +123,12 @@ The magic-link email is a table-based HTML template in
   starts failing, someone switched the package.
 - Escaping is therefore ours. Every field on `magicLinkData` is escaped at
   construction in `newMagicLinkData`. Anything added must be too.
-- **The template is authored light and enhanced to dark**, not authored dark.
-  Gmail iOS, Outlook 2021 Windows and Office 365 Windows force a full colour
-  invert, which mangles a dark-authored email. Dark mode comes from
-  `prefers-color-scheme` plus Outlook's `[data-ogsc]`/`[data-ogsb]`.
+- **The template is authored dark**, and declares `<meta name="color-scheme"
+  content="dark">` — not `light dark` — so Apple Mail and iOS leave it alone
+  instead of inverting it. Clients that force an invert anyway (Outlook mobile,
+  OWA) are handled by re-asserting every colour under `[data-ogsc]` and
+  `[data-ogsb]`. `render_test.go` asserts the palette is the current one, so a
+  stale brand colour fails the build rather than shipping.
 - Banned in email HTML: `backdrop-filter`, `linear-gradient`, `display:flex`,
   `position:absolute`, web fonts. Tests assert their absence. Use nested tables
   and solid `bgcolor` cells — the accent bar is four adjacent coloured cells,
