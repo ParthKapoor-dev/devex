@@ -71,9 +71,9 @@ function DashboardComponent() {
         />
       )}
 
-      <div className="min-h-screen pt-16 text-ink">
+      <div className="min-h-dvh pt-16 text-ink">
         <div className="mx-auto w-full max-w-7xl px-3 pb-8 sm:px-4 lg:px-6">
-          <div className="flex h-[calc(100vh-6rem)] flex-col sm:h-[calc(100vh-8rem)] lg:h-[680px]">
+          <div className="flex h-[calc(100dvh-6rem)] flex-col sm:h-[calc(100dvh-8rem)] lg:h-[680px]">
             <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-edge bg-surface">
               <DashboardHeader
                 activeTab={activeTab}
@@ -111,7 +111,7 @@ export default function Dashboard() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center">
+        <div className="flex min-h-dvh items-center justify-center">
           <p className="label text-ink-subtle">Loading</p>
         </div>
       }

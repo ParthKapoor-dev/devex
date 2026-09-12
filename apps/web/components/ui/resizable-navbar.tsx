@@ -100,7 +100,7 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         "relative z-[60] mx-auto hidden w-full flex-row items-center justify-between",
         "px-6 py-3 transition-colors duration-[--duration-normal] lg:flex",
         visible
-          ? "border border-edge bg-surface/75 backdrop-blur-xl"
+          ? "border border-edge bg-surface/92 backdrop-blur-xl"
           : "border border-transparent bg-transparent",
         className,
       )}
@@ -356,7 +356,7 @@ export const MobileNav = ({
         "items-center justify-between px-3 py-2.5",
         "transition-colors duration-[--duration-normal] lg:hidden",
         visible
-          ? "border border-edge bg-surface/80 backdrop-blur-xl"
+          ? "border border-edge bg-surface/92 backdrop-blur-xl"
           : "border border-transparent bg-transparent",
         className,
       )}

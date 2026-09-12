@@ -24,7 +24,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     // on a near-black page, so on this theme it rendered as nothing at all
     // while the session was being checked.
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <p className="label animate-pulse text-ink-subtle">
           Checking your session
         </p>

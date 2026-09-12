@@ -24,7 +24,7 @@ export function AuthShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-6 py-16">
+    <div className="relative flex min-h-dvh items-center justify-center px-6 py-16">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
         <Squares
           speed={0.35}

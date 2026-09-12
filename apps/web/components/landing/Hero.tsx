@@ -47,7 +47,7 @@ export default function HeroSection() {
           Open source · Kubernetes native
         </p>
 
-        <h1 className="mx-auto max-w-4xl text-balance font-display text-5xl font-medium leading-[1.05] tracking-[-0.035em] text-ink sm:text-6xl lg:text-7xl">
+        <h1 className="mx-auto max-w-4xl text-balance font-display text-[clamp(2rem,9vw,3rem)] font-medium leading-[1.05] tracking-[-0.035em] text-ink sm:text-6xl lg:text-7xl">
           A real machine,
           <br />
           <span className="text-brand">one tab away.</span>

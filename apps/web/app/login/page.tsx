@@ -40,7 +40,7 @@ function LoginPageContent() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <p className="label text-ink-subtle">Checking session</p>
       </div>
     );
@@ -78,7 +78,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-canvas" />}>
       <LoginPageContent />
     </Suspense>
   );

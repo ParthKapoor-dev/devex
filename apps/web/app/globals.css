@@ -224,6 +224,14 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Below `lg` the docs add a second sticky bar of their own — menu and
+     search — under the header, and 6rem put the target heading behind it. */
+  @media (max-width: 1023px) {
+    html {
+      scroll-padding-top: 9rem;
+    }
+  }
+
   html,
   body {
     max-width: 100vw;

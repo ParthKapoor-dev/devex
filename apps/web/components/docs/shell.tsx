@@ -45,9 +45,9 @@ export function DocsShell({
     // component into a `"use client"` module makes it part of the client
     // bundle, which would cost JavaScript for something that paints once and
     // never changes.
-    <div className="relative min-h-screen pt-16">
+    <div className="relative min-h-dvh pt-16">
       {/* Mobile bar */}
-      <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-edge bg-canvas/80 px-4 py-3 backdrop-blur-md lg:hidden">
+      <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-edge bg-canvas/95 px-4 py-3 backdrop-blur-md lg:hidden">
         <button
           type="button"
           onClick={() => setNavOpen(true)}
