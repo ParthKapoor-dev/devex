@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useModifierKey } from "@/hooks/use-modifier-key";
+import { cn } from "@/lib/utils";
 
 // Types
 interface DocResult {
@@ -47,9 +49,17 @@ interface ApiResponse {
   warning?: string;
 }
 
-export const Cmd = () => {
+/**
+ * @param compact Render as a key-cap sized trigger rather than a labelled
+ *   button. The navbar centres this next to "Docs" and "Pricing", where a
+ *   full-width outline button reading "Command Palette" was both the widest
+ *   thing in the row and the least likely to be clicked — the point of a
+ *   command palette is the shortcut.
+ */
+export const Cmd = ({ compact = false }: { compact?: boolean } = {}) => {
   const router = useRouter();
   const { isAuthenticated, logout } = useAuth();
+  const modifier = useModifierKey();
 
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
@@ -228,13 +238,30 @@ export const Cmd = () => {
       }}
     >
       <CommandMenuTrigger asChild>
-        <Button className="gap-2" variant={"outline"}>
-          <Search size={16} />
-          Command Palette
-          <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono font-medium opacity-100 ml-auto flex">
-            ⌘K
-          </kbd>
-        </Button>
+        {compact ? (
+          <button
+            type="button"
+            aria-label="Open command palette"
+            title="Command palette"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border border-edge px-2.5 py-1",
+              "font-mono text-[11px] text-ink-subtle",
+              "transition-colors duration-[--duration-fast] hover:border-edge-strong hover:text-ink-muted",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+            )}
+          >
+            <Search size={12} aria-hidden="true" />
+            {modifier}K
+          </button>
+        ) : (
+          <Button className="w-full gap-2" variant={"outline"}>
+            <Search size={16} />
+            Command palette
+            <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center rounded border border-edge bg-raised px-1.5 font-mono text-[10px] text-ink-subtle">
+              {modifier}K
+            </kbd>
+          </Button>
+        )}
       </CommandMenuTrigger>
       <CommandMenuContent className="rounded-xl outline-2 outline-brand outline-offset-2">
         {searchMode === "default" ? (

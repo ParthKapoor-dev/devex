@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useModifierKey } from "@/hooks/use-modifier-key";
 
 export interface SearchDoc {
   title: string;
@@ -23,6 +24,7 @@ export interface SearchDoc {
  */
 export function DocsSearch({ docs }: { docs: SearchDoc[] }) {
   const router = useRouter();
+  const modifier = useModifierKey();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState(0);
@@ -67,9 +69,11 @@ export function DocsSearch({ docs }: { docs: SearchDoc[] }) {
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "k") return;
-      const isApple = /mac|iphone|ipad|ipod/i.test(navigator.platform);
-      const modifier = isApple ? event.metaKey : event.ctrlKey;
-      if (!modifier) return;
+      // `navigator.platform` is deprecated and lies inside some webviews.
+      // Testing both modifiers would make Ctrl-K steal the shortcut on macOS,
+      // where it means "delete to end of line" in every text field.
+      const isApple = /mac|iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (!(isApple ? event.metaKey : event.ctrlKey)) return;
 
       event.preventDefault();
       setOpen((value) => !value);
@@ -121,7 +125,7 @@ export function DocsSearch({ docs }: { docs: SearchDoc[] }) {
         <Search className="size-4" aria-hidden="true" />
         <span className="flex-1 text-left">Search docs</span>
         <kbd className="hidden rounded border border-edge px-1.5 py-0.5 font-mono text-[10px] text-ink-subtle sm:inline-block">
-          ⌘K
+          {modifier}K
         </kbd>
       </button>
 
@@ -203,9 +207,36 @@ export function DocsSearch({ docs }: { docs: SearchDoc[] }) {
                 </ul>
               )}
             </div>
+
+            {/* A key legend. The dialog is fully keyboard-driven — arrows,
+                enter, escape — and nothing on screen said so, which meant the
+                only people who found out were the ones who tried. */}
+            <div className="flex items-center gap-4 border-t border-edge px-4 py-2.5 font-mono text-[10px] text-ink-subtle">
+              <span className="flex items-center gap-1.5">
+                <Cap>↑</Cap>
+                <Cap>↓</Cap>
+                navigate
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Cap>↵</Cap>
+                open
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Cap>esc</Cap>
+                close
+              </span>
+            </div>
           </div>
         </div>
       ) : null}
     </>
+  );
+}
+
+function Cap({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded border border-edge bg-raised px-1 leading-none">
+      {children}
+    </kbd>
   );
 }
