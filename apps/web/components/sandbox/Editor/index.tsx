@@ -55,6 +55,7 @@ const Editor = ({
   sendDiff,
   showSettings,
   setShowSettings,
+  onDirtyChange,
 }: {
   code: string;
   setCode: React.Dispatch<React.SetStateAction<string>>;
@@ -62,6 +63,12 @@ const Editor = ({
   sendDiff: (patch: string) => void;
   showSettings: boolean;
   setShowSettings: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * Fired only when the pending/synced state actually flips, never per
+   * keystroke — the tab strip's dot needs two events per typing burst, and
+   * this component must not re-render Monaco for anything less.
+   */
+  onDirtyChange?: (dirty: boolean) => void;
 }) => {
   const editorRef = useRef<any>(null);
   const [language, setLanguage] = useState<string>("javascript");
@@ -70,6 +77,8 @@ const Editor = ({
   /** The buffer as of the last keystroke, whether or not it has synced. */
   const latestCodeRef = useRef<string>(code);
   const pendingFlushRef = useRef<number | null>(null);
+  /** Mirrors whether a flush is queued, so the callback fires on edges only. */
+  const dirtyRef = useRef(false);
   const [fontSize, setFontSize] = useState<number>(14);
   const [editor, setEditor] = useState<any>(null);
   const [wordWrap, setWordWrap] = useState<"off" | "on" | "wordWrapColumn">(
@@ -143,8 +152,18 @@ const Editor = ({
    * patch is still computed against `prevCodeRef`, so a coalesced run
    * produces exactly the patch the per-keystroke runs would have summed to.
    */
+  const markDirty = useCallback(
+    (dirty: boolean) => {
+      if (dirtyRef.current === dirty) return;
+      dirtyRef.current = dirty;
+      onDirtyChange?.(dirty);
+    },
+    [onDirtyChange],
+  );
+
   const flushDiff = useCallback(() => {
     pendingFlushRef.current = null;
+    markDirty(false);
 
     const currentCode = latestCodeRef.current.replace(/\r\n/g, "\n");
     const prevCode = prevCodeRef.current.replace(/\r\n/g, "\n");
@@ -159,10 +178,11 @@ const Editor = ({
       sendDiff(patchText);
       prevCodeRef.current = currentCode;
     }
-  }, [sendDiff]);
+  }, [sendDiff, markDirty]);
 
   function handleCodeChange(newValue: string) {
     latestCodeRef.current = newValue || "";
+    markDirty(true);
 
     if (pendingFlushRef.current !== null) {
       window.clearTimeout(pendingFlushRef.current);

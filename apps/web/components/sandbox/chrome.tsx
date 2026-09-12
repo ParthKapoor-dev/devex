@@ -22,7 +22,117 @@ export const CHROME = {
   topBar: "h-9",
   statusBar: "h-6",
   panelTab: "h-8",
+  editorTab: "h-8",
 } as const;
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The strip above the editor naming the open file.
+ *
+ * The IDE opens one file at a time, so this is a single tab — which is the
+ * honest version of the tab strip, not a decorative row of fake ones. It
+ * exists because without it the editor pane starts at a bare code surface and
+ * nothing on screen says what you are looking at except the status bar, four
+ * hundred pixels below the cursor.
+ *
+ * The amber rule along the top is the same marker `PanelTab` uses, for the
+ * same reason: a 1px rule instead of a filled background keeps a permanent
+ * block of accent off the screen.
+ */
+export function EditorTabStrip({
+  path,
+  dirty,
+  onClose,
+}: {
+  path: string;
+  /** Unsaved changes are still on their way to the runner. */
+  dirty?: boolean;
+  onClose?: () => void;
+}) {
+  const name = path.split("/").pop() || path;
+
+  return (
+    <div
+      className={cn(
+        CHROME.editorTab,
+        "flex shrink-0 items-stretch border-b border-edge bg-surface",
+      )}
+    >
+      <div className="relative inline-flex items-center gap-2 border-r border-edge bg-term-bg pl-3 pr-2">
+        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-brand" />
+
+        <span className="truncate font-mono text-xs text-ink" title={path}>
+          {name}
+        </span>
+
+        {/* The editor coalesces edits and pushes them on an idle window, so
+            there is a real moment where what you see is not yet what the
+            container has. This is that moment, and nothing used to show it. */}
+        <span
+          aria-hidden={!dirty}
+          title={dirty ? "Unsaved — syncing" : undefined}
+          className={cn(
+            "size-1.5 shrink-0 rounded-full transition-colors duration-[--duration-fast]",
+            dirty ? "bg-ink-muted" : "bg-transparent",
+          )}
+        />
+
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={`Close ${name}`}
+            title={`Close ${name}`}
+            className={cn(
+              "grid size-4 place-items-center rounded-xs text-ink-subtle",
+              "transition-colors duration-[--duration-fast] hover:bg-raised hover:text-ink",
+              "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+            )}
+          >
+            <svg viewBox="0 0 8 8" className="size-2 fill-current">
+              <path d="M1 0L0 1l3 3-3 3 1 1 3-3 3 3 1-1-3-3 3-3-1-1-3 3z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* The rest of the strip is the same surface as an inactive tab, so the
+          open one reads as raised out of it. */}
+      <div className="flex-1" />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The workspace's live state, in the title bar.
+ *
+ * Green because it is a running process, and shell convention owns that
+ * colour — see `TONE_DOT`. Grey when it is not up: a workspace that has not
+ * connected yet has not failed.
+ */
+export function ConnectionChip({ connected }: { connected: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[11px]",
+        connected ? "text-term-accent" : "text-ink-subtle",
+      )}
+      title={connected ? "Connected to the runner" : "Connecting to the runner"}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full",
+          connected ? "bg-term-accent" : "bg-ink-subtle",
+        )}
+      />
+      {connected ? "running" : "connecting"}
+    </span>
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 

@@ -42,6 +42,8 @@ import {
   CHROME,
   ChromeDivider,
   EmptyEditorState,
+  EditorTabStrip,
+  ConnectionChip,
   IconButton,
   PanelTab,
   StatusBar,
@@ -54,6 +56,9 @@ interface SandboxProps {
     code: string;
     setCode: Dispatch<SetStateAction<string>>;
     fileType: string;
+    /** Edits typed but not yet pushed to the runner. Drives the tab dot. */
+    isDirty: boolean;
+    onDirtyChange: (dirty: boolean) => void;
   };
 
   fileTree: {
@@ -506,6 +511,8 @@ const Sandbox: React.FC<SandboxProps> = ({
             {replName ?? replId}
           </span>
 
+          <ConnectionChip connected={isConnected} />
+
           <div className="ml-auto flex items-center gap-1">
             <FileFinder
               tree={fileTree.tree}
@@ -602,6 +609,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                         onAction={fileTree.handleFileTreeAction}
                         activePath={activePath}
                         setActivePath={setActivePath}
+                        projectName={replName ?? "Workspace"}
                       />
                     </div>
                   </div>
@@ -613,7 +621,7 @@ const Sandbox: React.FC<SandboxProps> = ({
             <div
               className={`flex-1 ${!bottomPanelCollapsed && showBottomPanel ? "h-1/2" : "h-full"}`}
             >
-              <div ref={editorRef} className="h-full">
+              <div ref={editorRef} className="flex h-full flex-col">
                 {fileTree.filePath == "" ? (
                   <EmptyEditorState
                     icon={<FileText className="size-8" />}
@@ -621,14 +629,23 @@ const Sandbox: React.FC<SandboxProps> = ({
                     hint="Pick a file from the explorer, or press Ctrl+P to search."
                   />
                 ) : (
-                  <Editor
-                    sendDiff={editor.updateContent}
-                    code={editor.code}
-                    setCode={editor.setCode}
-                    fileType={editor.fileType}
-                    showSettings={showSettings}
-                    setShowSettings={setShowSettings}
-                  />
+                  <>
+                    <EditorTabStrip
+                      path={fileTree.filePath}
+                      dirty={editor.isDirty}
+                    />
+                    <div className="min-h-0 flex-1">
+                      <Editor
+                        sendDiff={editor.updateContent}
+                        code={editor.code}
+                        setCode={editor.setCode}
+                        fileType={editor.fileType}
+                        showSettings={showSettings}
+                        setShowSettings={setShowSettings}
+                        onDirtyChange={editor.onDirtyChange}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -767,6 +784,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                       onAction={fileTree.handleFileTreeAction}
                       activePath={activePath}
                       setActivePath={setActivePath}
+                      projectName={replName ?? "Workspace"}
                     />
                   </div>
                 </ResizablePanel>
@@ -782,7 +800,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                   defaultSize={showBottomPanel ? 70 : 100}
                   minSize={30}
                 >
-                  <div ref={editorRef} className="h-full">
+                  <div ref={editorRef} className="flex h-full flex-col">
                     {fileTree.filePath == "" ? (
                       <EmptyEditorState
                         icon={<FileText className="size-8" />}
@@ -790,14 +808,23 @@ const Sandbox: React.FC<SandboxProps> = ({
                         hint="Pick a file from the explorer, or press Ctrl+P to search."
                       />
                     ) : (
-                      <Editor
-                        sendDiff={editor.updateContent}
-                        code={editor.code}
-                        setCode={editor.setCode}
-                        fileType={editor.fileType}
-                        showSettings={showSettings}
-                        setShowSettings={setShowSettings}
-                      />
+                      <>
+                        <EditorTabStrip
+                          path={fileTree.filePath}
+                          dirty={editor.isDirty}
+                        />
+                        <div className="min-h-0 flex-1">
+                          <Editor
+                            sendDiff={editor.updateContent}
+                            code={editor.code}
+                            setCode={editor.setCode}
+                            fileType={editor.fileType}
+                            showSettings={showSettings}
+                            setShowSettings={setShowSettings}
+                            onDirtyChange={editor.onDirtyChange}
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
                 </ResizablePanel>

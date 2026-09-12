@@ -418,9 +418,31 @@ export default function ReplPage() {
   // rebuilt on every render they are a new reference every time, which makes
   // `React.memo` on anything below this point a no-op. `terminal` is the one
   // that matters — a fresh object there re-renders the xterm wrapper.
+  /**
+   * Whether the buffer has edits the runner has not seen yet.
+   *
+   * The editor coalesces keystrokes and pushes a diff on an idle window, so
+   * there is a real window where the screen is ahead of the container. The
+   * editor reports only the *edges* of that state, so this holds two renders
+   * per typing burst rather than one per character — and `editorProps` is
+   * memoised without it, so Monaco does not re-render for either.
+   */
+  const [isDirty, setIsDirty] = useState(false);
+  const handleDirtyChange = useCallback(
+    (dirty: boolean) => setIsDirty(dirty),
+    [],
+  );
+
   const editorProps = useMemo(
-    () => ({ updateContent, code, setCode, fileType }),
-    [updateContent, code, fileType],
+    () => ({
+      updateContent,
+      code,
+      setCode,
+      fileType,
+      isDirty,
+      onDirtyChange: handleDirtyChange,
+    }),
+    [updateContent, code, fileType, isDirty, handleDirtyChange],
   );
 
   // Returns null until the tree has loaded, so the `!tree` guard below
