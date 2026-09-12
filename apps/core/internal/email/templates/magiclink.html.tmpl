@@ -7,8 +7,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
 <meta name="x-apple-disable-message-reformatting">
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
+<!-- Dark in every scheme, and we say so. Declaring `dark` (rather than
+     `light dark`) is what tells Apple Mail, Outlook.com and iOS not to run
+     their own inversion over a design that is already dark. -->
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
 <title>Sign in to DevEx</title>
 <!--[if mso]>
 <noscript><xml><o:OfficeDocumentSettings>
@@ -16,65 +19,49 @@
 </o:OfficeDocumentSettings></xml></noscript>
 <![endif]-->
 <style>
-  :root { color-scheme: light dark; supported-color-schemes: light dark; }
+  :root { color-scheme: dark; supported-color-schemes: dark; }
 
   /* Reset — clients that keep <style> only. Inline styles remain the source of truth. */
   body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
   table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; border-collapse:collapse; }
   img { -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
   a { text-decoration:none; }
-  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  body { margin:0 !important; padding:0 !important; width:100% !important; background-color:#080808; }
 
   /* ---- Mobile ---- */
   @media screen and (max-width:600px) {
-    .sm-full     { width:100% !important; max-width:100% !important; }
-    .sm-px       { padding-left:22px !important; padding-right:22px !important; }
-    .sm-py       { padding-top:28px !important; padding-bottom:28px !important; }
-    .sm-h1       { font-size:25px !important; line-height:32px !important; }
-    .sm-btn      { width:100% !important; }
-    .sm-center   { text-align:center !important; }
+    .sm-full   { width:100% !important; max-width:100% !important; }
+    .sm-px     { padding-left:22px !important; padding-right:22px !important; }
+    .sm-h1     { font-size:26px !important; line-height:32px !important; }
+    .sm-btn    { width:100% !important; }
+    .sm-hide   { display:none !important; }
   }
 
-  /* ---- Dark mode: Apple Mail, iOS, Outlook.com, new Outlook ---- */
-  @media (prefers-color-scheme: dark) {
-    .bg-page   { background-color:#0B0D10 !important; }
-    .bg-card   { background-color:#14171D !important; }
-    .bg-inset  { background-color:#0E1116 !important; }
-    .bd        { border-color:#262B33 !important; }
-    .bd-top    { border-top-color:#262B33 !important; }
-    .ink       { color:#F2F4F7 !important; }
-    .ink-2     { color:#D6DBE3 !important; }
-    .muted     { color:#98A1AE !important; }
-    .faint     { color:#6C7683 !important; }
-    .accent    { color:#34D399 !important; }
-    .code      { color:#6EE7B7 !important; }
-    .chip      { background-color:#0F2A21 !important; color:#6EE7B7 !important; }
-    .chip-bd   { border-color:#1C4A3A !important; }
-    a.ink, a.muted, a.accent { color:inherit !important; }
-  }
-
-  /* ---- Dark mode: Outlook app (iOS/Android) + OWA. Attribute repeated per selector. ---- */
-  [data-ogsc] .bg-page,  [data-ogsb] .bg-page  { background-color:#0B0D10 !important; }
-  [data-ogsc] .bg-card,  [data-ogsb] .bg-card  { background-color:#14171D !important; }
-  [data-ogsc] .bg-inset, [data-ogsb] .bg-inset { background-color:#0E1116 !important; }
-  [data-ogsc] .bd     { border-color:#262B33 !important; }
-  [data-ogsc] .bd-top { border-top-color:#262B33 !important; }
-  [data-ogsc] .ink,   [data-ogsc] .ink a   { color:#F2F4F7 !important; }
-  [data-ogsc] .ink-2, [data-ogsc] .ink-2 a { color:#D6DBE3 !important; }
-  [data-ogsc] .muted, [data-ogsc] .muted a { color:#98A1AE !important; }
-  [data-ogsc] .faint, [data-ogsc] .faint a { color:#6C7683 !important; }
-  [data-ogsc] .accent,[data-ogsc] .accent a{ color:#34D399 !important; }
-  [data-ogsc] .code,  [data-ogsc] .code a  { color:#6EE7B7 !important; }
-  [data-ogsc] .chip,  [data-ogsb] .chip    { background-color:#0F2A21 !important; color:#6EE7B7 !important; }
-  [data-ogsc] .chip-bd { border-color:#1C4A3A !important; }
+  /* ---- Outlook mobile + OWA run their own inversion. Re-assert the palette
+          so it lands back where it started. Attribute repeated per selector,
+          because those clients rewrite one class at a time. ---- */
+  [data-ogsc] .bg-page,  [data-ogsb] .bg-page  { background-color:#080808 !important; }
+  [data-ogsc] .bg-card,  [data-ogsb] .bg-card  { background-color:#101010 !important; }
+  [data-ogsc] .bg-term,  [data-ogsb] .bg-term  { background-color:#050505 !important; }
+  [data-ogsc] .bg-chip,  [data-ogsb] .bg-chip  { background-color:#151515 !important; }
+  [data-ogsc] .bg-brand, [data-ogsb] .bg-brand { background-color:#fe9a00 !important; }
+  [data-ogsc] .bd     { border-color:#262626 !important; }
+  [data-ogsc] .bd-top { border-top-color:#262626 !important; }
+  [data-ogsc] .ink,      [data-ogsc] .ink a      { color:#f8f8f8 !important; }
+  [data-ogsc] .muted,    [data-ogsc] .muted a    { color:#9e9e9e !important; }
+  [data-ogsc] .subtle,   [data-ogsc] .subtle a   { color:#696969 !important; }
+  [data-ogsc] .accent,   [data-ogsc] .accent a   { color:#fe9a00 !important; }
+  [data-ogsc] .on-brand, [data-ogsc] .on-brand a { color:#180f09 !important; }
+  [data-ogsc] .term,     [data-ogsc] .term a     { color:#33d977 !important; }
 </style>
 </head>
 
-<body class="bg-page" style="margin:0;padding:0;width:100%;background-color:#F1F1F3;">
+<body class="bg-page" style="margin:0;padding:0;width:100%;background-color:#080808;">
 
-<!-- Preheader: 40-100 chars, then zero-width padding so body copy doesn't leak into preview -->
+<!-- Preheader: the line the inbox shows next to the subject, then zero-width
+     padding so the body copy does not leak into the preview after it. -->
 <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;color:transparent;">
-  Your DevEx sign-in link is ready. It expires in {{.ExpiryText}}.
+  One click and you are back in your workspace. Single use, expires in {{.ExpiryText}}.
   &#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;&#847;&zwnj;&nbsp;&#8199;&#65279;
 </div>
 
@@ -82,29 +69,35 @@
      style="font-size:medium;font-size:max(16px, 1rem);">
 
 <table role="presentation" class="bg-page" width="100%" cellpadding="0" cellspacing="0" border="0"
-       style="background-color:#F1F1F3;width:100%;">
+       bgcolor="#080808" style="background-color:#080808;width:100%;">
 <tr>
-<td align="center" style="padding:32px 12px;">
+<td align="center" style="padding:36px 12px;">
 
   <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
   <table role="presentation" class="sm-full" width="600" cellpadding="0" cellspacing="0" border="0"
          style="width:600px;max-width:600px;margin:0 auto;">
 
-    <!-- ══ Brand ══════════════════════════════════════════════════════ -->
+    <!-- ══ Brand ══════════════════════════════════════════════════════
+         No <img>. Images are blocked by default in a large slice of mail
+         clients, and an identity that disappears behind a grey placeholder is
+         worse than one built out of type. The mark is a green X on the app's
+         own surface, which is exactly what the product shows. -->
     <tr>
-      <td style="padding:0 0 26px 0;">
+      <td style="padding:0 0 24px 2px;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <!-- Logo tile: pure table cell. Square in classic Outlook, rounded elsewhere. -->
-            <td width="42" height="42" align="center" valign="middle" bgcolor="#059669"
-                style="width:42px;height:42px;background-color:#059669;border-radius:11px;
-                       font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                       font-size:21px;font-weight:700;color:#FFFFFF;line-height:42px;text-align:center;">D</td>
+            <td width="40" height="40" align="center" valign="middle" bgcolor="#101010"
+                class="bg-card bd"
+                style="width:40px;height:40px;background-color:#101010;border:1px solid #262626;border-radius:11px;
+                       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace;
+                       font-size:19px;font-weight:700;color:#33d977;line-height:38px;text-align:center;">
+              <span class="term" style="color:#33d977;">X</span>
+            </td>
             <td width="12" style="width:12px;">&nbsp;</td>
             <td align="left" valign="middle"
                 style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-              <div class="ink" style="font-size:17px;font-weight:700;color:#101319;line-height:20px;letter-spacing:-0.2px;">DevEx</div>
-              <div class="faint" style="font-size:12px;color:#79818F;line-height:16px;padding-top:2px;">Cloud development environments</div>
+              <div class="ink" style="font-size:17px;font-weight:700;color:#f8f8f8;line-height:20px;letter-spacing:-0.3px;">devX</div>
+              <div class="subtle" style="font-size:12px;color:#696969;line-height:16px;padding-top:2px;">Cloud development environments</div>
             </td>
           </tr>
         </table>
@@ -113,39 +106,41 @@
 
     <!-- ══ Card ═══════════════════════════════════════════════════════ -->
     <tr>
-      <td class="bg-card bd" bgcolor="#FDFDFD"
-          style="background-color:#FDFDFD;border:1px solid #E4E4E7;border-radius:14px;">
+      <td class="bg-card bd" bgcolor="#101010"
+          style="background-color:#101010;border:1px solid #262626;border-radius:14px;">
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 
-          <!-- Faux-gradient accent bar: four solid bgcolor cells. No CSS gradients anywhere. -->
+          <!-- The accent ramp, as four solid cells. No CSS gradients anywhere:
+               Outlook drops them and Gmail strips the property. -->
           <tr>
             <td style="font-size:0;line-height:0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
                 <tr>
-                  <td width="25%" height="3" bgcolor="#047857" style="height:3px;line-height:3px;font-size:0;background-color:#047857;">&nbsp;</td>
-                  <td width="25%" height="3" bgcolor="#059669" style="height:3px;line-height:3px;font-size:0;background-color:#059669;">&nbsp;</td>
-                  <td width="25%" height="3" bgcolor="#10B981" style="height:3px;line-height:3px;font-size:0;background-color:#10B981;">&nbsp;</td>
-                  <td width="25%" height="3" bgcolor="#34D399" style="height:3px;line-height:3px;font-size:0;background-color:#34D399;">&nbsp;</td>
+                  <td width="25%" height="3" bgcolor="#e17100" style="height:3px;line-height:3px;font-size:0;background-color:#e17100;border-radius:13px 0 0 0;">&nbsp;</td>
+                  <td width="25%" height="3" bgcolor="#fe9a00" style="height:3px;line-height:3px;font-size:0;background-color:#fe9a00;">&nbsp;</td>
+                  <td width="25%" height="3" bgcolor="#ffb900" style="height:3px;line-height:3px;font-size:0;background-color:#ffb900;">&nbsp;</td>
+                  <td width="25%" height="3" bgcolor="#ffd230" style="height:3px;line-height:3px;font-size:0;background-color:#ffd230;border-radius:0 13px 0 0;">&nbsp;</td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Eyebrow + headline + body -->
+          <!-- Eyebrow + headline + lead -->
           <tr>
-            <td class="sm-px sm-py" style="padding:40px 44px 0 44px;
+            <td class="sm-px" style="padding:40px 44px 0 44px;
                        font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
               <p class="accent" style="margin:0 0 14px 0;font-size:11px;font-weight:700;letter-spacing:1.4px;
-                        text-transform:uppercase;color:#059669;line-height:14px;">Secure sign-in</p>
+                        text-transform:uppercase;color:#fe9a00;line-height:14px;">Sign-in link</p>
 
-              <h1 class="ink sm-h1" style="margin:0 0 16px 0;font-size:29px;line-height:36px;font-weight:700;
-                        color:#101319;letter-spacing:-0.6px;">Sign in to DevEx</h1>
+              <h1 class="ink sm-h1" style="margin:0 0 16px 0;font-size:30px;line-height:36px;font-weight:700;
+                        color:#f8f8f8;letter-spacing:-0.7px;">Sign in to DevEx</h1>
 
-              <p class="ink-2" style="margin:0;font-size:16px;line-height:26px;color:#3D4552;">
-                Use the button below to sign in. For your security this link works
-                <strong class="ink" style="color:#101319;font-weight:600;">once</strong> and expires in
-                <strong class="ink" style="color:#101319;font-weight:600;">{{.ExpiryText}}</strong>.
+              <p class="muted" style="margin:0;font-size:16px;line-height:26px;color:#9e9e9e;">
+                One click and your machine is a tab away &mdash; a real shell, your files
+                where you left them, and a public URL. This link signs you in
+                <strong class="ink" style="color:#f8f8f8;font-weight:600;">once</strong> and expires in
+                <strong class="ink" style="color:#f8f8f8;font-weight:600;">{{.ExpiryText}}</strong>.
               </p>
             </td>
           </tr>
@@ -158,14 +153,14 @@
                            xmlns:w="urn:schemas-microsoft-com:office:word"
                            href="{{.MagicLink}}"
                            style="height:52px;v-text-anchor:middle;width:264px;"
-                           arcsize="20%" stroke="f" fillcolor="#059669">
+                           arcsize="20%" stroke="f" fillcolor="#fe9a00">
                 <w:anchorlock/>
-                <center style="color:#ffffff;font-family:'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:bold;">Sign in to DevEx</center>
+                <center style="color:#180f09;font-family:'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:bold;">Sign in to DevEx</center>
               </v:roundrect>
               <![endif]-->
               <!--[if !mso]><!-- -->
-              <a href="{{.MagicLink}}" class="sm-btn"
-                 style="display:inline-block;width:264px;background-color:#059669;color:#FFFFFF;
+              <a href="{{.MagicLink}}" class="sm-btn bg-brand on-brand"
+                 style="display:inline-block;width:264px;background-color:#fe9a00;color:#180f09;
                         font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
                         font-size:16px;font-weight:600;line-height:52px;text-align:center;
                         text-decoration:none;border-radius:10px;letter-spacing:-0.1px;
@@ -179,31 +174,36 @@
             <td class="sm-px" style="padding:18px 44px 0 44px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td class="chip chip-bd" bgcolor="#ECFDF5"
-                      style="background-color:#ECFDF5;border:1px solid #C4EEDC;border-radius:20px;
-                             padding:6px 13px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-                             font-size:12px;font-weight:600;color:#05704E;line-height:16px;letter-spacing:0.1px;">
-                    Expires in {{.ExpiryText}}
+                  <td class="bg-chip bd" bgcolor="#151515"
+                      style="background-color:#151515;border:1px solid #262626;border-radius:20px;
+                             padding:6px 13px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace;
+                             font-size:12px;color:#9e9e9e;line-height:16px;letter-spacing:0.1px;">
+                    <span class="muted" style="color:#9e9e9e;">single use &nbsp;&middot;&nbsp; expires in {{.ExpiryText}}</span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- ── Fallback link ──────────────────────────────────────── -->
+          <!-- ── Fallback link ──────────────────────────────────────────
+               Styled as the app's own trace block: near-black, monospace, and
+               a 2px accent rule down the left. The rule is a table cell rather
+               than a `border-left`, because classic Outlook drops one-sided
+               borders on a <td> often enough to matter. -->
           <tr>
-            <td class="sm-px" style="padding:32px 44px 0 44px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <td class="sm-px" style="padding:30px 44px 0 44px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
                 <tr>
-                  <td class="bg-inset bd" bgcolor="#F6F6F8"
-                      style="background-color:#F6F6F8;border:1px solid #E4E4E7;border-radius:10px;padding:16px 18px;
-                             font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                    <p class="muted" style="margin:0 0 9px 0;font-size:12px;line-height:16px;color:#5A6472;font-weight:600;">
-                      Button not working? Paste this into your browser:
-                    </p>
-                    <a href="{{.MagicLink}}" class="code accent"
+                  <td width="2" bgcolor="#fe9a00" class="bg-brand"
+                      style="width:2px;background-color:#fe9a00;font-size:0;line-height:0;">&nbsp;</td>
+                  <td class="bg-term" bgcolor="#050505"
+                      style="background-color:#050505;padding:15px 18px;
+                             font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace;">
+                    <p class="subtle" style="margin:0 0 8px 0;font-size:10px;line-height:14px;color:#696969;
+                              letter-spacing:1.2px;text-transform:uppercase;">Or paste this link</p>
+                    <a href="{{.MagicLink}}" class="term"
                        style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace;
-                              font-size:12px;line-height:19px;color:#047857;text-decoration:none;
+                              font-size:12px;line-height:19px;color:#33d977;text-decoration:none;
                               word-break:break-all;overflow-wrap:break-word;">{{.MagicLink}}</a>
                   </td>
                 </tr>
@@ -215,17 +215,17 @@
           <tr>
             <td class="sm-px" style="padding:28px 44px 0 44px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td class="bd-top" style="border-top:1px solid #E9E9EC;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
+                <tr><td class="bd-top" style="border-top:1px solid #262626;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td class="sm-px" style="padding:22px 44px 40px 44px;
+            <td class="sm-px" style="padding:22px 44px 38px 44px;
                        font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-              <p class="muted" style="margin:0;font-size:13px;line-height:21px;color:#5A6472;">
-                <strong class="ink-2" style="color:#3D4552;font-weight:600;">Didn't request this?</strong>
-                You can safely ignore this email &mdash; someone may have typed your address by mistake.
-                Your account stays secure as long as you don't open the link above.
+              <p class="subtle" style="margin:0;font-size:13px;line-height:21px;color:#696969;">
+                <strong class="muted" style="color:#9e9e9e;font-weight:600;">Didn't request this?</strong>
+                Ignore it &mdash; someone probably mistyped their address. Nothing happens to
+                your account until the link above is opened, and it expires on its own.
               </p>
             </td>
           </tr>
@@ -238,12 +238,13 @@
     <tr>
       <td class="sm-px" align="center" style="padding:26px 24px 8px 24px;
                  font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        <p class="faint" style="margin:0 0 6px 0;font-size:12px;line-height:19px;color:#79818F;">
-          This message was sent to <span class="muted" style="color:#5A6472;">{{.Recipient}}</span>
-          because a sign-in was requested for DevEx.
+        <p class="subtle" style="margin:0 0 6px 0;font-size:12px;line-height:19px;color:#696969;">
+          Sent to <span class="muted" style="color:#9e9e9e;">{{.Recipient}}</span>
+          because someone asked to sign in to DevEx.
         </p>
-        <p class="faint" style="margin:0;font-size:12px;line-height:19px;color:#79818F;">
-          &copy; {{.Year}} DevEx &nbsp;&middot;&nbsp; Automated message, please don't reply
+        <p class="subtle" style="margin:0;font-size:12px;line-height:19px;color:#696969;">
+          &copy; {{.Year}} DevEx &nbsp;&middot;&nbsp; Open source, Apache-2.0
+          &nbsp;&middot;&nbsp; Automated message, please don't reply
         </p>
       </td>
     </tr>
