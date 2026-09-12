@@ -1,171 +1,203 @@
 "use client";
-import React, { useRef, useEffect } from "react";
-import "./Squares.css";
+
+import React, { useRef } from "react";
+import {
+  useCanvasScene,
+  type Scene,
+  type SceneSurface,
+} from "@/hooks/use-canvas-scene";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 type CanvasStrokeStyle = string | CanvasGradient | CanvasPattern;
 
-interface GridOffset {
-  x: number;
-  y: number;
-}
-
 interface SquaresProps {
   direction?: "diagonal" | "up" | "right" | "down" | "left";
+  /** Pixels per frame at 60fps. */
   speed?: number;
   borderColor?: CanvasStrokeStyle;
   squareSize?: number;
   hoverFillColor?: CanvasStrokeStyle;
+  className?: string;
 }
 
+/**
+ * A drifting grid of squares, used behind the auth pages.
+ *
+ * Runs through `useCanvasScene`, so the loop stops when the canvas is off
+ * screen or the tab is hidden, and renders a single static frame when the user
+ * prefers reduced motion.
+ */
 const Squares: React.FC<SquaresProps> = ({
   direction = "right",
   speed = 1,
-  borderColor = "#999",
+  borderColor = "color-mix(in oklab, var(--color-brand) 22%, transparent)",
   squareSize = 40,
-  hoverFillColor = "#222",
+  hoverFillColor = "color-mix(in oklab, var(--color-brand) 12%, transparent)",
+  className = "fixed inset-0 -z-10 h-full w-full",
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestRef = useRef<number | null>(null);
-  const numSquaresX = useRef<number>(0);
-  const numSquaresY = useRef<number>(0);
-  const gridOffset = useRef<GridOffset>({ x: 0, y: 0 });
-  const hoveredSquareRef = useRef<GridOffset | null>(null);
+  const reducedMotion = useReducedMotion();
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+  useCanvasScene(
+    canvasRef,
+    () => {
+      const offset = { x: 0, y: 0 };
+      let hovered: { x: number; y: number } | null = null;
 
-    const resizeCanvas = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      numSquaresX.current = Math.ceil(canvas.width / squareSize) + 1;
-      numSquaresY.current = Math.ceil(canvas.height / squareSize) + 1;
-    };
+      // strokeStyle/fillStyle cannot resolve var(); read them off the element.
+      let stroke = String(borderColor);
+      let fill = String(hoverFillColor);
+      let vignette = "rgba(10,10,10,0.92)";
+      let backdrop: CanvasGradient | null = null;
 
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
+      // Resolve a value that may reference the cascade by parking it on a
+      // custom property and reading back the computed (absolute) colour.
+      const resolveColors = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const computed = getComputedStyle(canvas);
+        const read = (property: string, fallback: string) =>
+          computed.getPropertyValue(property).trim() || fallback;
 
-    const drawGrid = () => {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        stroke = read("--squares-border", String(borderColor));
+        fill = read("--squares-hover", String(hoverFillColor));
+        vignette = read("--squares-vignette", vignette);
+      };
 
-      const startX = Math.floor(gridOffset.current.x / squareSize) * squareSize;
-      const startY = Math.floor(gridOffset.current.y / squareSize) * squareSize;
+      const onPointerMove = (event: PointerEvent) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        hovered = {
+          x: Math.floor((x + offset.x) / squareSize),
+          y: Math.floor((y + offset.y) / squareSize),
+        };
+      };
 
-      for (let x = startX; x < canvas.width + squareSize; x += squareSize) {
-        for (let y = startY; y < canvas.height + squareSize; y += squareSize) {
-          const squareX = x - (gridOffset.current.x % squareSize);
-          const squareY = y - (gridOffset.current.y % squareSize);
+      const onPointerLeave = () => {
+        hovered = null;
+      };
 
-          if (
-            hoveredSquareRef.current &&
-            Math.floor((x - startX) / squareSize) ===
-              hoveredSquareRef.current.x &&
-            Math.floor((y - startY) / squareSize) === hoveredSquareRef.current.y
-          ) {
-            ctx.fillStyle = hoverFillColor;
-            ctx.fillRect(squareX, squareY, squareSize, squareSize);
+      const canvas = canvasRef.current;
+      if (canvas && !reducedMotion) {
+        canvas.addEventListener("pointermove", onPointerMove, { passive: true });
+        canvas.addEventListener("pointerleave", onPointerLeave);
+      }
+
+      const draw = ({ ctx, width, height }: SceneSurface) => {
+        ctx.clearRect(0, 0, width, height);
+
+        const startX = Math.floor(offset.x / squareSize) * squareSize;
+        const startY = Math.floor(offset.y / squareSize) * squareSize;
+
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+
+        // One path for every square outline: a single stroke() instead of one
+        // per cell, which is the difference between ~1 and ~1500 draw calls.
+        ctx.beginPath();
+        for (let x = startX; x < width + squareSize; x += squareSize) {
+          for (let y = startY; y < height + squareSize; y += squareSize) {
+            const squareX = x - (offset.x % squareSize);
+            const squareY = y - (offset.y % squareSize);
+            ctx.rect(squareX, squareY, squareSize, squareSize);
+          }
+        }
+        ctx.stroke();
+
+        if (hovered) {
+          const squareX =
+            hovered.x * squareSize - (offset.x % squareSize) + startX;
+          const squareY =
+            hovered.y * squareSize - (offset.y % squareSize) + startY;
+          ctx.fillStyle = fill;
+          ctx.fillRect(squareX, squareY, squareSize, squareSize);
+        }
+
+        // Vignette. Rebuilt only on resize — createRadialGradient every frame
+        // was allocating a gradient object 60 times a second.
+        if (backdrop) {
+          ctx.fillStyle = backdrop;
+          ctx.fillRect(0, 0, width, height);
+        }
+      };
+
+      return {
+        resize(surface) {
+          resolveColors();
+          const { ctx, width, height } = surface;
+          const radius = Math.hypot(width, height) / 2;
+          backdrop = ctx.createRadialGradient(
+            width / 2,
+            height / 2,
+            0,
+            width / 2,
+            height / 2,
+            radius,
+          );
+          backdrop.addColorStop(0, "rgba(0,0,0,0)");
+          backdrop.addColorStop(1, vignette);
+        },
+
+        frame(surface, _time, delta) {
+          // Scale by elapsed time so the drift speed is the same at 30fps as
+          // at 60, rather than being tied to how often we happen to paint.
+          const step = Math.max(speed, 0.1) * (delta > 0 ? delta / 16.667 : 1);
+
+          switch (direction) {
+            case "right":
+              offset.x = (offset.x - step + squareSize) % squareSize;
+              break;
+            case "left":
+              offset.x = (offset.x + step + squareSize) % squareSize;
+              break;
+            case "up":
+              offset.y = (offset.y + step + squareSize) % squareSize;
+              break;
+            case "down":
+              offset.y = (offset.y - step + squareSize) % squareSize;
+              break;
+            case "diagonal":
+              offset.x = (offset.x - step + squareSize) % squareSize;
+              offset.y = (offset.y - step + squareSize) % squareSize;
+              break;
           }
 
-          ctx.strokeStyle = borderColor;
-          ctx.strokeRect(squareX, squareY, squareSize, squareSize);
-        }
-      }
+          draw(surface);
+        },
 
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2,
-      );
-      gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
-      gradient.addColorStop(1, "#060010");
+        still(surface) {
+          draw(surface);
+        },
 
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
-
-    const updateAnimation = () => {
-      const effectiveSpeed = Math.max(speed, 0.1);
-      switch (direction) {
-        case "right":
-          gridOffset.current.x =
-            (gridOffset.current.x - effectiveSpeed + squareSize) % squareSize;
-          break;
-        case "left":
-          gridOffset.current.x =
-            (gridOffset.current.x + effectiveSpeed + squareSize) % squareSize;
-          break;
-        case "up":
-          gridOffset.current.y =
-            (gridOffset.current.y + effectiveSpeed + squareSize) % squareSize;
-          break;
-        case "down":
-          gridOffset.current.y =
-            (gridOffset.current.y - effectiveSpeed + squareSize) % squareSize;
-          break;
-        case "diagonal":
-          gridOffset.current.x =
-            (gridOffset.current.x - effectiveSpeed + squareSize) % squareSize;
-          gridOffset.current.y =
-            (gridOffset.current.y - effectiveSpeed + squareSize) % squareSize;
-          break;
-        default:
-          break;
-      }
-
-      drawGrid();
-      requestRef.current = requestAnimationFrame(updateAnimation);
-    };
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-
-      const startX = Math.floor(gridOffset.current.x / squareSize) * squareSize;
-      const startY = Math.floor(gridOffset.current.y / squareSize) * squareSize;
-
-      const hoveredSquareX = Math.floor(
-        (mouseX + gridOffset.current.x - startX) / squareSize,
-      );
-      const hoveredSquareY = Math.floor(
-        (mouseY + gridOffset.current.y - startY) / squareSize,
-      );
-
-      if (
-        !hoveredSquareRef.current ||
-        hoveredSquareRef.current.x !== hoveredSquareX ||
-        hoveredSquareRef.current.y !== hoveredSquareY
-      ) {
-        hoveredSquareRef.current = { x: hoveredSquareX, y: hoveredSquareY };
-      }
-    };
-
-    const handleMouseLeave = () => {
-      hoveredSquareRef.current = null;
-    };
-
-    canvas.addEventListener("mousemove", handleMouseMove);
-    canvas.addEventListener("mouseleave", handleMouseLeave);
-    requestRef.current = requestAnimationFrame(updateAnimation);
-
-    return () => {
-      window.removeEventListener("resize", resizeCanvas);
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      canvas.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, [direction, speed, borderColor, hoverFillColor, squareSize]);
+        dispose() {
+          const node = canvasRef.current;
+          node?.removeEventListener("pointermove", onPointerMove);
+          node?.removeEventListener("pointerleave", onPointerLeave);
+        },
+      } satisfies Scene;
+    },
+    { fps: 30, reducedMotion, maxDpr: 1.5 },
+    [direction, speed, borderColor, hoverFillColor, squareSize],
+  );
 
   return (
     <canvas
       ref={canvasRef}
-      className="bg-emerald-900 fixed min-h-screen  inset-0"
-    ></canvas>
+      aria-hidden="true"
+      className={className}
+      style={{
+        // Read back by resolveColors so the scene inherits theme tokens.
+        ["--squares-border" as string]:
+          "color-mix(in oklab, var(--color-brand) 22%, transparent)",
+        ["--squares-hover" as string]:
+          "color-mix(in oklab, var(--color-brand) 12%, transparent)",
+        ["--squares-vignette" as string]:
+          "color-mix(in oklab, var(--color-canvas) 92%, transparent)",
+      }}
+    />
   );
 };
 

@@ -1,0 +1,100 @@
+---
+title: MCP server
+description: Give an AI agent a real machine. The DevEx MCP server exposes REPL files and terminals as Model Context Protocol tools, so assistants can run and verify code instead of guessing.
+section: Guides
+order: 1
+---
+
+Most AI coding tools write code they cannot run. The DevEx MCP server closes
+that loop: it exposes a live REPL — filesystem and shell — as
+[Model Context Protocol](https://modelcontextprotocol.io) tools, so an assistant
+can execute what it wrote, read the error, and fix it.
+
+<Callout type="info" title="Why a container and not a sandbox API">
+  Because the agent gets the same environment you do. If it needs to
+  `npm install` a dependency, run a migration, or start a server and curl it,
+  it can — inside a namespace that is destroyed when the REPL stops.
+</Callout>
+
+## What it exposes
+
+The server surfaces the runner's capabilities as tools:
+
+| Tool | Purpose |
+| --- | --- |
+| `listFiles` | Walk the REPL's file tree |
+| `readFile` | Read a file's contents |
+| `writeFile` | Create or overwrite a file |
+| `runCommand` | Execute a command in the REPL shell and capture output |
+
+Together these are enough for an agent to run the full edit → execute → read
+error → fix loop without a human relaying output.
+
+## Testing with the Inspector
+
+The MCP Inspector is the fastest way to confirm the server is wired up before
+pointing a real assistant at it.
+
+<Steps>
+
+### Start your MCP server
+
+Either inside a runner pod, or standalone against a running REPL.
+
+### Run the Inspector
+
+```bash
+npx @modelcontextprotocol/inspector node path/to/devex-mcp-server
+```
+
+This starts the Inspector UI on port `6274` and proxies tool calls to your
+server on `6277`.
+
+### Open the UI
+
+Visit [http://localhost:6274](http://localhost:6274). You get the tool list, a
+form to invoke each tool by hand, and a live log of requests and responses.
+
+### Invoke a tool
+
+Call `listFiles` first — it is the cheapest round trip that proves the server
+can reach the REPL. If it returns a tree, everything downstream will work.
+
+</Steps>
+
+## Connecting an assistant
+
+Once the Inspector shows tools responding, any MCP-capable client can connect —
+Claude Desktop, Cursor, or anything else that speaks the protocol. Point it at
+the same server command the Inspector wrapped.
+
+<Callout type="warning" title="An agent with runCommand can do anything you can">
+  `runCommand` is a shell. Inside a REPL that is the point — the blast radius is
+  one disposable container. Do not expose the same server against anything you
+  would not hand a stranger a terminal on.
+</Callout>
+
+## Troubleshooting
+
+**Tools list is empty.** The server started but registered nothing. Check that
+it reached the runner's WebSocket — an unreachable runner usually fails silently
+into an empty tool set.
+
+**`runCommand` hangs.** The command is waiting on input, or it started a
+long-running process. Tools expect commands that terminate; start servers in an
+explicit background form and poll instead.
+
+**Connection refused on 6277.** The Inspector proxy could not start your server.
+Run the command that follows `npx @modelcontextprotocol/inspector` on its own
+first — the failure is almost always in that command, not the Inspector.
+
+## Learn more
+
+<Cards>
+  <Card title="MCP Inspector docs" href="https://modelcontextprotocol.io/docs/tools/inspector">
+    Upstream reference for the debugging UI.
+  </Card>
+  <Card title="Architecture" icon="server" href="/docs/architecture">
+    How the runner exposes files and terminals in the first place.
+  </Card>
+</Cards>

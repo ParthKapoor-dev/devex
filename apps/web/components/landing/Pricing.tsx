@@ -1,12 +1,12 @@
 "use client";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+// `framer-motion` is not a dependency — it only resolved because `motion`
+// happens to depend on it. Import from `motion/react`, as everywhere else.
+import { motion } from "motion/react";
 import {
-  Check,
   Star,
   Zap,
   Code,
@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
+import { siteConfig } from "@/lib/site";
 
 // Define your plans with DevX-specific features
 const plans = [
@@ -43,7 +44,7 @@ const plans = [
     buttonText: "Start Coding",
     href: "/dashboard",
     isPopular: false,
-    gradient: "from-gray-600 to-gray-800",
+    tint: "from-ink-subtle/10 to-transparent",
   },
   {
     name: "PROFESSIONAL",
@@ -65,7 +66,7 @@ const plans = [
     buttonText: "Go Professional",
     href: "/dashboard",
     isPopular: true,
-    gradient: "from-emerald-500 to-teal-600",
+    tint: "from-brand/20 to-transparent",
   },
   {
     name: "ENTERPRISE SDK",
@@ -87,7 +88,7 @@ const plans = [
     buttonText: "Contact Sales",
     href: "https://parthkapoor.me",
     isPopular: false,
-    gradient: "from-purple-600 to-blue-600",
+    tint: "from-info/15 to-transparent",
   },
 ];
 
@@ -107,7 +108,7 @@ interface PricingPlan {
   buttonText: string;
   href: string;
   isPopular: boolean;
-  gradient: string;
+  tint: string;
 }
 
 export default function DevXPricing() {
@@ -140,7 +141,9 @@ export default function DevXPricing() {
           x: x / window.innerWidth,
           y: y / window.innerHeight,
         },
-        colors: ["#14b8a6", "#10b981", "#06b6d4", "#8b5cf6", "#f59e0b"],
+        // Brand ramp only — the old mix pulled in purple and amber, which
+        // appear nowhere else in the product.
+        colors: ["#6ee7b7", "#34d399", "#10b981", "#059669"],
         ticks: 200,
         gravity: 1.2,
         decay: 0.94,
@@ -160,10 +163,10 @@ export default function DevXPricing() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 sm:text-6xl">
+          <h2 className="text-gradient-brand text-4xl font-bold tracking-tight sm:text-5xl">
             Power Up Your Development
           </h2>
-          <p className="mt-4 text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-ink-muted">
             From learning to enterprise-scale applications, DevX scales with
             your needs. Choose the perfect plan for your cloud development
             journey.
@@ -181,7 +184,7 @@ export default function DevXPricing() {
           <span
             className={cn(
               "font-semibold transition-colors",
-              isMonthly ? "text-white" : "text-gray-400",
+              isMonthly ? "text-ink" : "text-ink-subtle",
             )}
           >
             Monthly
@@ -191,18 +194,18 @@ export default function DevXPricing() {
               ref={switchRef as any}
               checked={!isMonthly}
               onCheckedChange={handleToggle}
-              className="relative bg-amber-500"
+              className="relative"
             />
           </label>
           <span
             className={cn(
               "font-semibold transition-colors",
-              !isMonthly ? "text-white" : "text-gray-400",
+              !isMonthly ? "text-ink" : "text-ink-subtle",
             )}
           >
             Annual
           </span>
-          <span className="ml-2 px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold rounded-full">
+          <span className="ml-2 rounded-full bg-brand px-2.5 py-1 text-sm font-semibold text-brand-fg">
             Save 20%
           </span>
         </motion.div>
@@ -233,28 +236,28 @@ export default function DevXPricing() {
               delay: index * 0.1,
             }}
             className={cn(
-              "relative rounded-3xl border bg-black/40 backdrop-blur-sm p-8 text-center flex flex-col",
+              "relative flex flex-col rounded-2xl border bg-surface/70 p-8 text-center",
               plan.isPopular
-                ? "border-2 border-emerald-500/50 shadow-2xl shadow-emerald-500/20"
-                : "border-gray-600/30",
-              "transform-gpu transition-all duration-300 hover:scale-[1.02]",
+                ? "border-brand/50 glow-brand"
+                : "border-edge",
+              "transform-gpu transition-colors duration-[--duration-normal] hover:border-brand/40",
               index === 0 || index === 2 ? "z-0" : "z-10",
             )}
           >
             {/* Background Gradient */}
             <div
               className={cn(
-                "absolute inset-0 rounded-3xl opacity-10 bg-gradient-to-br",
-                plan.gradient,
+                "pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br",
+                plan.tint,
               )}
             />
 
             {/* Popular Badge */}
             {plan.isPopular && (
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 rounded-full">
-                  <Star className="h-4 w-4 fill-current text-white" />
-                  <span className="text-white font-semibold text-sm">
+                <div className="flex items-center gap-2 rounded-full bg-brand px-4 py-1.5">
+                  <Star className="size-3.5 fill-current text-brand-fg" />
+                  <span className="text-sm font-semibold text-brand-fg">
                     Most Popular
                   </span>
                 </div>
@@ -264,10 +267,10 @@ export default function DevXPricing() {
             <div className="relative z-10 flex flex-1 flex-col">
               {/* Plan Header */}
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="mb-2 text-xl font-bold tracking-tight text-ink">
                   {plan.name}
                 </h3>
-                <p className="text-sm text-gray-400 font-medium">
+                <p className="text-sm font-medium text-ink-subtle">
                   {plan.badge}
                 </p>
               </div>
@@ -275,7 +278,7 @@ export default function DevXPricing() {
               {/* Pricing */}
               <div className="mb-6">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-5xl font-bold text-white">
+                  <span className="text-5xl font-bold text-ink">
                     <NumberFlow
                       value={
                         isMonthly
@@ -297,12 +300,12 @@ export default function DevXPricing() {
                     />
                   </span>
                   {plan.period !== "forever" && (
-                    <span className="text-gray-400 text-sm">
+                    <span className="text-sm text-ink-muted">
                       / {plan.period}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-ink-subtle">
                   {plan.period === "forever"
                     ? "No credit card required"
                     : isMonthly
@@ -315,10 +318,10 @@ export default function DevXPricing() {
               <ul className="flex flex-col gap-2 mb-8 flex-1">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center mt-0.5">
-                      <feature.icon className="h-3 w-3 text-emerald-400" />
+                    <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/15">
+                      <feature.icon className="size-3 text-brand" />
                     </div>
-                    <span className="text-gray-300 text-sm text-left">
+                    <span className="text-left text-sm text-ink-muted">
                       {feature.text}
                     </span>
                   </li>
@@ -330,17 +333,17 @@ export default function DevXPricing() {
                 href={plan.href}
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tight py-6 rounded-xl transition-all duration-300",
+                  "group relative w-full gap-2 overflow-hidden rounded-lg py-6 text-base font-semibold tracking-tight transition-colors duration-[--duration-normal]",
                   plan.isPopular
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/25"
-                    : "bg-transparent text-white border-gray-600 hover:bg-white hover:text-black hover:border-white",
+                    ? "border-0 bg-brand text-brand-fg hover:bg-brand-400"
+                    : "border-edge-strong bg-transparent text-ink hover:border-brand/50 hover:bg-raised",
                 )}
               >
                 {plan.buttonText}
               </Link>
 
               {/* Description */}
-              <p className="mt-4 text-xs text-gray-500 leading-relaxed">
+              <p className="mt-4 text-xs leading-relaxed text-ink-subtle">
                 {plan.description}
               </p>
             </div>
@@ -356,12 +359,15 @@ export default function DevXPricing() {
         transition={{ duration: 0.6, delay: 0.4 }}
         className="mt-16 text-center"
       >
-        <p className="text-gray-400 mb-4">
+        <p className="mb-4 text-ink-muted">
           Need something custom? We&apos;re here to help.
         </p>
         <Link
-          href="/contact"
-          className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+          /* There is no /contact route — this was a 404. Book a call instead. */
+          href={siteConfig.links.call}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 font-semibold text-brand transition-colors duration-[--duration-fast] hover:text-brand-300"
         >
           Contact our team <Zap className="h-4 w-4" />
         </Link>

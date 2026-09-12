@@ -1,0 +1,148 @@
+---
+title: Architecture
+description: The four services behind DevEx — web, core, runner and MCP — what each one owns, and the exact sequence that turns a click into a running container.
+section: Concepts
+order: 1
+---
+
+DevEx is four services and two stateful backends. Nothing here is clever; the
+design is deliberately boring so that a REPL failing is never a mystery.
+
+## The services
+
+<Cards>
+  <Card title="web" icon="terminal">
+    Next.js frontend. Auth UI, the dashboard, and the editor/terminal client
+    that speaks WebSocket to a runner.
+  </Card>
+  <Card title="core" icon="server">
+    Go API. Owns users, REPL records, S3 layout and every Kubernetes object.
+    The only service with cluster credentials.
+  </Card>
+  <Card title="runner" icon="zap">
+    Go server inside each REPL pod. Serves the filesystem and a PTY over one
+    WebSocket.
+  </Card>
+  <Card title="mcp" icon="database">
+    Model Context Protocol server, so an AI agent can drive REPLs with the same
+    API a person uses.
+  </Card>
+</Cards>
+
+Behind those: **Redis** for REPL session state, and an **S3-compatible bucket**
+for file persistence.
+
+## Who owns what
+
+The important boundary is that **only `core` talks to Kubernetes**. The browser
+never holds cluster credentials, and the runner cannot create or delete
+anything — it only serves the pod it is already inside.
+
+| Concern | Owner | Notes |
+| --- | --- | --- |
+| Sessions, OAuth, magic links | `core` | Cookie sessions backed by Redis |
+| REPL records | `core` | Keyed by user, stored in Redis |
+| Template copy, file sync | `core` | Writes `username/repl-id/` in S3 |
+| Deployment, Service, Ingress | `core` | One set per running REPL |
+| Filesystem reads/writes | `runner` | Scoped to the pod's own volume |
+| PTY sessions | `runner` | One process per terminal tab |
+| TLS certificates | `cert-manager` | Let's Encrypt, per-REPL hostname |
+| Ingress routing | Traefik | `hostNetwork`, routes by hostname |
+
+## Creating a REPL
+
+<Steps>
+
+### Core writes the template to S3
+
+`POST /repl/create`. Core copies the chosen template into
+`username/repl-id/` and records the REPL against your account in Redis. No
+compute is allocated yet — creating a REPL is nearly free.
+
+### Core asks Kubernetes for a pod
+
+`POST /repl/start`. Core creates three objects: a **Deployment** (the runner
+container), a **Service** (in-cluster address), and an **Ingress** (the public
+hostname). cert-manager notices the Ingress and issues a certificate.
+
+### The runner restores your files
+
+On boot the runner pulls `username/repl-id/` from S3 into its working
+directory, then starts listening for WebSocket connections.
+
+### The browser connects directly
+
+The editor and terminal open a WebSocket **straight to the runner** through the
+Ingress — not proxied through core. Keystrokes and file edits do not touch the
+API server, which is why typing feels local.
+
+</Steps>
+
+## Stopping a REPL
+
+Stopping is where the persistence story lives:
+
+<Steps>
+
+### An ephemeral container is injected
+
+`POST /repl/stop`. Rather than trusting the runner to flush on `SIGTERM` —
+which races with pod deletion — core injects an **ephemeral container** into
+the still-running pod.
+
+### It syncs files back to S3
+
+The ephemeral container walks the working directory and uploads anything that
+changed to `username/repl-id/`.
+
+### Kubernetes resources are deleted
+
+Once the sync reports success, core deletes the Ingress, Service and
+Deployment. The REPL record stays; only the compute goes away.
+
+</Steps>
+
+<Callout type="warning" title="The sync boundary is the working directory">
+  Only the project directory is synced. Packages installed globally, `apt`
+  packages, and edits to `/etc` live in the container layer and are discarded
+  with the pod. Anything you need on every start belongs in the
+  [template](/docs/templates).
+</Callout>
+
+## Why an ephemeral container
+
+A `preStop` hook is the obvious alternative, and it is worse here. `preStop`
+runs against `terminationGracePeriodSeconds`, so a large upload gets killed
+partway and you lose work with no signal. An ephemeral container runs as a
+first-class container in the pod: it can take as long as it needs, and core can
+read its exit status before deleting anything.
+
+## Networking
+
+Each running REPL gets its own hostname under the runner domain, routed by
+Traefik:
+
+```text
+https://<repl-id>.repl.example.com
+```
+
+Traefik runs with `hostNetwork: true` so it binds :80 and :443 directly on the
+node, which keeps the setup viable on single-node and bare-metal clusters
+without a cloud load balancer.
+
+<Callout type="danger" title="REPL hostnames are public">
+  There is no authentication in front of a REPL's Ingress. Anyone with the
+  hostname can reach anything you bind to a port. Do not run an unauthenticated
+  service you care about on a REPL.
+</Callout>
+
+## Next
+
+<Cards>
+  <Card title="Templates" icon="terminal" href="/docs/templates">
+    What a REPL starts with, and how to add a stack.
+  </Card>
+  <Card title="Self-hosting" icon="server" href="/docs/self-hosting">
+    Run all of this on your own cluster.
+  </Card>
+</Cards>

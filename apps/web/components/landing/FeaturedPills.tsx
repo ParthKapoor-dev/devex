@@ -1,20 +1,26 @@
-import { Code, Globe, Shield } from "lucide-react";
+import { Code, Globe, Shield, type LucideIcon } from "lucide-react";
+
+const PILLS: { icon: LucideIcon; label: string }[] = [
+  { icon: Code, label: "Kubernetes powered" },
+  { icon: Shield, label: "Isolated containers" },
+  { icon: Globe, label: "Custom subdomains" },
+];
 
 export default function FeaturedPills() {
   return (
-    <div className="flex flex-wrap justify-center gap-4 mb-12">
-      <div className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/50 rounded-full px-4 py-2 backdrop-blur-sm">
-        <Code className="w-4 h-4 text-emerald-400" />
-        <span className="text-gray-300 text-sm">Kubernetes Powered</span>
-      </div>
-      <div className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/50 rounded-full px-4 py-2 backdrop-blur-sm">
-        <Shield className="w-4 h-4 text-emerald-400" />
-        <span className="text-gray-300 text-sm">Isolated Containers</span>
-      </div>
-      <div className="flex items-center gap-2 bg-gray-800/50 border border-gray-700/50 rounded-full px-4 py-2 backdrop-blur-sm">
-        <Globe className="w-4 h-4 text-emerald-400" />
-        <span className="text-gray-300 text-sm">Custom Subdomains</span>
-      </div>
-    </div>
+    <ul className="mb-12 flex flex-wrap justify-center gap-3">
+      {PILLS.map(({ icon: Icon, label }) => (
+        <li
+          key={label}
+          className="group flex items-center gap-2 rounded-full border border-edge bg-surface/60 px-4 py-2 transition-colors duration-[--duration-normal] hover:border-brand/40"
+        >
+          <Icon
+            className="size-4 text-brand transition-transform duration-[--duration-normal] group-hover:scale-110"
+            aria-hidden="true"
+          />
+          <span className="text-sm text-ink-muted">{label}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

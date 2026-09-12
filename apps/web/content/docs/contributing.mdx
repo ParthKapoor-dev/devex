@@ -1,0 +1,136 @@
+---
+title: Contributing
+description: How to get DevEx running locally, where each piece of the monorepo lives, and what a good pull request looks like.
+section: Contributing
+order: 1
+---
+
+DevEx is open source and contributions are welcome — bug fixes, docs, and
+especially new [templates](/docs/templates).
+
+## Repository layout
+
+```text
+devex/
+├── apps/
+│   ├── web/       Next.js frontend
+│   ├── core/      Go API — auth, S3, Kubernetes
+│   ├── runner/    Go server that runs inside each REPL pod
+│   ├── mcp/       Model Context Protocol server
+│   └── agent/     AI agent service
+├── packages/      Shared Go code (logging, protobuf, utils)
+├── templates/     Starter filesystems, one directory per template
+└── infra/         Kubernetes manifests, deployment guides
+```
+
+The Go services share a workspace (`go.work`), so `go build ./...` from the
+repository root builds all of them.
+
+## Local setup
+
+You need Go 1.24+, Node 20+, and Docker.
+
+<Steps>
+
+### Fork and clone
+
+```bash
+git clone https://github.com/<your-username>/devex.git
+cd devex
+```
+
+### Branch
+
+```bash
+git checkout -b feat/your-feature-name
+```
+
+Use a descriptive prefix — `feat/`, `fix/`, `docs/`, `refactor/`.
+
+### Run the frontend
+
+```bash
+cd apps/web
+cp .env.example .env
+npm ci
+npm run dev
+```
+
+The frontend runs on port 3000 and proxies `/api/*` to the core service.
+
+<Callout type="info" title="The docs build on webpack, not Turbopack">
+  `npm run dev` deliberately omits `--turbopack`. On the Next 15 line
+  `@next/mdx` cannot pass remark/rehype plugins through Turbopack's loader
+  boundary. See the comment at the top of `next.config.ts`.
+</Callout>
+
+### Run the backend
+
+```bash
+cd apps/core
+go run ./cmd
+```
+
+Core needs Redis and an S3-compatible bucket. Point `REDIS_URL` at a local
+Redis and use MinIO if you do not want a real bucket.
+
+</Steps>
+
+## Writing documentation
+
+Docs are MDX files under `apps/web/content/docs/`. Adding a file publishes a
+page — the sidebar, search index, sitemap and metadata are all derived from the
+directory.
+
+Frontmatter is required:
+
+```yaml
+---
+title: Page title
+description: One sentence. This is the meta description and the search snippet, so write it for a reader who has not landed on the page yet.
+section: Guides
+order: 3
+---
+```
+
+| Field | Required | Purpose |
+| --- | --- | --- |
+| `title` | yes | Page heading, sidebar label, `<title>` |
+| `description` | yes | Meta description, OG tag, search snippet |
+| `section` | no | Sidebar group. Defaults to `Guides` |
+| `order` | no | Sort order within the section. Defaults to `100` |
+| `hidden` | no | Routable and indexed, but not in the sidebar |
+| `draft` | no | `noindex`, and excluded from the sitemap |
+
+Available components: `<Callout>`, `<Cards>`/`<Card>`, and `<Steps>`. They are
+defined in `apps/web/components/docs/mdx-components.tsx`.
+
+<Callout type="tip" title="Write the description for a stranger">
+  It is what appears in a Google result and in the search palette. "Configuring
+  the thing" tells a reader nothing; say what the page lets them do.
+</Callout>
+
+## Frontend conventions
+
+The design system lives in `apps/web/app/globals.css`. Use the semantic tokens
+— `bg-surface`, `text-ink-muted`, `border-edge`, `text-brand` — rather than raw
+Tailwind palette shades like `bg-zinc-900` or `text-emerald-400`.
+
+Anything that animates continuously must go through
+`hooks/use-canvas-scene.ts` or check `hooks/use-reduced-motion.ts`. A bare
+`requestAnimationFrame` loop keeps running while its element is off screen and
+while the tab is in the background.
+
+`AGENTS.md` at the repository root has the full set of conventions.
+
+## Pull requests
+
+- One logical change per PR.
+- Run `npx tsc --noEmit` in `apps/web` and `go build ./...` at the root.
+- Update the docs in the same PR as the behaviour change.
+- Use the pull request template.
+
+## Adding a template
+
+Templates are the easiest high-value contribution. See
+[Templates](/docs/templates) for the four files involved.

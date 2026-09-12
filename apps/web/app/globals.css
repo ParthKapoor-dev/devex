@@ -1,486 +1,408 @@
-@tailwind utilities;
 @import "tailwindcss";
 
-@theme {
-    --radius-ele: var(--radius);
-    --radius-card: var(--card-radius);
+/* ==========================================================================
+   DevEx design tokens
 
-    --color-background: hsl(var(--hu-background));
-    --color-foreground: hsl(var(--hu-foreground));
+   One source of truth for colour, radius, motion and elevation.
 
-    --color-card: hsl(var(--hu-card));
-    --color-card-foreground: hsl(var(--hu-card-foreground));
+   - Palette values live in `:root` / `.dark` as raw channel triples so they can
+     be used with an alpha modifier (`bg-surface/60`).
+   - `@theme inline` maps them to Tailwind utilities. `inline` matters here: it
+     keeps the `var()` reference in the generated CSS so a token redefined under
+     `.dark` actually re-cascades.
+   - Component code should reach for these semantic names, never a raw Tailwind
+     palette shade. See AGENTS.md.
+   ========================================================================== */
 
-    /* --color-primary: hsl(var(--hu-primary));
-    --color-primary-foreground: hsl(var(--hu-primary-foreground)); */
+@theme inline {
+  /* Surfaces, from furthest back to closest to the user. */
+  --color-canvas: var(--ds-canvas);
+  --color-surface: var(--ds-surface);
+  --color-raised: var(--ds-raised);
+  --color-overlay: var(--ds-overlay);
 
-    --color-accent: hsl(var(--hu-accent));
-    --color-accent-foreground: hsl(var(--hu-accent-foreground));
+  /* Text. */
+  --color-ink: var(--ds-ink);
+  --color-ink-muted: var(--ds-ink-muted);
+  --color-ink-subtle: var(--ds-ink-subtle);
 
-    --color-secondary: hsl(var(--hu-secondary));
-    --color-secondary-foreground: hsl(var(--hu-secondary-foreground));
+  /* Lines. */
+  --color-edge: var(--ds-edge);
+  --color-edge-strong: var(--ds-edge-strong);
 
-    --color-muted: hsl(var(--hu-muted));
-    --color-muted-foreground: hsl(var(--hu-muted-foreground));
+  /* Brand ramp. */
+  --color-brand-50: var(--ds-brand-50);
+  --color-brand-100: var(--ds-brand-100);
+  --color-brand-200: var(--ds-brand-200);
+  --color-brand-300: var(--ds-brand-300);
+  --color-brand-400: var(--ds-brand-400);
+  --color-brand-500: var(--ds-brand-500);
+  --color-brand-600: var(--ds-brand-600);
+  --color-brand-700: var(--ds-brand-700);
+  --color-brand-800: var(--ds-brand-800);
+  --color-brand-900: var(--ds-brand-900);
+  --color-brand-950: var(--ds-brand-950);
+  --color-brand: var(--ds-brand-500);
+  --color-brand-fg: var(--ds-brand-fg);
 
-    --color-destructive: hsl(var(--hu-destructive));
-    --color-destructive-foreground: hsl(var(--hu-destructive-foreground));
+  /* Status. */
+  --color-success: var(--ds-success);
+  --color-warning: var(--ds-warning);
+  --color-danger: var(--ds-danger);
+  --color-info: var(--ds-info);
 
-    --color-border: hsl(var(--hu-border));
-    --color-input: hsl(var(--hu-input));
-    --color-ring: hsl(var(--hu-ring));
+  /* ---- shadcn/radix compatibility aliases -------------------------------
+     A large amount of vendored component code expects these names. They are
+     aliases onto the tokens above so there is still only one palette. */
+  --color-background: var(--ds-canvas);
+  --color-foreground: var(--ds-ink);
+  --color-card: var(--ds-surface);
+  --color-card-foreground: var(--ds-ink);
+  --color-popover: var(--ds-overlay);
+  --color-popover-foreground: var(--ds-ink);
+  --color-primary: var(--ds-brand-500);
+  --color-primary-foreground: var(--ds-brand-fg);
+  --color-secondary: var(--ds-raised);
+  --color-secondary-foreground: var(--ds-ink);
+  --color-muted: var(--ds-raised);
+  --color-muted-foreground: var(--ds-ink-muted);
+  --color-accent: var(--ds-raised);
+  --color-accent-foreground: var(--ds-ink);
+  --color-destructive: var(--ds-danger);
+  --color-destructive-foreground: oklch(0.985 0 0);
+  --color-border: var(--ds-edge);
+  --color-input: var(--ds-edge);
+  --color-ring: var(--ds-brand-500);
+
+  /* Terminal / editor chrome. Deliberately its own scale — it should read as
+     a different material from the marketing surface. */
+  --color-term-bg: var(--ds-term-bg);
+  --color-term-chrome: var(--ds-term-chrome);
+  --color-term-edge: var(--ds-term-edge);
+  --color-term-ink: var(--ds-term-ink);
+  --color-term-muted: var(--ds-term-muted);
+  --color-term-accent: var(--ds-term-accent);
+
+  /* Radii. */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  /* Typography. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-display: var(--font-jetbrains-mono), var(--font-geist-mono), monospace;
+
+  /* Motion. Durations and easings are tokens so timing stays consistent
+     across Tailwind utilities, CSS keyframes and Motion components. */
+  --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-fade-in: fade-in var(--duration-normal) var(--ease-out-quad) both;
+  --animate-rise: rise var(--duration-slow) var(--ease-out-expo) both;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-pulse-ring: pulse-ring 2.4s var(--ease-out-quad) infinite;
 }
 
 :root {
-    --hu-font-geist: var(--font-geist-mono);
-    --hu-font-jetbrains: var(--font-jetbrains-mono);
+  /* Durations are plain custom properties (not @theme) so they can be zeroed
+     wholesale by the reduced-motion block below. */
+  --duration-fast: 120ms;
+  --duration-normal: 220ms;
+  --duration-slow: 420ms;
+  --duration-slower: 700ms;
 
-    --hu-background: 0, 0%, 100%;
-    --hu-foreground: 0, 0%, 14%;
+  /* Emerald ramp — the single brand accent. Anything previously green-*,
+     teal-* or cyan-* resolves here. */
+  --ds-brand-50: oklch(0.979 0.021 166.113);
+  --ds-brand-100: oklch(0.95 0.052 163.051);
+  --ds-brand-200: oklch(0.905 0.093 164.15);
+  --ds-brand-300: oklch(0.845 0.143 164.978);
+  --ds-brand-400: oklch(0.765 0.177 163.223);
+  --ds-brand-500: oklch(0.696 0.17 162.48);
+  --ds-brand-600: oklch(0.596 0.145 163.225);
+  --ds-brand-700: oklch(0.508 0.118 165.612);
+  --ds-brand-800: oklch(0.432 0.095 166.913);
+  --ds-brand-900: oklch(0.378 0.077 168.94);
+  --ds-brand-950: oklch(0.262 0.051 172.552);
+  --ds-brand-fg: oklch(0.145 0 0);
 
-    --hu-card: 0, 0%, 99%;
-    --hu-card-foreground: 0, 0%, 14%;
+  --ds-success: oklch(0.696 0.17 162.48);
+  --ds-warning: oklch(0.769 0.188 70.08);
+  --ds-danger: oklch(0.637 0.237 25.331);
+  --ds-info: oklch(0.623 0.214 259.815);
 
-    --hu-primary: 235, 100%, 60%;
-    --hu-primary-foreground: 0, 0%, 98%;
+  /* Light theme. The product ships dark-first, but the tokens exist so the
+     theme switcher is not a lie. */
+  --ds-canvas: oklch(0.995 0 0);
+  --ds-surface: oklch(0.98 0 0);
+  --ds-raised: oklch(0.955 0 0);
+  --ds-overlay: oklch(1 0 0);
+  --ds-ink: oklch(0.18 0 0);
+  --ds-ink-muted: oklch(0.45 0 0);
+  --ds-ink-subtle: oklch(0.62 0 0);
+  --ds-edge: oklch(0.9 0 0);
+  --ds-edge-strong: oklch(0.82 0 0);
 
-    --hu-secondary: 0, 0%, 97%;
-    --hu-secondary-foreground: 0, 0%, 20%;
+  --ds-term-bg: oklch(0.16 0 0);
+  --ds-term-chrome: oklch(0.21 0.01 250);
+  --ds-term-edge: oklch(0.3 0.01 250);
+  --ds-term-ink: oklch(0.93 0.01 240);
+  --ds-term-muted: oklch(0.63 0.02 245);
+  --ds-term-accent: oklch(0.78 0.19 152);
 
-    --hu-muted: 0, 0%, 97%;
-    --hu-muted-foreground: 0, 0%, 56%;
-
-    --hu-accent: 0, 0%, 96%;
-    --hu-accent-foreground: 0, 0%, 20%;
-
-    --hu-destructive: 9, 96%, 47%;
-    --hu-destructive-foreground: 0, 0%, 98%;
-
-    --hu-border: 0, 0%, 92%;
-    --hu-input: 0, 0%, 100%;
-    --hu-ring: 0, 0%, 71%;
-
-    --color-fd-background: hsl(var(--hu-background));
-    --color-fd-card: hsl(var(--hu-background));
+  color-scheme: light;
 }
 
 .dark {
-    --hu-background: 0, 0%, 7%;
-    --hu-foreground: 0, 0%, 100%;
+  --ds-canvas: oklch(0.145 0 0);
+  --ds-surface: oklch(0.185 0 0);
+  --ds-raised: oklch(0.225 0 0);
+  --ds-overlay: oklch(0.21 0 0);
+  --ds-ink: oklch(0.985 0 0);
+  --ds-ink-muted: oklch(0.715 0 0);
+  --ds-ink-subtle: oklch(0.556 0 0);
+  --ds-edge: oklch(1 0 0 / 10%);
+  --ds-edge-strong: oklch(1 0 0 / 20%);
 
-    --hu-card: 0, 0%, 9%;
-    --hu-card-foreground: 0, 0%, 100%;
+  --ds-brand-fg: oklch(0.145 0 0);
 
-    --hu-primary: 235, 100%, 60%;
-    --hu-primary-foreground: 0, 0%, 98%;
-
-    --hu-secondary: 0, 0%, 15%;
-    --hu-secondary-foreground: 0, 0%, 100%;
-
-    --hu-muted: 0, 0%, 15%;
-    --hu-muted-foreground: 0, 0%, 71%;
-
-    --hu-accent: 0, 0%, 15%;
-    --hu-accent-foreground: 0, 0%, 100%;
-
-    --hu-destructive: 0, 84%, 50%;
-    --hu-destructive-foreground: 0, 0%, 98%;
-
-    --hu-border: 0, 0%, 100%, 10%;
-    --hu-input: 0, 0%, 100%, 5%;
-    --hu-ring: 0, 0%, 56%;
-
-    --color-fd-background: hsl(var(--hu-background));
-    --color-fd-card: hsl(var(--hu-background));
+  color-scheme: dark;
 }
 
-:root {
-    /* App Theme Colors */
-    --app-bg: #0a0a0a;
-    --app-surface: #111111;
-    --app-border: #262626;
-    --app-hover: #1a1a1a;
-    --app-text: #f5f5f5;
-    --app-muted: #a3a3a3;
-    --app-accent: #10b981;
-    --app-accent-hover: #059669;
+/* ==========================================================================
+   Base
+   ========================================================================== */
 
-    /* Terminal Theme Colors */
-    --terminal-bg: #000000;
-    --terminal-header: #0d1117;
-    --terminal-border: #21262d;
-    --terminal-hover: #161b22;
-    --terminal-text: #e6edf3;
-    --terminal-muted: #7d8590;
-    --terminal-accent: #00d563;
-    --terminal-error: #f85149;
-
-    /* Semantic Colors */
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --info: #3b82f6;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --app-bg: #0a0a0a;
-        --app-surface: #111111;
-        --app-border: #262626;
-        --app-hover: #1a1a1a;
-        --app-text: #f5f5f5;
-        --app-muted: #a3a3a3;
-    }
-}
-
-* {
+@layer base {
+  * {
     box-sizing: border-box;
-    padding: 0;
     margin: 0;
-}
+    padding: 0;
+    border-color: var(--color-edge);
+  }
 
-html,
-body {
+  html {
+    /* Anchor links in the docs must not land under the sticky header. */
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html,
+  body {
     max-width: 100vw;
     overflow-x: hidden;
-    font-family: var(--font-geist-sans); /* Apply Geist Sans as the default */
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-}
+    text-rendering: optimizeLegibility;
+  }
 
-code,
-pre {
-    font-family: var(--font-geist-mono);
-}
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+  }
 
-body {
-    color: var(--app-text);
-    background: var(--app-bg);
-}
-
-a {
+  a {
     color: inherit;
     text-decoration: none;
-}
+  }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--app-surface);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--app-border);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--app-muted);
-}
-
-/* Selection styles */
-::selection {
-    background: var(--app-accent);
-    color: white;
-}
-
-/* Focus styles */
-*:focus {
-    outline: 2px solid var(--app-accent);
+  /* Visible focus for keyboard users only — the old rule put a ring on every
+     mouse click, including on <body>. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
     outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-brand) 30%, transparent);
+    color: var(--color-ink);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-ink-subtle);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-edge-strong);
+    border: 2px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-subtle);
+    background-clip: content-box;
+  }
 }
 
-*:focus:not(:focus-visible) {
-    outline: none;
+/* ==========================================================================
+   Keyframes
+   ========================================================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-input::placeholder,
-textarea::placeholder {
-    color: var(--app-muted);
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Code and terminal styling */
-code,
-pre,
-.font-mono {
-    font-family:
-        var(--font-geist-mono), "SF Mono", Monaco, Inconsolata, "Roboto Mono",
-        "Source Code Pro", monospace;
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
-.font-jetbrains-mono {
-    font-family:
-        var(--font-jetbrains-mono), "JetBrains Mono", "SF Mono", Monaco,
-        monospace;
-}
-
-/* Animation utilities */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes pulse {
-    0%,
-    100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.2s ease-out;
-}
-
-.animate-slide-in {
-    animation: slideIn 0.3s ease-out;
-}
-
-.animate-pulse-slow {
-    animation: pulse 2s infinite;
-}
-
-/* Terminal cursor */
-.terminal-cursor::after {
-    content: "▋";
-    color: var(--terminal-accent);
-    animation: pulse 1s infinite;
-}
-
-/* Glass effect */
-.glass {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Glow effects */
-.glow-green {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-}
-
-.glow-accent {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
-}
-
-/* Status indicators */
-.status-online {
-    color: var(--success);
-}
-
-.status-warning {
-    color: var(--warning);
-}
-
-.status-error {
-    color: var(--error);
-}
-
-.status-info {
-    color: var(--info);
-}
-
-/* Loading states */
-.loading-spinner {
-    border: 2px solid var(--app-border);
-    border-top: 2px solid var(--app-accent);
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-brand) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* Responsive design helpers */
-@media (max-width: 768px) {
-    .terminal-body {
-        font-size: 12px;
-        padding: 12px;
-    }
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
 
-    .card {
-        padding: 12px;
-    }
+@utility glass {
+  /* Backdrop blur is the single most expensive effect on the page. Keep the
+     radius small and never stack two blurred layers. */
+  background: color-mix(in oklab, var(--color-surface) 70%, transparent);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid var(--color-edge);
 }
 
-@layer utilities {
-    .animate-float {
-        animation: float 6s ease-in-out infinite;
-    }
-
-    .animate-float-delayed {
-        animation: float 6s ease-in-out infinite;
-        animation-delay: 2s;
-    }
-
-    .animate-float-slow {
-        animation: float 8s ease-in-out infinite;
-        animation-delay: 4s;
-    }
-
-    .animate-float-particle {
-        animation: floatParticle 4s ease-in-out infinite;
-    }
-
-    .animate-fade-in-up {
-        animation: fadeInUp 0.8s ease-out forwards;
-        opacity: 0;
-        transform: translateY(30px);
-    }
-
-    .animation-delay-200 {
-        animation-delay: 0.2s;
-    }
-
-    .animation-delay-400 {
-        animation-delay: 0.4s;
-    }
-
-    .animation-delay-600 {
-        animation-delay: 0.6s;
-    }
-
-    .animation-delay-800 {
-        animation-delay: 0.8s;
-    }
-
-    .animation-delay-1000 {
-        animation-delay: 1s;
-    }
-
-    .animation-delay-1200 {
-        animation-delay: 1.2s;
-    }
-
-    .animate-gradient-x {
-        animation: gradientX 3s ease infinite;
-        background-size: 200% 200%;
-    }
-
-    .animate-glow {
-        animation: glow 2s ease-in-out infinite alternate;
-    }
-
-    .animate-glow-button {
-        animation: glowButton 2s ease-in-out infinite alternate;
-    }
-
-    .animate-pulse-subtle {
-        animation: pulseSubtle 3s ease-in-out infinite;
-    }
-
-    .animate-spin-slow {
-        animation: spin 3s linear infinite;
-    }
-
-    .animate-counter {
-        animation: counter 2s ease-out;
-    }
+@utility glow-brand {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--color-brand) 25%, transparent),
+    0 8px 32px -8px color-mix(in oklab, var(--color-brand) 35%, transparent);
 }
 
-@keyframes float {
-    0%,
-    100% {
-        transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-20px) rotate(180deg);
-    }
+@utility text-gradient-brand {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-brand-300),
+    var(--color-brand-500) 45%,
+    var(--color-brand-600)
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
-@keyframes floatParticle {
-    0%,
-    100% {
-        transform: translateY(0px) translateX(0px);
-        opacity: 0.6;
-    }
-    50% {
-        transform: translateY(-30px) translateX(10px);
-        opacity: 1;
-    }
+@utility surface-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-lg);
 }
 
-@keyframes fadeInUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* Promote to its own layer only while something is actually animating.
+   A permanent `will-change` pins a compositor layer and costs real memory. */
+@utility animating {
+  will-change: transform, opacity;
 }
 
-@keyframes gradientX {
-    0%,
-    100% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
+/* ==========================================================================
+   Reduced motion
+
+   A single global switch. Continuous canvas/rAF work is gated in JS via
+   `useReducedMotion`; this covers everything declarative.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+    --duration-slower: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-@keyframes glow {
-    from {
-        box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
-    }
-    to {
-        box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
-    }
+/* ==========================================================================
+   Terminal
+   ========================================================================== */
+
+/* Caret blink. A CSS animation rather than a React state toggle — the previous
+   1Hz `setIsTyping` re-rendered the entire terminal, scrollback included. */
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
 
-@keyframes glowButton {
-    from {
-        box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
-    }
-    to {
-        box-shadow: 0 0 40px rgba(6, 182, 212, 0.8);
-    }
+.terminal-caret {
+  animation: caret-blink 1.06s steps(1, end) infinite;
 }
 
-@keyframes pulseSubtle {
-    0%,
-    100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.8;
-    }
-}
-
-@keyframes counter {
-    from {
-        transform: scale(0.5);
-        opacity: 0;
-    }
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
+@media (prefers-reduced-motion: reduce) {
+  .terminal-caret {
+    animation: none;
+    opacity: 1;
+  }
 }

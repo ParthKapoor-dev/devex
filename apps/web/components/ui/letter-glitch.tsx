@@ -1,6 +1,7 @@
 "use client";
-import { MoveLeft } from "lucide-react";
 import { useRef, useEffect } from "react";
+import { useActiveInView } from "@/hooks/use-active-in-view";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 const LetterGlitch = ({
   glitchColors = ["#2b4539", "#61dca3", "#61b3dc"],
@@ -15,6 +16,7 @@ const LetterGlitch = ({
   outerVignette: boolean;
   smooth: boolean;
 }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const letters = useRef<
@@ -251,12 +253,24 @@ const LetterGlitch = ({
     animationRef.current = requestAnimationFrame(animate);
   };
 
+  const active = useActiveInView(containerRef);
+  const reducedMotion = useReducedMotion();
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     context.current = canvas.getContext("2d");
     resizeCanvas();
+
+    // Paint one frame regardless, so the backdrop is never blank, then only
+    // keep the loop running while the canvas is on screen and the tab is
+    // focused. Reduced motion gets the single frame and nothing more.
+    updateLetters();
+    drawLetters();
+
+    if (!active || reducedMotion) return;
+
     animate();
 
     let resizeTimeout: NodeJS.Timeout;
@@ -277,7 +291,7 @@ const LetterGlitch = ({
       window.removeEventListener("resize", handleResize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [glitchSpeed, smooth]);
+  }, [glitchSpeed, smooth, active, reducedMotion]);
 
   const containerStyle = {
     position: "fixed",
@@ -318,7 +332,7 @@ const LetterGlitch = ({
   };
 
   return (
-    <div style={containerStyle as React.CSSProperties}>
+    <div ref={containerRef} style={containerStyle as React.CSSProperties}>
       <canvas ref={canvasRef} style={canvasStyle} />
       {outerVignette && (
         <div style={outerVignetteStyle as React.CSSProperties}></div>

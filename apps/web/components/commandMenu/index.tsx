@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { RunIcon } from "@codesandbox/sandpack-react";
-import { getHref } from "@/lib/docs/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Types
@@ -113,7 +112,8 @@ export const Cmd = () => {
     setDocsSearchQuery("");
     setDocsSearchResults([]);
 
-    router.push(getHref(`${path}`));
+    // The search API returns a ready site-relative URL.
+    router.push(path);
   };
 
   const allItems = [
@@ -236,7 +236,7 @@ export const Cmd = () => {
           </kbd>
         </Button>
       </CommandMenuTrigger>
-      <CommandMenuContent className="rounded-xl outline-2 outline-[var(--app-accent)] outline-offset-2">
+      <CommandMenuContent className="rounded-xl outline-2 outline-brand outline-offset-2">
         {searchMode === "default" ? (
           <>
             <CommandMenuInput

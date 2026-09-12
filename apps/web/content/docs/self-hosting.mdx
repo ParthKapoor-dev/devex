@@ -1,0 +1,196 @@
+---
+title: Self-hosting
+description: Run DevEx on your own Kubernetes cluster. Works on any provider — the design deliberately avoids cloud load balancers so a single public node is enough.
+section: Self-hosting
+order: 1
+---
+
+DevEx is Kubernetes-native and provider-agnostic. It does not require a managed
+load balancer, a specific CNI, or a cloud-specific ingress controller. If you
+can get one public node IP and open ports 80 and 443, you can run it.
+
+## Requirements
+
+| Requirement | Why |
+| --- | --- |
+| A Kubernetes cluster | Schedules REPL pods |
+| One node with a public IP | Traefik binds `:80`/`:443` on it directly |
+| Inbound TCP 80 and 443 | HTTP-01 certificate challenges and REPL traffic |
+| A wildcard DNS record | Every REPL gets its own hostname |
+| An S3-compatible bucket | File persistence between sessions |
+| Redis | Session and REPL state |
+
+Tooling: `kubectl`, `helm`, `curl`, `openssl`.
+
+<Callout type="tip" title="No cloud load balancer needed">
+  Traefik runs with `hostNetwork: true` and binds the node's ports directly.
+  That keeps this viable on a single-node cluster, bare metal, or a cheap VPS —
+  and avoids a per-service LB bill on the clouds that charge one.
+</Callout>
+
+## DNS
+
+REPLs are addressed by hostname, so you need a wildcard record pointing at the
+ingress node:
+
+```text
+*.repl.example.com   A   <public-ingress-node-ip>
+repl.example.com     A   <public-ingress-node-ip>
+```
+
+Verify before going further — almost every certificate failure downstream is
+actually a DNS failure:
+
+```bash
+nslookup repl.example.com
+```
+
+## Cluster setup
+
+<Steps>
+
+### Install Traefik
+
+Traefik is the ingress controller, running on the host network so it owns the
+node's `:80` and `:443`.
+
+```bash
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm install traefik traefik/traefik \
+  --namespace traefik --create-namespace \
+  --values infra/k8s/traefik-values.yaml
+```
+
+### Install cert-manager
+
+cert-manager watches Ingress objects and issues Let's Encrypt certificates for
+each REPL hostname automatically.
+
+```bash
+helm repo add jetstack https://charts.jetstack.io
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager --create-namespace \
+  --set crds.enabled=true
+```
+
+### Apply the ClusterIssuer
+
+```bash
+kubectl apply -f infra/k8s/cluster-issuer.yaml
+```
+
+Point its email at an address you actually read — Let's Encrypt sends
+expiry warnings there.
+
+### Verify the ingress path
+
+Before deploying DevEx, confirm the cluster can serve a certificate. A test
+Ingress that reaches `READY=True` proves DNS, the open ports and the issuer are
+all correct together.
+
+```bash
+kubectl get certificate -A
+```
+
+</Steps>
+
+<Callout type="warning" title="Rate limits are real">
+  Let's Encrypt allows 5 failed validations per account per hostname per hour.
+  Debug against the **staging** issuer, then switch to production once a
+  certificate issues cleanly. Burning the production limit means an hour of
+  waiting.
+</Callout>
+
+## Configuring core
+
+`core` needs credentials for the cluster, the bucket and Redis.
+
+| Variable | Purpose |
+| --- | --- |
+| `RUNNER_DOMAIN_NAME` | Base hostname for REPL ingresses |
+| `S3_BUCKET`, `S3_REGION` | Where REPL files persist |
+| `S3_ACCESS_KEY`, `S3_SECRET_KEY` | Bucket credentials |
+| `REDIS_URL` | Session and REPL state |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | OAuth |
+| `RESEND_API_KEY` | Magic-link email delivery |
+| `MAGICLINK_REDIRECT_URL` | Where a magic link lands |
+| `SESSION_SECRET` | Signs session cookies |
+
+<Callout type="danger" title="Set SESSION_SECRET and never commit it">
+  It signs session cookies. A default or leaked value means anyone can forge a
+  session for any user. Generate one with `openssl rand -base64 32` and store it
+  as a Kubernetes Secret.
+</Callout>
+
+## Configuring the web app
+
+The frontend needs to know where the API is, and — for correct SEO — its own
+public origin:
+
+```bash
+NEXT_PUBLIC_CORE_API_URL=https://api.example.com
+NEXT_PUBLIC_RUNNER_DOMAIN_NAME=repl.example.com
+NEXT_PUBLIC_SITE_URL=https://example.com
+```
+
+<Callout type="info" title="NEXT_PUBLIC_SITE_URL matters more than it looks">
+  It is the base for canonical URLs, the sitemap and Open Graph tags. Left
+  unset, the app falls back to localhost and `robots.txt` switches to
+  `Disallow: /` — which is correct for a preview deploy and wrong for
+  production.
+</Callout>
+
+The web app builds to a standalone output:
+
+```bash
+npm --prefix apps/web ci
+npm --prefix apps/web run build
+```
+
+Copy the static assets alongside the standalone server, or the deployed app
+serves HTML with no CSS or JS:
+
+```bash
+cp -r apps/web/public apps/web/.next/standalone/apps/web/
+cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/
+```
+
+## Verifying
+
+<Steps>
+
+### Create a REPL
+
+Sign in and create one. If it never leaves `provisioning`, core could not reach
+the Kubernetes API — check its service account permissions.
+
+### Watch the pod
+
+```bash
+kubectl get pods -w
+```
+
+A pod stuck in `ImagePullBackOff` means the template image is not published or
+not reachable from the node.
+
+### Open the REPL
+
+If the page loads but the terminal never connects, the Ingress exists but TLS
+has not issued yet. `kubectl describe certificate <name>` shows the challenge
+state.
+
+### Stop it and restart
+
+This is the real test. Create a file, stop the REPL, start it again. If the
+file survives, the S3 sync path works in both directions.
+
+</Steps>
+
+## Further reading
+
+The repository carries the detailed operational guides:
+
+- `infra/k8s/SETUP_GUIDE.md` — the full provider-agnostic walkthrough
+- `infra/k8s/README.md` — manifest reference
+- `infra/core/DEPLOYMENT.md` — deploying the core API

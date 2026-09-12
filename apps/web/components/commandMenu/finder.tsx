@@ -144,7 +144,7 @@ export const FileFinder = ({
           ⌘ P
         </kbd>
       </CommandMenuTrigger>
-      <CommandMenuContent className="rounded-xl outline-2 outline-[var(--app-accent)] outline-offset-2">
+      <CommandMenuContent className="rounded-xl outline-2 outline-brand outline-offset-2">
         <CommandMenuInput
           placeholder="Type to search files and directories..."
           value={value}

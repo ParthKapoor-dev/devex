@@ -1,0 +1,123 @@
+---
+title: Quickstart
+description: Create your first DevEx REPL, open a terminal, run some code, and see your files persist across restarts — in about five minutes.
+section: Getting started
+order: 2
+---
+
+This walks you through creating a REPL on the hosted instance and getting to a
+running shell. If you want to run DevEx on your own cluster instead, start with
+[Self-hosting](/docs/self-hosting).
+
+## Before you start
+
+You need a GitHub account. DevEx uses GitHub OAuth so that REPLs can clone and
+push to your repositories.
+
+<Callout type="tip" title="No GitHub account?">
+  You can sign in with a magic link instead. It works for everything except the
+  GitHub integrations — cloning private repos, pushing branches, and the
+  repository picker are all unavailable on that path.
+</Callout>
+
+## Create a REPL
+
+<Steps>
+
+### Sign in
+
+Go to the dashboard and sign in with GitHub. On first sign-in you will be asked
+to authorise the DevEx OAuth app; it requests `read:user` and `repo` scopes.
+
+### Pick a template
+
+A template is the starting filesystem for your REPL — a language runtime, a
+package manager, and a minimal project. Pick `node` or `python` to start.
+
+```bash
+# What you get with the node template
+/workspace
+├── index.js
+├── package.json
+└── README.md
+```
+
+### Name it and create
+
+Give the REPL a name. Names are scoped to your account, so `api` is fine even if
+someone else already has one.
+
+Core copies the template into S3 under `your-username/repl-id/`, then asks
+Kubernetes for a Deployment, a Service and an Ingress.
+
+### Wait for the pod
+
+The status moves through `provisioning` → `starting` → `running`. First boot is
+usually 10–20 seconds; the image is normally already cached on the node.
+
+</Steps>
+
+## Use the terminal
+
+Open the REPL and you get a real PTY over a WebSocket. Job control, colours,
+`less`, `vim` and Ctrl-C all behave the way they do locally.
+
+```bash
+node --version
+npm install express
+node index.js
+```
+
+<Callout type="info" title="Ports are public while the REPL runs">
+  Anything you bind to a port is reachable through the REPL's Ingress hostname.
+  Treat it as a public URL — don't run an unauthenticated admin panel on it.
+</Callout>
+
+## Edit files
+
+The editor is Monaco — the same engine as VS Code — talking to the same
+WebSocket as the terminal. Saves write straight to the container's filesystem,
+so a file you save is immediately visible to a process running in the shell.
+
+## Stop and restart
+
+Stopping a REPL is what makes it cheap: the pod is deleted and you stop
+consuming cluster resources.
+
+<Steps>
+
+### Stop it
+
+An ephemeral container attaches to the pod and syncs changed files back to S3
+before the pod terminates.
+
+### Start it again
+
+A fresh pod comes up and pulls your files back down. Your `/workspace` is as you
+left it.
+
+</Steps>
+
+<Callout type="warning" title="Only /workspace persists">
+  The sync covers your project directory. Things installed outside it — global
+  npm packages, `apt` installs, changes to `/etc` — are gone on restart. Put
+  them in the template if you need them every time. See
+  [Templates](/docs/templates).
+</Callout>
+
+## What next
+
+<Cards>
+  <Card title="Architecture" icon="server" href="/docs/architecture">
+    What each service owns and how a REPL actually gets scheduled.
+  </Card>
+  <Card title="Templates" icon="terminal" href="/docs/templates">
+    Customise what a new REPL starts with, or contribute one.
+  </Card>
+  <Card title="MCP server" icon="zap" href="/docs/mcp">
+    Let an AI agent drive a REPL over the Model Context Protocol.
+  </Card>
+  <Card title="Self-hosting" icon="database" href="/docs/self-hosting">
+    Run the whole stack on your own Kubernetes cluster.
+  </Card>
+</Cards>

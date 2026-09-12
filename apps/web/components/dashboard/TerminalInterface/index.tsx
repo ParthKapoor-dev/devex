@@ -79,7 +79,6 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionLabel, setSuggestionLabel] = useState<string>("");
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
-  const [isTyping, setIsTyping] = useState<boolean>(false);
   const [repls, setRepls] = useState<StoredRepl[]>([]);
   const [suggestionPosition, setSuggestionPosition] = useState<
     "above" | "below"
@@ -109,22 +108,41 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
     }
   }, []);
 
-  // Keep input focused at all times
+  // Keep the prompt focused.
+  //
+  // This used to poll `document.activeElement` every 100ms for the life of the
+  // component — ten wakeups a second forever, each able to steal focus from a
+  // control the user had deliberately clicked. Reacting to the events that
+  // actually lose focus does the same job at zero idle cost.
   useEffect(() => {
-    const intervalId = setInterval(keepInputFocused, 100);
-    return () => clearInterval(intervalId);
+    const container = terminalRef.current;
+    if (!container) return;
+
+    const refocus = (event: MouseEvent) => {
+      // A click on an interactive element inside the output keeps its own focus.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("a, button, input, textarea, select")) return;
+      // Don't fight a text selection.
+      if (window.getSelection()?.toString()) return;
+      keepInputFocused();
+    };
+
+    container.addEventListener("mouseup", refocus);
+    window.addEventListener("focus", keepInputFocused);
+
+    return () => {
+      container.removeEventListener("mouseup", refocus);
+      window.removeEventListener("focus", keepInputFocused);
+    };
   }, [keepInputFocused]);
 
   useEffect(() => {
     scrollToBottom();
   }, [history, scrollToBottom]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIsTyping((prev) => !prev);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // The caret blink is a CSS animation (`.terminal-caret`), not a 1Hz state
+  // update — toggling state re-rendered the whole terminal, scrollback and
+  // all, twice a second for as long as the dashboard was open.
 
   useEffect(() => {
     if (isLoading) {
@@ -376,9 +394,7 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
                 {!isLoading && (
                   <div
                     ref={caretRef}
-                    className={`absolute top-0 w-1 sm:w-2 h-4 sm:h-5 bg-green-400 translate-y-[2px] ${
-                      isTyping ? "opacity-100" : "opacity-0"
-                    } transition-opacity duration-100`}
+                    className="terminal-caret absolute top-0 h-4 w-1 translate-y-[2px] bg-term-accent sm:h-5 sm:w-2"
                     style={{ left: `${inputWidth}px` }}
                   />
                 )}
