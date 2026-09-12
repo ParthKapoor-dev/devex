@@ -98,7 +98,7 @@ export default async function DocsPage({ params }: DocsPageProps) {
           </nav>
 
           <header className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+            <h1 className="font-display text-3xl font-medium tracking-[-0.03em] text-ink sm:text-4xl">
               {doc.frontmatter.title}
             </h1>
             <p className="mt-3 text-lg leading-relaxed text-ink-muted">
@@ -107,7 +107,7 @@ export default async function DocsPage({ params }: DocsPageProps) {
           </header>
 
           {/* The MDX body. Components come from mdx-components.tsx. */}
-          <div className="docs-prose">
+          <div className="max-w-[68ch]">
             <Content />
           </div>
 
@@ -116,9 +116,9 @@ export default async function DocsPage({ params }: DocsPageProps) {
             {previous ? (
               <Link
                 href={previous.url}
-                className="group flex flex-col gap-1 rounded-lg border border-edge p-4 transition-colors duration-[--duration-fast] hover:border-brand/40 hover:bg-surface"
+                className="group flex flex-col gap-1 rounded-md border border-edge p-4 transition-colors duration-[--duration-fast] hover:border-edge-strong hover:bg-surface"
               >
-                <span className="flex items-center gap-1.5 text-xs text-ink-subtle">
+                <span className="label flex items-center gap-1.5 text-ink-subtle">
                   <ArrowLeft className="size-3.5 transition-transform duration-[--duration-fast] group-hover:-translate-x-0.5" />
                   Previous
                 </span>
@@ -133,9 +133,9 @@ export default async function DocsPage({ params }: DocsPageProps) {
             {next ? (
               <Link
                 href={next.url}
-                className="group flex flex-col items-end gap-1 rounded-lg border border-edge p-4 text-right transition-colors duration-[--duration-fast] hover:border-brand/40 hover:bg-surface sm:col-start-2"
+                className="group flex flex-col items-end gap-1 rounded-md border border-edge p-4 text-right transition-colors duration-[--duration-fast] hover:border-edge-strong hover:bg-surface sm:col-start-2"
               >
-                <span className="flex items-center gap-1.5 text-xs text-ink-subtle">
+                <span className="label flex items-center gap-1.5 text-ink-subtle">
                   Next
                   <ArrowRight className="size-3.5 transition-transform duration-[--duration-fast] group-hover:translate-x-0.5" />
                 </span>

@@ -5,6 +5,7 @@ import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
+import { shikiTheme } from "./lib/docs/shiki-theme";
 import type { NextConfig } from "next";
 
 /**
@@ -104,7 +105,11 @@ const withMDX = createMDX({
         rehypePrettyCode,
         {
           // Shiki runs at build time, so no highlighter JS reaches the browser.
-          theme: { dark: "github-dark-default", light: "github-light" },
+          // One theme, not a light/dark pair: the docs are dark-only, and a
+          // pair makes rehype-pretty-code emit both sets of inline colours on
+          // every token, which roughly doubles the HTML of a code block.
+          // It matches the editor's theme — see lib/docs/shiki-theme.ts.
+          theme: shikiTheme,
           keepBackground: false,
           defaultLang: "text",
         },

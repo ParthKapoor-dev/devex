@@ -47,7 +47,7 @@ export function CodeBlock({
     <figure className="group relative my-6">
       <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
         {language && language !== "text" ? (
-          <span className="rounded border border-edge bg-canvas/80 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-subtle opacity-0 transition-opacity duration-[--duration-fast] group-hover:opacity-100">
+          <span className="label rounded-xs border border-edge bg-canvas/80 px-1.5 py-0.5 text-[10px] text-ink-subtle opacity-0 transition-opacity duration-[--duration-fast] group-hover:opacity-100 max-lg:opacity-100">
             {language}
           </span>
         ) : null}
@@ -55,10 +55,10 @@ export function CodeBlock({
           type="button"
           onClick={copy}
           aria-label={copied ? "Copied" : "Copy code"}
-          className="rounded-md border border-edge bg-canvas/80 p-1.5 text-ink-subtle opacity-0 transition-all duration-[--duration-fast] hover:border-brand/40 hover:text-brand focus-visible:opacity-100 group-hover:opacity-100"
+          className="rounded-sm border border-edge bg-canvas/80 p-1.5 text-ink-subtle opacity-0 transition-all duration-[--duration-fast] hover:border-edge-strong hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 max-lg:opacity-100"
         >
           {copied ? (
-            <Check className="size-3.5 text-brand" aria-hidden="true" />
+            <Check className="size-3.5 text-term-accent" aria-hidden="true" />
           ) : (
             <Copy className="size-3.5" aria-hidden="true" />
           )}
@@ -68,7 +68,7 @@ export function CodeBlock({
       <pre
         ref={preRef}
         className={cn(
-          "overflow-x-auto rounded-lg border border-edge bg-[#0d1117] p-4 font-mono text-[13px] leading-relaxed",
+          "overflow-x-auto rounded-md border border-edge bg-term-bg p-4 font-mono text-[13px] leading-relaxed",
           "[&>code]:border-0 [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-inherit",
           // rehype-pretty-code emits one span per line; give them room to breathe.
           "[&_[data-line]]:px-0",

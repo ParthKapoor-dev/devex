@@ -76,7 +76,7 @@ export function DocsSidebar({
         <div className="space-y-6 border-l border-edge">
           {sections.map((section) => (
             <div key={section.title}>
-              <p className="mb-2 pl-4 text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+              <p className="label mb-2 pl-4 text-ink-subtle">
                 {section.title}
               </p>
               <ul>
@@ -92,8 +92,8 @@ export function DocsSidebar({
                         className={cn(
                           "block py-1.5 pl-4 pr-2 text-sm transition-colors duration-[--duration-fast]",
                           isActive
-                            ? "font-medium text-brand"
-                            : "text-ink-muted hover:text-ink",
+                            ? "font-medium text-ink"
+                            : "text-ink-subtle hover:text-ink-muted",
                         )}
                       >
                         {item.title}

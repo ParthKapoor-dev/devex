@@ -192,7 +192,10 @@ function heading(level: 1 | 2 | 3 | 4) {
     ...props
   }: React.ComponentPropsWithoutRef<typeof Tag>) {
     return (
-      <Tag className={cn(sizes[level], "text-ink", className)} {...props} />
+      <Tag
+        className={cn(sizes[level], "font-display text-ink", className)}
+        {...props}
+      />
     );
   };
 }

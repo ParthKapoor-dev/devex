@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import Link from "next/link";
+import { Github, Menu, X } from "lucide-react";
 import { DocsSidebar, type SidebarSection } from "@/components/docs/sidebar";
 import { DocsSearch, type SearchDoc } from "@/components/docs/search";
 
@@ -46,7 +47,7 @@ export function DocsShell({
         <button
           type="button"
           onClick={() => setNavOpen(true)}
-          className="flex items-center gap-2 rounded-md border border-edge px-2.5 py-1.5 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-brand/40 hover:text-ink"
+          className="flex items-center gap-2 rounded-md border border-edge px-2.5 py-1.5 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-edge-strong hover:text-ink"
           aria-label="Open documentation navigation"
         >
           <Menu className="size-4" aria-hidden="true" />
@@ -61,6 +62,19 @@ export function DocsShell({
         {/* Desktop sidebar */}
         <aside className="hidden w-60 shrink-0 lg:block">
           <div className="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto py-8 pr-2">
+            <div className="mb-5 flex items-center justify-between">
+              <span className="label text-ink-muted">Documentation</span>
+              <Link
+                href="https://github.com/parthkapoor-dev/devex"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="DevEx on GitHub"
+                title="DevEx on GitHub"
+                className="text-ink-subtle transition-colors duration-[--duration-fast] hover:text-ink"
+              >
+                <Github className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
             <div className="mb-6">
               <DocsSearch docs={searchIndex} />
             </div>
@@ -80,9 +94,9 @@ export function DocsShell({
             onClick={() => setNavOpen(false)}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
-          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto border-r border-edge bg-canvas p-5 shadow-2xl">
+          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto border-r border-edge bg-canvas p-5">
             <div className="mb-6 flex items-center justify-between">
-              <span className="font-semibold text-ink">Documentation</span>
+              <span className="label text-ink-muted">Documentation</span>
               <button
                 type="button"
                 onClick={() => setNavOpen(false)}
