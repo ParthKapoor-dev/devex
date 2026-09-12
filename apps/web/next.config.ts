@@ -45,6 +45,22 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  async redirects() {
+    return [
+      {
+        // `/demo` used to be a client component that called `router.push` with
+        // a YouTube *embed* URL — which the Next router cannot navigate to, so
+        // the page said "Redirecting to yt demo" and then sat there. Nothing
+        // in the app linked to it (the hero opens the video in a dialog), but
+        // the path may be written down elsewhere, so it redirects properly
+        // instead of 404ing.
+        source: "/demo",
+        destination: "https://www.youtube.com/watch?v=Tlck20bJeFE",
+        permanent: false,
+      },
+    ];
+  },
+
   async rewrites() {
     return [
       {
