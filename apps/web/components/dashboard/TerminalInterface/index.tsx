@@ -314,8 +314,11 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
 
   const getTypeColor = (type: string) => {
     switch (type) {
+      // What you typed, echoed back — brighter than output, which is the
+      // hierarchy a shell actually uses. It was amber, which meant a long
+      // scrollback was mostly accent.
       case "command":
-        return "text-brand";
+        return "text-ink";
       case "error":
         return "text-danger";
       case "success":
@@ -330,11 +333,11 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
   const parser = new DOMParser();
 
   return (
-    <div className="bg-surface text-success font-mono overflow-hidden flex flex-col h-full">
+    <div className="flex h-full flex-col overflow-hidden bg-term-bg font-mono text-term-ink">
       {/* Terminal Content */}
       <div
         ref={terminalRef}
-        className="flex-1 overflow-y-auto p-2 sm:p-4 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600"
+        className="flex-1 overflow-y-auto p-2 sm:p-4"
         onClick={() => inputRef.current?.focus()}
       >
         {/* History */}
@@ -418,7 +421,7 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
                       {suggestions.map((suggestion, index) => (
                         <div
                           key={index}
-                          className="px-2 sm:px-3 py-1 sm:py-2 hover:bg-raised cursor-pointer text-success text-xs sm:text-sm flex items-center transition-colors"
+                          className="flex cursor-pointer items-center px-2 py-1 text-xs text-ink-muted transition-colors duration-[--duration-fast] hover:bg-raised hover:text-ink sm:px-3 sm:py-2 sm:text-sm"
                           onClick={() => handleSuggestionClick(suggestion)}
                         >
                           <span className="text-ink-subtle mr-1 sm:mr-2">▸</span>
@@ -426,7 +429,7 @@ const TerminalInterface: React.FC<TerminalInterfaceProps> = ({
                         </div>
                       ))}
                     </div>
-                    <div className="px-2 sm:px-3 py-1 bg-gray-750 border-t border-edge">
+                    <div className="border-t border-edge bg-surface px-2 py-1 sm:px-3">
                       <span className="text-xs text-ink-subtle">
                         <span className="hidden sm:inline">
                           ↹ Tab to complete • ↑↓ Navigate • Esc to close
