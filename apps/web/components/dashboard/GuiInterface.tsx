@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { isTypingTarget } from "@/lib/keyboard";
 import templates, { resolveTemplate } from "@/lib/templates";
 import type { StoredRepl } from "@/types/dashboard";
 
@@ -64,6 +65,7 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
   const [repls, setRepls] = useState<StoredRepl[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [newReplName, setNewReplName] = useState("");
@@ -154,6 +156,32 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
     repl.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  /**
+   * `/` focuses the filter, the same key the docs use.
+   *
+   * Focus rather than a dialog: the filter here is live and inline, so a modal
+   * would put a layer between you and the list it is filtering. This effect
+   * lives in this component rather than on the page, which scopes it for free
+   * — the terminal tab replaces this whole subtree, and `/` is a character you
+   * type constantly in a shell.
+   *
+   * A bare key needs the typing guard or it eats the character.
+   */
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "/") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (isTypingTarget(event.target)) return;
+
+      event.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden text-ink-muted">
       {/* Toolbar */}
@@ -170,13 +198,34 @@ const GuiInterface: React.FC<ReplDashboardProps> = ({
             className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-ink-subtle"
           />
           <input
+            ref={searchRef}
             type="search"
             aria-label="Search workspaces"
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-7 w-36 rounded-sm border border-edge bg-canvas pl-7 pr-2 font-mono text-xs text-ink transition-colors duration-[--duration-fast] placeholder:text-ink-subtle focus:border-brand focus:outline-none sm:w-56"
+            onKeyDown={(e) => {
+              // Escape gets you out of the filter without reaching for the
+              // mouse, and clears it — a filter you have escaped from should
+              // not still be hiding rows.
+              if (e.key === "Escape") {
+                setSearchQuery("");
+                e.currentTarget.blur();
+              }
+            }}
+            className="h-7 w-36 rounded-sm border border-edge bg-canvas pl-7 pr-7 font-mono text-xs text-ink transition-colors duration-[--duration-fast] placeholder:text-ink-subtle focus:border-brand focus:outline-none sm:w-56"
           />
+
+          {/* Only while the field is empty: once you are typing, the hint is
+              telling you about a key you have already used. */}
+          {searchQuery === "" && (
+            <kbd
+              aria-hidden="true"
+              className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border border-edge px-1 font-mono text-[10px] leading-4 text-ink-subtle sm:block"
+            >
+              /
+            </kbd>
+          )}
         </div>
 
         <button
