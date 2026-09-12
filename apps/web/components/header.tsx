@@ -1,4 +1,10 @@
 "use client";
+
+import { useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMotionValueEvent, useScroll } from "motion/react";
+import { Github } from "lucide-react";
 import {
   Navbar,
   NavBody,
@@ -13,56 +19,34 @@ import {
   MobileUserProfile,
 } from "@/components/ui/resizable-navbar";
 import { useAuth } from "@/contexts/AuthContext";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { siteConfig } from "@/lib/site";
 import { Cmd } from "./commandMenu";
-import { useMotionValueEvent, useScroll } from "motion/react";
+
+const PUBLIC_NAV = [
+  { name: "Docs", link: "/docs" },
+  { name: "Pricing", link: "/#pricing" },
+];
+
+const AUTHENTICATED_NAV = [
+  { name: "Dashboard", link: "/dashboard" },
+  { name: "Docs", link: "/docs" },
+];
 
 export default function Header() {
   const router = useRouter();
-
   const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const { scrollY } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
   });
-  const [visible, setVisible] = useState<boolean>(false);
 
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    if (latest > 100) {
-      setVisible(true);
-    } else {
-      setVisible(false);
-    }
-  });
+  useMotionValueEvent(scrollY, "change", (latest) => setVisible(latest > 100));
+
   const { user, isAuthenticated, logout } = useAuth();
-
-  // Navigation items for unauthenticated users
-  const publicNavItems = [
-    {
-      name: "Docs",
-      link: "/docs",
-    },
-    {
-      name: "Pricing",
-      link: "#pricing",
-    },
-  ];
-
-  // Navigation items for authenticated users
-  const authenticatedNavItems = [
-    {
-      name: "Dashboard",
-      link: "/dashboard",
-    },
-    {
-      name: "Docs",
-      link: "/docs",
-    },
-  ];
-
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navItems = isAuthenticated ? AUTHENTICATED_NAV : PUBLIC_NAV;
 
   const handleLogout = async () => {
     try {
@@ -73,56 +57,65 @@ export default function Header() {
     }
   };
 
-  function handleCall() {
-    router.push("https://cal.com/parthkapoor");
-  }
-
-  const navItems = isAuthenticated ? authenticatedNavItems : publicNavItems;
-
   return (
     <Navbar visible={visible} ref={ref}>
-      {/* Desktop Navigation */}
+      {/* Desktop */}
       <NavBody>
         <NavbarLogo />
         <NavItems items={navItems} />
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-2">
+          {/* An open-source project's most-clicked link, and it was not in the
+              header at all. */}
+          <a
+            href={siteConfig.repo}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="DevEx on GitHub"
+            title="DevEx on GitHub"
+            className="rounded-md p-2 text-ink-subtle transition-colors duration-[--duration-fast] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <Github className="size-4" aria-hidden="true" />
+          </a>
+
           {isAuthenticated && user ? (
-            <>
-              <UserProfileDropdown
-                visible={visible}
-                user={user}
-                onLogout={handleLogout}
-              />
-              <NavbarButton variant="primary" onClick={handleCall}>
-                Book a call
-              </NavbarButton>
-            </>
+            <UserProfileDropdown
+              visible={visible}
+              user={user}
+              onLogout={handleLogout}
+            />
           ) : (
             <>
               <NavbarButton
+                as="button"
                 variant="secondary"
                 onClick={() => router.push("/login")}
               >
-                Login
+                Log in
               </NavbarButton>
-              <NavbarButton variant="primary" onClick={handleCall}>
-                Book a call
+              {/* This used to be "Book a call", which asked a developer
+                  evaluating an open-source tool to schedule a sales meeting
+                  before they had seen it run. Enterprise still has its own
+                  route to a call, from the pricing table where it belongs. */}
+              <NavbarButton as={Link} href="/login" variant="primary">
+                Start a workspace
               </NavbarButton>
             </>
           )}
         </div>
       </NavBody>
 
-      {/* Mobile Navigation */}
+      {/* Mobile */}
       <MobileNav>
         <MobileNavHeader>
           <NavbarLogo />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {isAuthenticated && user && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={user.avatar_url}
-                alt={user.name || user.login}
-                className="h-8 w-8 rounded-full object-cover"
+                alt=""
+                className="size-7 rounded-full object-cover"
               />
             )}
             <MobileNavToggle
@@ -137,83 +130,50 @@ export default function Header() {
           onClose={() => setIsMobileMenuOpen(false)}
         >
           {isAuthenticated && user ? (
-            <>
-              {/* User Profile Section */}
-              <MobileUserProfile
-                user={user}
-                onLogout={handleLogout}
-                onClose={() => setIsMobileMenuOpen(false)}
-              />
+            <MobileUserProfile
+              user={user}
+              onLogout={handleLogout}
+              onClose={() => setIsMobileMenuOpen(false)}
+            />
+          ) : null}
 
-              {/* Navigation Items */}
-              <div className="w-full border-t border-edge dark:border-neutral-700 pt-4">
-                {navItems.map((item, idx) => (
-                  <Link
-                    key={`mobile-link-${idx}`}
-                    href={item.link}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block px-3 py-2 text-neutral-600 dark:text-neutral-300 hover:bg-raised dark:hover:bg-raised transition-colors duration-200 rounded-md"
-                  >
-                    <span className="block">{item.name}</span>
-                  </Link>
-                ))}
-              </div>
+          <nav className="w-full">
+            {navItems.map((item) => (
+              <Link
+                key={item.link}
+                href={item.link}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block rounded-md px-3 py-2 text-ink-muted transition-colors duration-[--duration-fast] hover:bg-raised hover:text-ink"
+              >
+                {item.name}
+              </Link>
+            ))}
+            <a
+              href={siteConfig.repo}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-ink-muted transition-colors duration-[--duration-fast] hover:bg-raised hover:text-ink"
+            >
+              <Github className="size-4" aria-hidden="true" />
+              GitHub
+            </a>
+          </nav>
 
-              {/* Action Button */}
-              <div className="w-full border-t border-edge dark:border-neutral-700 pt-4 flex flex-col gap-4">
-                <Cmd />
-                <NavbarButton
-                  onClick={() => {
-                    handleCall();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  variant="primary"
-                  className="w-full"
-                >
-                  Book a call
-                </NavbarButton>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Navigation Items for Unauthenticated Users */}
-              {navItems.map((item, idx) => (
-                <Link
-                  key={`mobile-link-${idx}`}
-                  href={item.link}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="relative text-neutral-600 dark:text-neutral-300"
-                >
-                  <span className="block">{item.name}</span>
-                </Link>
-              ))}
-
-              {/* Action Buttons for Unauthenticated Users */}
-              <div className="flex w-full flex-col gap-4">
-                <Cmd />
-                <NavbarButton
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    router.push("/login");
-                  }}
-                  variant="primary"
-                  className="w-full"
-                >
-                  Login
-                </NavbarButton>
-                <NavbarButton
-                  onClick={() => {
-                    handleCall();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  variant="primary"
-                  className="w-full"
-                >
-                  Book a call
-                </NavbarButton>
-              </div>
-            </>
-          )}
+          <div className="flex w-full flex-col gap-3 border-t border-edge pt-4">
+            <Cmd />
+            {isAuthenticated ? null : (
+              <NavbarButton
+                as={Link}
+                href="/login"
+                variant="primary"
+                className="w-full"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Start a workspace
+              </NavbarButton>
+            )}
+          </div>
         </MobileNavMenu>
       </MobileNav>
     </Navbar>

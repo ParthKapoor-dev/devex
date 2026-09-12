@@ -1,5 +1,8 @@
 "use client";
-import { cn } from "@/lib/utils";
+
+import React, { RefObject, useState } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "motion/react";
 import {
   IconMenu2,
   IconX,
@@ -7,17 +10,47 @@ import {
   IconLogout,
   IconUser,
 } from "@tabler/icons-react";
-import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useMotionValueEvent,
-} from "motion/react";
-
-import React, { RefObject, useRef, useState } from "react";
-import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { Cmd } from "../commandMenu";
 import { DevExLogoDark } from "../icons/logo";
+
+/**
+ * The site header.
+ *
+ * Originally vendored from Aceternity and never finished migrating onto the
+ * tokens, which had left it in a state where several of its own effects did
+ * not work:
+ *
+ * - `bg-ink` was used as a *background* in five places. `ink` is the text
+ *   colour — on the dark theme that is a near-white pill, which is why the
+ *   primary call to action on every page was white and not the brand colour.
+ * - The shrink-on-scroll animated `width` to 40% under a `minWidth: 800px`,
+ *   so on any viewport below 2000px the clamp won and the pill barely moved.
+ * - The nav row carried `hover:text-zinc-800`: dark grey text, on hover, on a
+ *   near-black background.
+ * - Nav items were bare `<a href>`, so every click on "Docs" threw away the
+ *   client and did a full document load. On a site whose pitch is that things
+ *   are fast, the navigation was the slowest thing on it.
+ * - The six-part box shadow is Aceternity's, tuned for a white page: every
+ *   layer is a blue-grey at 4–8% over black, i.e. invisible.
+ *
+ * The behaviour is kept — a full-width bar that contracts into a floating pill
+ * once you scroll — because it is a nice piece of the product's character. It
+ * just works now, and it is spring-timed off the motion tokens rather than
+ * hardcoded milliseconds.
+ */
+
+/** Matches `max-w-6xl`, the content width of every page underneath. */
+const REST_WIDTH = 1152;
+/** The contracted pill. Wide enough for the logo, two links and two buttons. */
+const PILL_WIDTH = 820;
+
+/** Black, because the page is black. The vendored shadow was blue-grey. */
+const FLOAT_SHADOW =
+  "0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -12px rgb(0 0 0 / 0.8)";
+
+const SPRING = { type: "spring", stiffness: 220, damping: 32 } as const;
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -26,75 +59,9 @@ interface NavbarProps {
   ref: RefObject<HTMLDivElement | null>;
 }
 
-interface NavBodyProps {
-  children: React.ReactNode;
-  className?: string;
-  visible?: boolean;
-}
-
-interface NavItemsProps {
-  items: {
-    name: string;
-    link: string;
-  }[];
-  className?: string;
-  onItemClick?: () => void;
-}
-
-interface MobileNavProps {
-  children: React.ReactNode;
-  className?: string;
-  visible?: boolean;
-}
-
-interface MobileNavHeaderProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-interface MobileNavMenuProps {
-  children: React.ReactNode;
-  className?: string;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-interface UserProfileDropdownProps {
-  user: {
-    id: number;
-    login: string;
-    name: string;
-    email: string;
-    avatar_url: string;
-    created_at: string;
-  };
-  onLogout: () => void;
-  className?: string;
-  visible: boolean;
-}
-
-interface MobileUserProfileProps {
-  user: {
-    id: number;
-    login: string;
-    name: string;
-    email: string;
-    avatar_url: string;
-    created_at: string;
-  };
-  onLogout: () => void;
-  onClose: () => void;
-  className?: string;
-}
-
 export const Navbar = ({ children, className, visible, ref }: NavbarProps) => {
   return (
-    <motion.div
-      ref={ref}
-      // IMPORTANT: Change this to class of `fixed` if you want the navbar to be fixed
-      // className={cn("sticky inset-x-0 top-20 z-40 w-full", className)}
-      className={cn("fixed inset-x-0 z-40 w-full", className)}
-    >
+    <div ref={ref} className={cn("fixed inset-x-0 top-0 z-40 w-full", className)}>
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
           ? React.cloneElement(
@@ -103,33 +70,34 @@ export const Navbar = ({ children, className, visible, ref }: NavbarProps) => {
             )
           : child,
       )}
-    </motion.div>
+    </div>
   );
 };
 
+interface NavBodyProps {
+  children: React.ReactNode;
+  className?: string;
+  visible?: boolean;
+}
+
 export const NavBody = ({ children, className, visible }: NavBodyProps) => {
+  const reducedMotion = useReducedMotion();
+
   return (
     <motion.div
       animate={{
-        backdropFilter: visible ? "blur(10px)" : "blur(2px)",
-        boxShadow: visible
-          ? "0 0 24px rgba(34, 42, 53, 0.06), 0 1px 1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(34, 42, 53, 0.04), 0 0 4px rgba(34, 42, 53, 0.08), 0 16px 68px rgba(47, 48, 55, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1) inset"
-          : "none",
-        width: visible ? "40%" : "100%",
-        y: visible ? 20 : 0,
+        maxWidth: visible ? PILL_WIDTH : REST_WIDTH,
+        y: visible ? 12 : 0,
+        borderRadius: visible ? 999 : 0,
+        boxShadow: visible ? FLOAT_SHADOW : "0 0 0 0 rgb(0 0 0 / 0)",
       }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 50,
-      }}
-      style={{
-        minWidth: "800px",
-        maxWidth: "100%",
-      }}
+      transition={reducedMotion ? { duration: 0 } : SPRING}
       className={cn(
-        "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start bg-transparent px-32 py-2 lg:flex dark:bg-transparent",
-        visible && "bg-ink/80 dark:bg-canvas/80 rounded-full px-4",
+        "relative z-[60] mx-auto hidden w-full flex-row items-center justify-between",
+        "px-6 py-3 transition-colors duration-[--duration-normal] lg:flex",
+        visible
+          ? "border border-edge bg-surface/75 backdrop-blur-xl"
+          : "border border-transparent bg-transparent",
         className,
       )}
     >
@@ -138,124 +106,135 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
   );
 };
 
+interface NavItemsProps {
+  items: { name: string; link: string }[];
+  className?: string;
+  onItemClick?: () => void;
+}
+
 export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <motion.div
+    <div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center justify-center gap-2 text-sm font-medium text-ink-subtle transition duration-200 hover:text-zinc-800 lg:flex lg:gap-0",
+        "absolute inset-0 hidden flex-1 flex-row items-center justify-center gap-1 text-sm lg:flex",
         className,
       )}
     >
-      {items.map((item, idx) => (
-        <a
-          onMouseEnter={() => setHovered(idx)}
-          onClick={onItemClick}
-          className="relative px-4 py-2 text-neutral-600 dark:text-neutral-300"
-          key={`link-${idx}`}
+      {items.map((item, index) => (
+        <Link
+          key={item.link}
           href={item.link}
-        >
-          {hovered === idx && (
-            <motion.div
-              layoutId="hovered"
-              className="absolute inset-0 h-full w-full rounded-full bg-raised dark:bg-raised"
-            />
+          onMouseEnter={() => setHovered(index)}
+          onClick={onItemClick}
+          className={cn(
+            "relative rounded-full px-3.5 py-1.5 text-ink-muted",
+            "transition-colors duration-[--duration-fast] hover:text-ink",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
           )}
+        >
+          {hovered === index ? (
+            <motion.span
+              layoutId="nav-hover"
+              className="absolute inset-0 rounded-full bg-raised"
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            />
+          ) : null}
           <span className="relative z-20">{item.name}</span>
-        </a>
+        </Link>
       ))}
-      <Cmd />
-    </motion.div>
+      <Cmd compact />
+    </div>
   );
 };
+
+/* -------------------------------------------------------------------------- */
+/* Account                                                                    */
+/* -------------------------------------------------------------------------- */
+
+interface User {
+  id: number;
+  login: string;
+  name: string;
+  email: string;
+  avatar_url: string;
+  created_at: string;
+}
+
+const MENU_ROW =
+  "flex w-full items-center gap-2 px-3 py-2 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:bg-raised hover:text-ink";
 
 export const UserProfileDropdown = ({
   user,
   onLogout,
   className,
   visible,
-}: UserProfileDropdownProps) => {
+}: {
+  user: User;
+  onLogout: () => void;
+  className?: string;
+  visible: boolean;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className={cn("relative", className)}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full p-1 hover:bg-raised dark:hover:bg-raised transition-colors duration-200"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        aria-label="Account menu"
+        className={cn(
+          "flex items-center gap-2 rounded-full p-1 pr-2",
+          "transition-colors duration-[--duration-fast] hover:bg-raised",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        )}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={user.avatar_url}
-          alt={user.name.split("").slice(0, 3).join("")}
-          className="h-8 w-8 rounded-full object-cover"
+          alt=""
+          className="size-7 rounded-full object-cover"
         />
         {!visible && (
-          <span className="hidden sm:block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+          <span className="hidden font-mono text-xs text-ink-muted sm:block">
             {user.login}
           </span>
         )}
-        <IconChevronDown className="h-4 w-4 text-neutral-500 dark:text-ink-subtle" />
+        <IconChevronDown
+          className={cn(
+            "size-4 text-ink-subtle transition-transform duration-[--duration-fast]",
+            isOpen && "rotate-180",
+          )}
+        />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-[70]"
+            <button
+              type="button"
+              aria-label="Close account menu"
+              className="fixed inset-0 z-[70] cursor-default"
               onClick={() => setIsOpen(false)}
             />
 
-            {/* Dropdown Menu */}
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              role="menu"
+              initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="absolute right-0 top-full mt-2 w-48 z-[80] rounded-lg bg-ink dark:bg-surface shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] border border-edge dark:border-neutral-700"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute right-0 top-full z-[80] mt-2 w-52 overflow-hidden rounded-lg border border-edge bg-overlay shadow-[0_16px_48px_-16px_rgb(0_0_0/0.8)]"
             >
-              <div className="p-3 border-b border-edge dark:border-neutral-700">
-                <div className="flex items-center gap-2">
-                  <img
-                    src={user.avatar_url}
-                    alt={user.name || user.login}
-                    className="h-8 w-8 rounded-full object-cover"
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                      {user.name || user.login}
-                    </div>
-                    <div className="text-xs text-neutral-500 dark:text-ink-subtle">
-                      @{user.login}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="py-2">
-                <a
-                  href="https://parthkapoor.me"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-raised dark:hover:bg-raised transition-colors duration-200"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <IconUser className="h-4 w-4" />
-                  Visit Developer
-                </a>
-
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    onLogout();
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-danger hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
-                >
-                  <IconLogout className="h-4 w-4" />
-                  Logout
-                </button>
-              </div>
+              <AccountHeader user={user} />
+              <AccountActions
+                onLogout={onLogout}
+                onClose={() => setIsOpen(false)}
+              />
             </motion.div>
           </>
         )}
@@ -269,74 +248,100 @@ export const MobileUserProfile = ({
   onLogout,
   onClose,
   className,
-}: MobileUserProfileProps) => {
+}: {
+  user: User;
+  onLogout: () => void;
+  onClose: () => void;
+  className?: string;
+}) => {
   return (
     <div className={cn("w-full", className)}>
-      <div className="flex items-center gap-3 p-3 border-b border-edge dark:border-neutral-700">
-        <img
-          src={user.avatar_url}
-          alt={user.name || user.login}
-          className="h-10 w-10 rounded-full object-cover"
-        />
-        <div>
-          <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            {user.name || user.login}
-          </div>
-          <div className="text-xs text-neutral-500 dark:text-ink-subtle">
-            @{user.login}
-          </div>
-        </div>
-      </div>
-
-      <div className="py-2">
-        <a
-          href="https://parthkapoor.me"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-raised dark:hover:bg-raised transition-colors duration-200"
-          onClick={onClose}
-        >
-          <IconUser className="h-4 w-4" />
-          Visit Developer
-        </a>
-
-        <button
-          onClick={() => {
-            onClose();
-            onLogout();
-          }}
-          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-danger hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200"
-        >
-          <IconLogout className="h-4 w-4" />
-          Logout
-        </button>
-      </div>
+      <AccountHeader user={user} />
+      <AccountActions onLogout={onLogout} onClose={onClose} />
     </div>
   );
 };
 
-export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
+function AccountHeader({ user }: { user: User }) {
+  return (
+    <div className="flex items-center gap-2.5 border-b border-edge p-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={user.avatar_url}
+        alt=""
+        className="size-8 rounded-full object-cover"
+      />
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium text-ink">
+          {user.name || user.login}
+        </div>
+        <div className="truncate font-mono text-xs text-ink-subtle">
+          @{user.login}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccountActions({
+  onLogout,
+  onClose,
+}: {
+  onLogout: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="py-1">
+      <Link href="/dashboard" onClick={onClose} className={MENU_ROW}>
+        <IconUser className="size-4" />
+        Dashboard
+      </Link>
+
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          onLogout();
+        }}
+        className={cn(MENU_ROW, "hover:bg-danger/10 hover:text-danger")}
+      >
+        <IconLogout className="size-4" />
+        Log out
+      </button>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export const MobileNav = ({
+  children,
+  className,
+  visible,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  visible?: boolean;
+}) => {
+  const reducedMotion = useReducedMotion();
+
   return (
     <motion.div
       animate={{
-        backdropFilter: visible ? "blur(10px)" : "none",
-        boxShadow: visible
-          ? "0 0 24px rgba(34, 42, 53, 0.06), 0 1px 1px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(34, 42, 53, 0.04), 0 0 4px rgba(34, 42, 53, 0.08), 0 16px 68px rgba(47, 48, 55, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1) inset"
-          : "none",
-        width: visible ? "90%" : "100%",
-        paddingRight: visible ? "12px" : "0px",
-        paddingLeft: visible ? "12px" : "0px",
-        borderRadius: visible ? "4px" : "2rem",
-        y: visible ? 20 : 0,
+        y: visible ? 8 : 0,
+        borderRadius: visible ? 12 : 0,
+        boxShadow: visible ? FLOAT_SHADOW : "0 0 0 0 rgb(0 0 0 / 0)",
       }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 50,
-      }}
+      transition={reducedMotion ? { duration: 0 } : SPRING}
       className={cn(
-        "relative z-50 mx-auto flex w-full max-w-[calc(100vw-2rem)] flex-col items-center justify-between bg-transparent px-0 py-2 lg:hidden",
-        visible && "bg-ink/80 dark:bg-canvas/80",
+        "relative z-50 mx-auto flex w-full max-w-[calc(100vw-1.5rem)] flex-col",
+        "items-center justify-between px-3 py-2.5",
+        "transition-colors duration-[--duration-normal] lg:hidden",
+        visible
+          ? "border border-edge bg-surface/80 backdrop-blur-xl"
+          : "border border-transparent bg-transparent",
         className,
       )}
     >
@@ -348,43 +353,46 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
 export const MobileNavHeader = ({
   children,
   className,
-}: MobileNavHeaderProps) => {
-  return (
-    <div
-      className={cn(
-        "flex w-full flex-row items-center justify-between",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-};
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div
+    className={cn("flex w-full flex-row items-center justify-between", className)}
+  >
+    {children}
+  </div>
+);
 
 export const MobileNavMenu = ({
   children,
   className,
   isOpen,
-  onClose,
-}: MobileNavMenuProps) => {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className={cn(
-            "absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 rounded-lg bg-ink px-4 py-8 shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] dark:bg-canvas",
-            className,
-          )}
-        >
-          {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+}: {
+  children: React.ReactNode;
+  className?: string;
+  isOpen: boolean;
+  onClose: () => void;
+}) => (
+  <AnimatePresence>
+    {isOpen && (
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+        className={cn(
+          "absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start gap-4",
+          "rounded-lg border border-edge bg-overlay px-4 py-6",
+          "shadow-[0_24px_64px_-24px_rgb(0_0_0/0.9)]",
+          className,
+        )}
+      >
+        {children}
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 
 export const MobileNavToggle = ({
   isOpen,
@@ -393,33 +401,56 @@ export const MobileNavToggle = ({
   isOpen: boolean;
   onClick: () => void;
 }) => {
-  return isOpen ? (
-    <IconX
-      className="text-canvas dark:text-ink cursor-pointer"
-      onClick={onClick}
-    />
-  ) : (
-    <IconMenu2
-      className="text-canvas dark:text-ink cursor-pointer"
-      onClick={onClick}
-    />
-  );
-};
-
-export const NavbarLogo = () => {
+  const Icon = isOpen ? IconX : IconMenu2;
   return (
-    <Link
-      href="/"
-      className="relative z-20 mr-4 flex items-center gap-2 px-2 py-1 text-sm font-normal text-canvas"
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={isOpen}
+      aria-label={isOpen ? "Close menu" : "Open menu"}
+      className={cn(
+        "rounded-md p-1 text-ink-muted transition-colors duration-[--duration-fast]",
+        "hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+      )}
     >
-      <DevExLogoDark />
-
-      <span className="font-medium text-lg text-canvas dark:text-ink">
-        devX
-      </span>
-    </Link>
+      <Icon className="size-5" />
+    </button>
   );
 };
+
+/* -------------------------------------------------------------------------- */
+/* Bits                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const NavbarLogo = () => (
+  <Link
+    href="/"
+    className={cn(
+      "relative z-20 flex items-center gap-2 rounded-md px-1 py-1",
+      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+    )}
+  >
+    <DevExLogoDark />
+    <span className="font-display text-lg font-medium tracking-[-0.02em] text-ink">
+      devX
+    </span>
+  </Link>
+);
+
+const BUTTON_BASE = cn(
+  "inline-flex h-9 items-center justify-center gap-2 rounded-md px-4",
+  "text-sm font-medium transition-colors duration-[--duration-fast]",
+  "cursor-pointer whitespace-nowrap",
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+);
+
+const BUTTON_VARIANTS = {
+  /** The one action we want taken. Brand fill, and only ever one on screen. */
+  primary: "bg-brand text-brand-fg hover:bg-brand-400",
+  /** Present but not competing. */
+  secondary: "bg-transparent text-ink-muted hover:text-ink",
+  outline: "border border-edge text-ink hover:border-edge-strong hover:bg-raised",
+} as const;
 
 export const NavbarButton = ({
   href,
@@ -433,30 +464,16 @@ export const NavbarButton = ({
   as?: React.ElementType;
   children: React.ReactNode;
   className?: string;
-  variant?: "primary" | "secondary" | "dark" | "gradient";
+  variant?: keyof typeof BUTTON_VARIANTS;
 } & (
   | React.ComponentPropsWithoutRef<"a">
   | React.ComponentPropsWithoutRef<"button">
-)) => {
-  const baseStyles =
-    "px-4 py-2 rounded-md bg-ink button bg-ink text-canvas text-sm font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center";
-
-  const variantStyles = {
-    primary:
-      "shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
-    secondary: "bg-transparent shadow-none dark:text-ink",
-    dark: "bg-canvas text-ink shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]",
-    gradient:
-      "bg-gradient-to-b from-blue-500 to-blue-700 text-ink shadow-[0px_2px_0px_0px_rgba(255,255,255,0.3)_inset]",
-  };
-
-  return (
-    <Tag
-      href={href || undefined}
-      className={cn(baseStyles, variantStyles[variant], className)}
-      {...props}
-    >
-      {children}
-    </Tag>
-  );
-};
+)) => (
+  <Tag
+    href={href || undefined}
+    className={cn(BUTTON_BASE, BUTTON_VARIANTS[variant], className)}
+    {...props}
+  >
+    {children}
+  </Tag>
+);
