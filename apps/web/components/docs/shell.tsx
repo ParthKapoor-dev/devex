@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Github, Menu, X } from "lucide-react";
 import { DocsSidebar, type SidebarSection } from "@/components/docs/sidebar";
 import { DocsSearch, type SearchDoc } from "@/components/docs/search";
+import AppBackdrop from "@/components/backgrounds/app-backdrop";
 
 /**
  * The docs chrome: a sticky sidebar on desktop, a slide-over on mobile, and the
@@ -41,9 +42,15 @@ export function DocsShell({
   }, [navOpen]);
 
   return (
-    <div className="min-h-screen bg-canvas pt-16">
+    // The docs were the one surface with no backdrop at all — flat canvas,
+    // while the landing page has the shader and every signed-in page has the
+    // static wash. That made the section read as a different site. This is the
+    // signed-in backdrop: a wash, a grid and grain, no JavaScript, painted
+    // once.
+    <div className="relative min-h-screen pt-16">
+      <AppBackdrop />
       {/* Mobile bar */}
-      <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-edge bg-canvas/85 px-4 py-3 backdrop-blur-md lg:hidden">
+      <div className="sticky top-16 z-30 flex items-center gap-3 border-b border-edge bg-canvas/80 px-4 py-3 backdrop-blur-md lg:hidden">
         <button
           type="button"
           onClick={() => setNavOpen(true)}
