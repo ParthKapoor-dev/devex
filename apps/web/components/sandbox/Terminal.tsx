@@ -880,4 +880,10 @@ const TerminalComponent = forwardRef<TerminalRef, TerminalProps>(
 // Set display name for debugging purposes
 TerminalComponent.displayName = "TerminalComponent";
 
-export default TerminalComponent;
+
+/**
+ * Memoised because the sandbox shell above it owns eleven pieces of chrome
+ * state — sidebar open, active panel, settings dialog, terminal maximised and
+ * so on. Without this, toggling any one of them re-rendered this subtree too.
+ */
+export default React.memo(TerminalComponent);

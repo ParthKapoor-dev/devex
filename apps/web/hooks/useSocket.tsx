@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type Events = {
   Loaded: (data: { rootContents: any }) => void;
@@ -96,18 +96,30 @@ export function useRunnerSocket(replId: string) {
     };
   }, [replId]);
 
-  // Proxy functions (typed)
-  const emit = (event: string, payload?: any) => {
+  // Proxy functions (typed).
+  //
+  // These are memoised with an empty dependency list, which is safe because
+  // they only ever reach through `socketRef` — a ref, so they always see the
+  // live socket without needing to be rebuilt when it changes.
+  //
+  // Referential stability matters more than it looks: every consumer lists
+  // `emit` in a `useCallback` dependency array, so when these were rebuilt on
+  // each render, *every* memoised handler downstream was rebuilt too. That
+  // made the memoisation across the whole REPL page decorative.
+  const emit = useCallback((event: string, payload?: any) => {
     socketRef.current?.emit?.(event, payload);
-  };
+  }, []);
 
-  const on = <K extends keyof Events>(event: K, handler: Events[K]) => {
-    socketRef.current?.on?.(event, handler as EventHandler);
-  };
+  const on = useCallback(
+    <K extends keyof Events>(event: K, handler: Events[K]) => {
+      socketRef.current?.on?.(event, handler as EventHandler);
+    },
+    [],
+  );
 
-  const off = (event: keyof Events) => {
+  const off = useCallback((event: keyof Events) => {
     socketRef.current?.off?.(event);
-  };
+  }, []);
 
   return {
     socket: socketRef.current,

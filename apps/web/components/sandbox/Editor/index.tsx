@@ -437,4 +437,10 @@ const Editor = ({
   );
 };
 
-export default Editor;
+
+/**
+ * Memoised because the sandbox shell above it owns eleven pieces of chrome
+ * state — sidebar open, active panel, settings dialog, terminal maximised and
+ * so on. Without this, toggling any one of them re-rendered this subtree too.
+ */
+export default React.memo(Editor);

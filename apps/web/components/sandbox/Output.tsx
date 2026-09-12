@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Input } from "../ui/input";
@@ -130,4 +130,10 @@ const URLConverter = ({
   );
 };
 
-export default URLConverter;
+
+/**
+ * Memoised because the sandbox shell above it owns eleven pieces of chrome
+ * state — sidebar open, active panel, settings dialog, terminal maximised and
+ * so on. Without this, toggling any one of them re-rendered this subtree too.
+ */
+export default memo(URLConverter);

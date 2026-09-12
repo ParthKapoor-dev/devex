@@ -4,7 +4,7 @@
 import { useRunnerSocket } from "@/hooks/useSocket";
 
 // React
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -21,7 +21,6 @@ export default function ReplPage() {
 
   // sockets states
   const { isConnected, emit, on, off } = useRunnerSocket(slug as string);
-  const [isLoading, setIsLoading] = useState(false);
 
   // sandbox states
   const [tree, setTree] = useState<Tree | null>(null);
@@ -50,14 +49,12 @@ export default function ReplPage() {
       setTree({
         "": data.rootContents,
       });
-      setIsLoading(false);
       toast.success("Workspace loaded successfully");
     });
 
     on("error", (data) => {
       console.error("WebSocket error:", data);
       toast.error(data.message || "An error occurred");
-      setIsLoading(false);
     });
 
     // File tree response handlers
@@ -235,23 +232,37 @@ export default function ReplPage() {
   }, [isConnected]);
 
   // Editor Helpers
-  const fetchDir = async (path: string) => {
-    setIsLoading(true);
-    emit("fetchDir", { Dir: path });
-  };
+  const fetchDir = useCallback(
+    async (path: string) => {
+      emit("fetchDir", { Dir: path });
+    },
+    [emit],
+  );
 
-  const fetchContent = async (path: string) => {
-    setIsLoading(true);
-    emit("fetchContent", { path });
-  };
+  const fetchContent = useCallback(
+    async (path: string) => {
+      emit("fetchContent", { path });
+    },
+    [emit],
+  );
 
-  const updateContent = async (patch: string) => {
-    setIsLoading(true);
-    emit("updateContent", { path: filePath, patch });
-  };
+  // `filePath` is read through a ref rather than listed as a dependency, so
+  // opening a different file does not hand the editor a brand new `sendDiff`
+  // and remount its debounce.
+  const filePathRef = useRef(filePath);
+  useEffect(() => {
+    filePathRef.current = filePath;
+  }, [filePath]);
 
-  const handleFileTreeAction = (action: FileTreeAction) => {
-    setIsLoading(true);
+  const updateContent = useCallback(
+    async (patch: string) => {
+      emit("updateContent", { path: filePathRef.current, patch });
+    },
+    [emit],
+  );
+
+  const handleFileTreeAction = useCallback(
+    (action: FileTreeAction) => {
     switch (action.type) {
       case "create-file":
         emit("createFile", {
@@ -299,24 +310,34 @@ export default function ReplPage() {
 
       default:
         console.warn(`Unknown action type: ${action.type}`);
-        setIsLoading(false);
         break;
     }
-  };
+    },
+    [emit],
+  );
 
-  // Enhanced Terminal Helpers
-  const handleTerminalSendData = (data: string) => {
-    emit("terminalInput", {
-      data,
-      sessionId: terminalSessionIdRef.current,
-    });
-  };
+  // Enhanced Terminal Helpers.
+  //
+  // `terminalSessionIdRef.current` used to appear in these dependency arrays.
+  // A ref's `.current` in a dependency list does nothing useful — React
+  // compares it on render, but mutating a ref does not schedule one, so the
+  // callback never rebuilds when the session id actually changes. It is read
+  // at call time instead, which is both correct and stable.
+  const handleTerminalSendData = useCallback(
+    (data: string) => {
+      emit("terminalInput", {
+        data,
+        sessionId: terminalSessionIdRef.current,
+      });
+    },
+    [emit],
+  );
 
   const handleRequestTerminal = useCallback(() => {
     setTerminalConnectionStatus("connecting");
     setTerminalError(null);
     emit("requestTerminal", { sessionId: terminalSessionIdRef.current });
-  }, [emit, terminalSessionIdRef.current]);
+  }, [emit]);
 
   const handleTerminalResize = useCallback(
     (cols: number, rows: number) => {
@@ -326,7 +347,7 @@ export default function ReplPage() {
         sessionId: terminalSessionIdRef.current,
       });
     },
-    [emit, terminalSessionIdRef.current],
+    [emit],
   );
 
   // Enhanced terminal event handlers
@@ -342,7 +363,7 @@ export default function ReplPage() {
     });
     setTerminalConnectionStatus("disconnected");
     console.log("🖥️ Terminal closed by user");
-  }, []);
+  }, [emit]);
 
   const handleTerminalError = useCallback((error: string) => {
     setTerminalError(error);
@@ -350,19 +371,58 @@ export default function ReplPage() {
     console.error("🖥️ Terminal error:", error);
   }, []);
 
-  // Search functionality for terminal
-  // Show loading state
-  if (!tree) {
+  // The three prop objects are memoised because they are object literals:
+  // rebuilt on every render they are a new reference every time, which makes
+  // `React.memo` on anything below this point a no-op. `terminal` is the one
+  // that matters — a fresh object there re-renders the xterm wrapper.
+  const editorProps = useMemo(
+    () => ({ updateContent, code, setCode, fileType }),
+    [updateContent, code, fileType],
+  );
+
+  // Returns null until the tree has loaded, so the `!tree` guard below
+  // narrows this too — cleaner than asserting non-null past the guard.
+  const fileTreeProps = useMemo(
+    () =>
+      tree
+        ? { tree, fetchDir, fetchContent, handleFileTreeAction, filePath }
+        : null,
+    [tree, fetchDir, fetchContent, handleFileTreeAction, filePath],
+  );
+
+  const terminalProps = useMemo(
+    () => ({
+      ref: terminalRef,
+      handleRequest: handleRequestTerminal,
+      handleClose: handleTerminalClose,
+      handleError: handleTerminalError,
+      handleResize: handleTerminalResize,
+      handleReady: handleTerminalReady,
+      handleSendData: handleTerminalSendData,
+      sessionId: terminalSessionIdRef.current,
+      status: terminalConnectionStatus,
+      error: terminalError,
+    }),
+    [
+      handleRequestTerminal,
+      handleTerminalClose,
+      handleTerminalError,
+      handleTerminalResize,
+      handleTerminalReady,
+      handleTerminalSendData,
+      terminalConnectionStatus,
+      terminalError,
+    ],
+  );
+
+  if (!tree || !fileTreeProps) {
     return (
-      <div className="h-screen w-full bg-gray-900 flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-sm sm:text-base">Loading Sandbox...</p>
-          {!isConnected && (
-            <p className="text-xs sm:text-sm text-gray-400 mt-2">
-              Connecting to server...
-            </p>
-          )}
+      <div className="flex h-screen w-full items-center justify-center bg-term-bg">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <p className="label text-ink-muted">Loading workspace</p>
+          <p className="font-mono text-xs text-ink-subtle">
+            {isConnected ? "reading filesystem" : "connecting to runner"}
+          </p>
         </div>
       </div>
     );
@@ -372,26 +432,9 @@ export default function ReplPage() {
     <ProtectedRoute>
       <Sandbox
         isConnected={isConnected}
-        editor={{ updateContent, code, setCode, fileType }}
-        fileTree={{
-          tree,
-          fetchDir,
-          fetchContent,
-          handleFileTreeAction,
-          filePath,
-        }}
-        terminal={{
-          ref: terminalRef,
-          handleRequest: handleRequestTerminal,
-          handleClose: handleTerminalClose,
-          handleError: handleTerminalError,
-          handleResize: handleTerminalResize,
-          handleReady: handleTerminalReady,
-          handleSendData: handleTerminalSendData,
-          sessionId: terminalSessionIdRef.current,
-          status: terminalConnectionStatus,
-          error: terminalError,
-        }}
+        editor={editorProps}
+        fileTree={fileTreeProps}
+        terminal={terminalProps}
         replId={slug as string}
       />
     </ProtectedRoute>

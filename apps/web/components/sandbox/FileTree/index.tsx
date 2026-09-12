@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -66,7 +66,7 @@ type Props = {
   setActivePath: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
-export default function VSCodeFileTree({
+function VSCodeFileTree({
   tree,
   fetchDir,
   fetchContent,
@@ -452,3 +452,10 @@ export default function VSCodeFileTree({
     </div>
   );
 }
+
+/**
+ * Memoised because the sandbox shell above it owns eleven pieces of chrome
+ * state — sidebar open, active panel, settings dialog, terminal maximised and
+ * so on. Without this, toggling any one of them re-rendered this subtree too.
+ */
+export default memo(VSCodeFileTree);

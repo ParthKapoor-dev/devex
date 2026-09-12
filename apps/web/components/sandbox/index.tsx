@@ -107,7 +107,6 @@ const Sandbox: React.FC<SandboxProps> = ({
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bottomPanelCollapsed, setBottomPanelCollapsed] = useState(false);
 
@@ -119,30 +118,39 @@ const Sandbox: React.FC<SandboxProps> = ({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Responsive detection
+  // Responsive detection.
+  //
+  // `matchMedia` rather than a `resize` listener: a resize listener fires for
+  // every pixel of a window drag, and this handler called four state setters
+  // each time — so dragging the window edge re-rendered the whole IDE, Monaco
+  // and xterm included, at frame rate. A media-query listener fires only when
+  // a breakpoint is actually crossed.
+  //
+  // The setters use the functional form and the effect has no dependencies, so
+  // it subscribes once for the life of the component instead of tearing down
+  // and re-subscribing whenever the panel state changes.
   useEffect(() => {
-    const checkResponsive = () => {
-      const width = window.innerWidth;
-      const newIsMobile = width < 768;
-      const newIsTablet = width >= 768 && width < 1024;
+    const mobile = window.matchMedia("(max-width: 767px)");
+    const narrow = window.matchMedia("(max-width: 639px)");
 
-      setIsMobile(newIsMobile);
-      setIsTablet(newIsTablet);
-
-      // Auto-collapse sidebar on mobile
-      if (newIsMobile && !sidebarCollapsed) {
-        setSidebarCollapsed(true);
-      }
-
-      // Auto-collapse bottom panel on very small screens
-      if (width < 640 && !bottomPanelCollapsed) {
-        setBottomPanelCollapsed(true);
-      }
+    const syncMobile = () => {
+      setIsMobile(mobile.matches);
+      if (mobile.matches) setSidebarCollapsed(true);
     };
 
-    checkResponsive();
-    window.addEventListener("resize", checkResponsive);
-    return () => window.removeEventListener("resize", checkResponsive);
+    const syncNarrow = () => {
+      if (narrow.matches) setBottomPanelCollapsed(true);
+    };
+
+    syncMobile();
+    syncNarrow();
+
+    mobile.addEventListener("change", syncMobile);
+    narrow.addEventListener("change", syncNarrow);
+    return () => {
+      mobile.removeEventListener("change", syncMobile);
+      narrow.removeEventListener("change", syncNarrow);
+    };
   }, []);
 
   // Terminal utility functions
@@ -164,7 +172,6 @@ const Sandbox: React.FC<SandboxProps> = ({
     terminal.ref.current?.reconnect();
   }, []);
 
-  const [terminalSearchTerm, setTerminalSearchTerm] = useState("");
   const searchInTerminal = useCallback((term: string) => {
     if (term && terminal.ref.current) {
       return terminal.ref.current.search(term);
