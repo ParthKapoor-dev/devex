@@ -90,6 +90,12 @@ jobs:
       - name: Vet
         run: make vet
 
+      # Both runs: the race detector catches concurrency bugs, but the PTY
+      # tests skip under -race because of a known data race in pkg/pty, so
+      # the plain run is the one that exercises them.
+      - name: Test
+        run: make test
+
       - name: Test (race detector)
         run: make test-race
 

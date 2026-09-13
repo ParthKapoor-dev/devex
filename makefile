@@ -64,8 +64,8 @@ tidy-check: ## Fail if any go.mod or go.sum is not tidy
 # ---- Web --------------------------------------------------------------------
 
 .PHONY: web-check
-web-check: ## Lint and type-check the web app (does not build it)
-	cd apps/web && npm run lint && npx tsc --noEmit
+web-check: ## Lint, type-check and unit-test the web app (does not build it)
+	cd apps/web && npm run lint && npm run typecheck && npm run test
 
 # ---- Local development ------------------------------------------------------
 
