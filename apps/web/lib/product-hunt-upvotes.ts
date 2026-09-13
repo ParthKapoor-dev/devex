@@ -84,5 +84,3 @@ async function fetchProductHuntUpvotesRaw(
     return null;
   }
 }
-
-export { fetchProductHuntUpvotesRaw };

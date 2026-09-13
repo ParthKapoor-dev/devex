@@ -21,7 +21,9 @@ export const metadata: Metadata = {
   authors: [{ name: siteConfig.author.name, url: siteConfig.author.url }],
   creator: siteConfig.author.name,
   publisher: siteConfig.author.name,
-  alternates: { canonical: "/" },
+  // No `alternates.canonical` here. It is inherited by every route that does
+  // not set its own, and it made /login and /dashboard declare themselves
+  // copies of the homepage. Pages set their canonical through buildMetadata.
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -75,9 +77,9 @@ export default function RootLayout({
         {/* Structured data. Inlined in the body so it ships with the initial
             HTML; crawlers read it without executing anything.
 
-            One `@graph`, not an array of separate documents — the nodes refer
-            to each other by `@id`, and that linking is what turns five facts
-            into one identifiable entity. See lib/seo.ts. */}
+            The site-wide part only — the organization and the website. The
+            homepage adds the product and its FAQ; docs pages add the article.
+            See lib/seo.ts. */}
         <script
           type="application/ld+json"
           // The payload is built from static config, never user input.

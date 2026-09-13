@@ -42,24 +42,3 @@ export const token = {
   danger: "#fb2c36",
   info: "#2b7fff",
 } as const;
-
-/** The accent, as the single name everything else should import. */
-export const BRAND_HEX = token.brand500;
-
-/**
- * Resolve a colour for a canvas context at runtime.
- *
- * Prefer this over a literal when the value should follow the live theme —
- * it reads the computed style off an element that is already inside the
- * cascade, so a `--ds-*` override (a themed subtree, a future light mode)
- * is respected. Falls back to the passed literal when the property is empty,
- * which is what happens during SSR hydration before styles apply.
- */
-export function resolveToken(
-  el: Element,
-  property: `--${string}`,
-  fallback: string,
-): string {
-  const value = getComputedStyle(el).getPropertyValue(property).trim();
-  return value || fallback;
-}

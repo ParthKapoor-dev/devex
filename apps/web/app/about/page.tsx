@@ -5,9 +5,9 @@ import { buildMetadata } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = buildMetadata({
-  title: "About",
+  title: "About the project",
   description:
-    "DevEx is an open-source cloud development environment: containerised workspaces on Kubernetes with a real shell, persistent files and public ports. Built in the open, MIT-licensed.",
+    "DevEx is an open-source cloud IDE: containerised workspaces on Kubernetes with a real shell, persistent files and public ports. Built in the open, MIT-licensed.",
   path: "/about",
 });
 

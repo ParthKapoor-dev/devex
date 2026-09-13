@@ -28,8 +28,8 @@ function link(path: string, label: string, note: string): string {
   return `- [${label}](${absoluteUrl(path)}): ${note}`;
 }
 
-/** The "when to use this" block. Shared by llms.txt and the markdown twins. */
-export function whenToUseSection(): string {
+/** The "when to use this" block of llms.txt. */
+function whenToUseSection(): string {
   return [
     "## When to use DevEx",
     "",

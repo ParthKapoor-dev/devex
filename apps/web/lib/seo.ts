@@ -15,7 +15,12 @@ interface PageSeoInput {
   modifiedTime?: string;
   /** Keep a page out of the index (login flows, ephemeral REPL routes). */
   noIndex?: boolean;
+  /** What follows the title after the dash. Docs use "DevEx docs". */
+  titleSuffix?: string;
 }
+
+/** The root segment's generated card; see app/opengraph-image.tsx. */
+const DEFAULT_OG_IMAGE = "/opengraph-image";
 
 /**
  * Builds a complete, canonical-correct `Metadata` object for a page.
@@ -33,16 +38,23 @@ export function buildMetadata({
   publishedTime,
   modifiedTime,
   noIndex = false,
+  titleSuffix = siteConfig.name,
 }: PageSeoInput = {}): Metadata {
   const url = absoluteUrl(path);
-  const resolvedTitle = title ? `${title} — ${siteConfig.name}` : siteConfig.title;
+  const resolvedTitle = title ? `${title} — ${titleSuffix}` : siteConfig.title;
+  const ogImage = image ?? DEFAULT_OG_IMAGE;
 
   return {
-    title,
+    // `absolute`, not the bare string. A layout that sets a plain `title`
+    // resets the root's "%s — DevEx" template for everything beneath it, which
+    // is how every docs page shipped as just "Quickstart" with no brand.
+    title: { absolute: resolvedTitle },
     description,
     alternates: { canonical: url },
+    // `follow: true` even when not indexed: a sign-in page's links to the
+    // docs and the homepage are still worth following.
     robots: noIndex
-      ? { index: false, follow: false }
+      ? { index: false, follow: true }
       : {
           index: true,
           follow: true,
@@ -61,7 +73,9 @@ export function buildMetadata({
       title: resolvedTitle,
       description,
       locale: "en_US",
-      ...(image ? { images: [{ url: image, width: 1200, height: 630 }] } : {}),
+      // Always set. Setting `openGraph` at all replaces the parent's, image
+      // included, so without this every page but the homepage had no card.
+      images: [{ url: ogImage, width: 1200, height: 630, alt: resolvedTitle }],
       ...(publishedTime ? { publishedTime } : {}),
       ...(modifiedTime ? { modifiedTime } : {}),
     },
@@ -69,7 +83,7 @@ export function buildMetadata({
       card: "summary_large_image",
       title: resolvedTitle,
       description,
-      ...(image ? { images: [image] } : {}),
+      images: [ogImage],
       ...(siteConfig.twitter ? { creator: siteConfig.twitter } : {}),
     },
   };
@@ -101,7 +115,7 @@ const ID = {
   faq: absoluteUrl("/#faq"),
 } as const;
 
-export function organizationJsonLd() {
+function organizationJsonLd() {
   return {
     "@type": "Organization",
     "@id": ID.organization,
@@ -149,7 +163,7 @@ export function organizationJsonLd() {
   };
 }
 
-export function webSiteJsonLd() {
+function webSiteJsonLd() {
   return {
     "@type": "WebSite",
     "@id": ID.website,
@@ -170,7 +184,7 @@ export function webSiteJsonLd() {
   };
 }
 
-export function softwareApplicationJsonLd() {
+function softwareApplicationJsonLd() {
   return {
     "@type": "SoftwareApplication",
     "@id": ID.software,
@@ -221,7 +235,7 @@ export function softwareApplicationJsonLd() {
   };
 }
 
-export function softwareSourceCodeJsonLd() {
+function softwareSourceCodeJsonLd() {
   return {
     "@type": "SoftwareSourceCode",
     "@id": `${siteConfig.repo}#source`,
@@ -237,7 +251,7 @@ export function softwareSourceCodeJsonLd() {
   };
 }
 
-export function faqJsonLd() {
+function faqJsonLd() {
   return {
     "@type": "FAQPage",
     "@id": ID.faq,
@@ -250,26 +264,35 @@ export function faqJsonLd() {
 }
 
 /**
- * The homepage graph: everything above, linked, in one script tag.
+ * The graph every page carries: who publishes the site, and the site itself.
  *
- * A single `@graph` rather than an array of standalone documents — the nodes
- * refer to each other by `@id`, and a parser that reads them separately loses
- * exactly the links that make them an entity.
+ * Rendered once, by the root layout. Page graphs refer to these two nodes by
+ * `@id` instead of repeating them, and because they are in the same document
+ * the references resolve.
  */
 export function siteJsonLd() {
   return {
     "@context": "https://schema.org",
-    "@graph": [
-      organizationJsonLd(),
-      webSiteJsonLd(),
-      softwareApplicationJsonLd(),
-      softwareSourceCodeJsonLd(),
-      faqJsonLd(),
-    ],
+    "@graph": [organizationJsonLd(), webSiteJsonLd()],
   };
 }
 
-export function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
+/**
+ * The homepage's own graph: the product, its source, and the FAQ.
+ *
+ * Only on `/`. These used to ship from the root layout on every page, which
+ * put an `FAQPage` on /privacy and the docs — structured data describing
+ * questions those pages do not show, which Google treats as a spam signal
+ * rather than a rich result.
+ */
+export function homeJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [softwareApplicationJsonLd(), softwareSourceCodeJsonLd(), faqJsonLd()],
+  };
+}
+
+function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
   return {
     "@type": "BreadcrumbList",
     itemListElement: trail.map((crumb, index) => ({
@@ -316,13 +339,9 @@ export function techArticleJsonLd({
 }
 
 /**
- * The per-page graph for a documentation route: the article, its breadcrumb
- * trail, and the two nodes they point at.
- *
- * The organization and website nodes are repeated here rather than assumed,
- * because a crawler that lands directly on a docs page never sees the
- * homepage's script — and an `@id` reference to a node that is not in the
- * document resolves to nothing.
+ * The per-page graph for a documentation route: the article and its
+ * breadcrumb trail. The organization and website nodes they point at come
+ * from the root layout's graph, in the same document.
  */
 export function docJsonLd(
   article: Parameters<typeof techArticleJsonLd>[0],
@@ -330,11 +349,6 @@ export function docJsonLd(
 ) {
   return {
     "@context": "https://schema.org",
-    "@graph": [
-      organizationJsonLd(),
-      webSiteJsonLd(),
-      techArticleJsonLd(article),
-      breadcrumbJsonLd(trail),
-    ],
+    "@graph": [techArticleJsonLd(article), breadcrumbJsonLd(trail)],
   };
 }

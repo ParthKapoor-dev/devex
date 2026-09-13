@@ -10,6 +10,7 @@ import Pricing from "@/components/landing/Pricing";
 import Faq from "@/components/landing/Faq";
 import Footer from "@/components/landing/Footer";
 import { PauseOffscreen } from "@/components/landing/pause-offscreen";
+import { homeJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -30,6 +31,11 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <div className="relative isolate overflow-x-clip">
+      <script
+        type="application/ld+json"
+        // Built from static config, never user input.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd()) }}
+      />
       <Hero />
       <PauseOffscreen>
         <Marquee />

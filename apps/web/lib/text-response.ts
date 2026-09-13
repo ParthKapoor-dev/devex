@@ -20,6 +20,10 @@ export function textResponse(
       "Cache-Control":
         "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
       Link: linkHeaderValue(),
+      // Machine copies of pages that exist as HTML (/docs/x.md, /index.md,
+      // llms-full.txt). Agents read them either way; search engines should
+      // rank the HTML page instead of a duplicate.
+      "X-Robots-Tag": "noindex",
       // These documents vary by nothing, but saying so keeps a shared cache
       // from inheriting the app's RSC Vary and fragmenting the entry.
       Vary: "Accept",

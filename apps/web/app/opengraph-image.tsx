@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { ImageResponse } from "next/og";
 import { siteConfig } from "@/lib/site";
 import { token } from "@/lib/tokens";
@@ -8,6 +10,11 @@ import { token } from "@/lib/tokens";
 export const alt = siteConfig.title;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+/** Read once at build; Satori takes images as data URIs. */
+const LOGO = `data:image/png;base64,${readFileSync(
+  path.join(process.cwd(), "public", "logo.png"),
+).toString("base64")}`;
 
 /**
  * The default social card.
@@ -35,22 +42,10 @@ export default function OpenGraphImage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 14,
-              background: token.brand500,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 34,
-              fontWeight: 700,
-              color: token.brandFg,
-            }}
-          >
-            D
-          </div>
+          {/* The real mark, the same file the favicon uses — the card had a
+              placeholder "D" in an amber square. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOGO} width={56} height={56} alt="" />
           <div style={{ fontSize: 34, fontWeight: 700, color: token.ink }}>
             DevEx
           </div>
@@ -78,8 +73,8 @@ export default function OpenGraphImage() {
               maxWidth: 900,
             }}
           >
-            Containerised REPLs in your browser. Kubernetes-native and
-            self-hostable.
+            A code editor, a real terminal and a public URL — every workspace
+            its own container on Kubernetes.
           </div>
         </div>
 

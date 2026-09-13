@@ -40,7 +40,10 @@ export async function generateMetadata({
   if (!doc) return buildMetadata({ title: "Not found", noIndex: true });
 
   return buildMetadata({
-    title: doc.frontmatter.title,
+    // The docs root's own title is "Introduction", which says nothing in a
+    // search result; the result is for the documentation as a whole.
+    title: doc.slug.length ? doc.frontmatter.title : "Documentation",
+    titleSuffix: `${siteConfig.name} docs`,
     description: doc.frontmatter.description,
     path: doc.url,
     type: "article",

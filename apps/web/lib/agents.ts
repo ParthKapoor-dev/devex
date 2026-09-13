@@ -70,13 +70,10 @@ export const TRAINING_ONLY_CRAWLERS = [
  * authenticated and all of them gone within the day. The rest is either behind
  * a session or a redirect target with no content of its own.
  */
-export const DISALLOWED_PATHS = [
-  "/api/",
-  "/dashboard",
-  "/repl/",
-  "/login",
-  "/demo",
-] as const;
+// /login and /dashboard are not here on purpose: they carry `noindex`, and a
+// crawler that is disallowed from a URL never sees its noindex — so a linked,
+// disallowed page can still be indexed as a bare URL.
+export const DISALLOWED_PATHS = ["/api/", "/repl/", "/demo"] as const;
 
 /* -------------------------------------------------------------------------- */
 /* The brief                                                                  */

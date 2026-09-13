@@ -9,6 +9,7 @@ export const metadata: Metadata = buildMetadata({
   description:
     "Guides and reference for DevEx — cloud development environments on Kubernetes. Quickstart, architecture, templates and self-hosting.",
   path: "/docs",
+  titleSuffix: "DevEx docs",
 });
 
 export default function DocsLayout({
