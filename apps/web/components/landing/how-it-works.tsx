@@ -85,8 +85,8 @@ export default function HowItWorks() {
 
         {/* The demo: a card, sticky beside the steps on desktop. */}
         <aside id="demo" aria-label="Product demo" className="scroll-mt-28 lg:pt-[4.25rem]">
-          <div className="lg:sticky lg:top-28">
-            <div className="relative">
+          <div className="grid max-w-2xl items-center gap-x-8 gap-y-6 sm:grid-cols-[minmax(0,17rem)_1fr] lg:sticky lg:top-28 lg:block lg:max-w-none">
+            <div className="relative max-w-sm sm:max-w-none">
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 translate-x-2.5 translate-y-2.5 rounded-xl border border-brand/40 bg-[repeating-linear-gradient(135deg,color-mix(in_oklab,var(--color-brand)_14%,transparent)_0_1px,transparent_1px_9px)]"
@@ -118,17 +118,19 @@ export default function HowItWorks() {
               </VideoReveal>
             </div>
 
-            <p className="mt-6 text-sm leading-relaxed text-ink-muted">
-              A walkthrough from sign-in to a running server — creating a
-              workspace, editing, the terminal and a public URL.
-            </p>
-            <Link
-              href="/docs/architecture"
-              className="mt-3 inline-flex items-center gap-1 text-sm text-ink transition-colors duration-[--duration-fast] hover:text-brand"
-            >
-              Read the architecture
-              <ArrowUpRight className="size-3.5" aria-hidden="true" />
-            </Link>
+            <div className="lg:mt-6">
+              <p className="text-sm leading-relaxed text-ink-muted">
+                A walkthrough from sign-in to a running server — creating a
+                workspace, editing, the terminal and a public URL.
+              </p>
+              <Link
+                href="/docs/architecture"
+                className="mt-3 inline-flex items-center gap-1 text-sm text-ink transition-colors duration-[--duration-fast] hover:text-brand"
+              >
+                Read the architecture
+                <ArrowUpRight className="size-3.5" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </aside>
       </div>
