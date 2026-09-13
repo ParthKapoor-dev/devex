@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Github } from "lucide-react";
+import { ArrowUpRight, Github, MessagesSquare } from "lucide-react";
 import { DevExLogoDark } from "../icons/logo";
 import { siteConfig } from "@/lib/site";
 
@@ -43,6 +43,7 @@ const COLUMNS: {
     title: "Project",
     links: [
       { label: "Source", href: siteConfig.repo, external: true },
+      { label: "Discord", href: siteConfig.links.discord, external: true },
       { label: "Contributing", href: "/docs/contributing" },
       { label: "Book a call", href: siteConfig.links.call, external: true },
     ],
@@ -62,6 +63,9 @@ const COLUMNS: {
 const link =
   "rounded-xs text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
+const chip =
+  "inline-flex h-9 items-center gap-2 rounded-sm border border-edge px-3 font-mono text-xs text-ink-muted transition-colors duration-[--duration-fast] hover:border-brand/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+
 export default function Footer() {
   return (
     <footer className="relative z-10 mt-24 overflow-hidden border-t border-edge">
@@ -80,15 +84,16 @@ export default function Footer() {
               real terminal and files that persist — in a browser tab, or on
               your own cluster.
             </p>
-            <a
-              href={siteConfig.repo}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-6 inline-flex h-9 items-center gap-2 rounded-sm border border-edge px-3 font-mono text-xs text-ink-muted transition-colors duration-[--duration-fast] hover:border-brand/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              <Github className="size-3.5" aria-hidden="true" />
-              parthkapoor-dev/devex
-            </a>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <a href={siteConfig.repo} target="_blank" rel="noopener noreferrer" className={chip}>
+                <Github className="size-3.5" aria-hidden="true" />
+                parthkapoor-dev/devex
+              </a>
+              <a href={siteConfig.links.discord} target="_blank" rel="noopener noreferrer" className={chip}>
+                <MessagesSquare className="size-3.5" aria-hidden="true" />
+                join the discord
+              </a>
+            </div>
           </div>
 
           <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-4">

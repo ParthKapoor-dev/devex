@@ -61,6 +61,7 @@ export const siteConfig = {
     github: "https://github.com/parthkapoor-dev/devex",
     docs: "/docs",
     call: "https://cal.com/parthkapoor",
+    discord: "https://discord.gg/KNPrWpKSvy",
   },
 
   /** Used for `twitter:creator`; leave empty to omit the tag. */
