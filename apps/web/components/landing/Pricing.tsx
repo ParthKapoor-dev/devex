@@ -80,11 +80,24 @@ export default function Pricing({ n }: { n?: string } = {}) {
       lead="Every plan runs the same containers on the same cluster. What changes is how many you get at once, and how much you can ask of each."
       aside={<BillingToggle annual={annual} onChange={choose} />}
     >
-      <HairlineGrid className="grid-cols-1 md:grid-cols-3">
+      {/* Below `md` the plans are a swipeable row with the next card peeking
+          in, instead of three full-height cards stacked into a long scroll.
+          The row bleeds to the screen edges so a card can start at the
+          gutter and still scroll off the side. */}
+      <HairlineGrid
+        className={cn(
+          "md:grid-cols-3",
+          "max-md:-mx-6 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:gap-3 max-md:overflow-x-auto max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:px-6 max-md:pb-2 max-md:scroll-px-6",
+          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        )}
+      >
         {PLANS.map((plan) => (
           <PlanCell key={plan.name} plan={plan} annual={annual} />
         ))}
       </HairlineGrid>
+      <p aria-hidden="true" className="mt-3 font-mono text-[11px] text-ink-subtle md:hidden">
+        swipe for more plans →
+      </p>
 
       <p className="mt-6 text-sm text-ink-subtle">
         Self-hosting is free and always will be —{" "}
@@ -167,6 +180,7 @@ function PlanCell({ plan, annual }: { plan: Plan; annual: boolean }) {
     <div
       className={cn(
         "relative flex flex-col p-6 transition-colors duration-[--duration-fast]",
+        "max-md:w-[84%] max-md:max-w-sm max-md:shrink-0 max-md:snap-start max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-edge",
         plan.popular ? "bg-surface" : "bg-canvas hover:bg-surface/60",
       )}
     >
