@@ -16,9 +16,9 @@ import { absoluteUrl, siteConfig } from "@/lib/site";
  * would waste the time of anything that believed it.
  *
  * That is why the MCP server appears here as documentation and a source
- * repository rather than as a `serverUrl`. It is a real server — it just runs
- * inside a workspace over stdio, per session, so there is no public URL to
- * point at. When there is one, it gets a `serverUrl` and an
+ * repository rather than as a `serverUrl`. It is a real server — but an
+ * opt-in sidecar, reached per workspace at `/mcp/<repl-id>`, so there is no one
+ * public URL to point at. When there is one, it gets a `serverUrl` and an
  * `/.well-known/mcp/server-card.json`, and not before.
  *
  * Served through `app/well-known/*` and rewritten from `/.well-known/*` in
@@ -62,11 +62,11 @@ export function ardCatalog() {
         type: "mcp-server",
         name: "DevEx MCP server",
         description:
-          "Exposes a live workspace over the Model Context Protocol as listFiles, readFile, writeFile and runCommand, so an assistant can execute what it writes. Runs inside the workspace over stdio — there is no hosted endpoint, so run it yourself from the source below.",
-        transport: "stdio",
+          "An optional sidecar beside a workspace that lets an assistant read its files over the Model Context Protocol. Tools today: Ping and read_file. Streamable HTTP at /mcp/<repl-id> on the workspace's host, when the operator enables it.",
+        transport: "streamable-http",
         documentation: absoluteUrl("/docs/mcp"),
         source: `${siteConfig.repo}/tree/main/apps/mcp`,
-        tools: ["listFiles", "readFile", "writeFile", "runCommand"],
+        tools: ["Ping", "read_file"],
       },
     ],
     contact: { name: siteConfig.author.name, url: siteConfig.author.url },
@@ -176,12 +176,12 @@ export function agentSkillsIndex() {
       {
         name: "run-code-in-a-workspace",
         description:
-          "Read and write files and run shell commands inside a live workspace, over the Model Context Protocol.",
-        transport: "stdio",
-        authentication: "runs inside the workspace",
+          "Read files inside a live workspace over the Model Context Protocol. Writing files and running commands are planned.",
+        transport: "streamable-http",
+        authentication: "none — the sidecar is experimental and opt-in",
         documentation: absoluteUrl("/docs/mcp"),
         source: `${siteConfig.repo}/tree/main/apps/mcp`,
-        tools: ["listFiles", "readFile", "writeFile", "runCommand"],
+        tools: ["Ping", "read_file"],
       },
     ],
     surfaces: AGENT_SURFACES.map(({ path, title, type }) => ({

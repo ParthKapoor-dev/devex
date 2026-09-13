@@ -141,7 +141,7 @@ export const FAQ: readonly { question: string; answer: string }[] = [
   {
     question: "Can an AI agent use a DevEx workspace?",
     answer:
-      "Yes. The DevEx MCP server exposes a live workspace over the Model Context Protocol with listFiles, readFile, writeFile and runCommand tools, so an assistant can run the code it writes and read the error instead of guessing.",
+      "Partly, today. An optional MCP server can run beside a workspace, so an assistant reads the same files you are editing over the Model Context Protocol. It exposes read_file now; writing files and running commands are planned.",
   },
   {
     question: "Can I self-host DevEx?",
