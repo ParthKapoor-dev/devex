@@ -38,7 +38,7 @@ export const replCommand: Command = {
           const repls = await context.getRepls();
           if (repls.length >= 2) {
             throw new Error(
-              "Free Account Limit Expired! go to /pricing to learn more",
+              "Free Account Limit Expired! see the pricing section on the homepage (/#pricing)",
             );
           }
 

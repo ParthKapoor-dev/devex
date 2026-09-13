@@ -48,6 +48,14 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // `/pricing` was its own page; the plans now live only on the landing
+        // page. Old links and search results land on that section instead of
+        // a 404. The fragment survives the redirect in every browser.
+        source: "/pricing",
+        destination: "/#pricing",
+        permanent: true,
+      },
+      {
         // `/demo` used to be a client component that called `router.push` with
         // a YouTube *embed* URL — which the Next router cannot navigate to, so
         // the page said "Redirecting to yt demo" and then sat there. Nothing

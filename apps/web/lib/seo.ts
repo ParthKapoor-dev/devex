@@ -199,7 +199,7 @@ export function softwareApplicationJsonLd() {
       price: plan.price.toFixed(2),
       priceCurrency: "USD",
       category: plan.price === 0 ? "free" : "subscription",
-      url: absoluteUrl("/pricing"),
+      url: absoluteUrl("/#pricing"),
       availability: "https://schema.org/InStock",
       ...(plan.price > 0
         ? {

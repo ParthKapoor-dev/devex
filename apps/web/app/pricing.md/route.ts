@@ -6,7 +6,7 @@ import { textResponse } from "@/lib/text-response";
  *
  * An agent comparing products should not have to parse a marketing page with
  * an animated price counter in it to find out that the free tier is two
- * workspaces. Same table as the `/pricing` route; see lib/pricing.ts.
+ * workspaces. Same table as the landing page's `/#pricing`; see lib/pricing.ts.
  */
 export const dynamic = "force-static";
 

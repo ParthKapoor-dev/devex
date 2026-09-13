@@ -3,9 +3,9 @@ import { siteConfig } from "@/lib/site";
 /**
  * The plans, in one place.
  *
- * Four surfaces quote these numbers now — the landing section, the `/pricing`
- * route, `/pricing.md`, and the `Offer` nodes in the JSON-LD — and three of
- * them are read by machines that will happily repeat a stale figure forever.
+ * Three surfaces quote these numbers — the landing section (`/#pricing`),
+ * `/pricing.md`, and the `Offer` nodes in the JSON-LD — and two of them are
+ * read by machines that will happily repeat a stale figure forever.
  * So the table lives here and nobody retypes it.
  *
  * The spec rows are deliberately the Kubernetes units, because that is what

@@ -24,7 +24,7 @@ import AppBackdrop from "@/components/backgrounds/app-backdrop";
 const ROUTES: { path: string; note: string; external?: boolean }[] = [
   { path: "/", note: "the landing page" },
   { path: "/docs", note: "guides and reference" },
-  { path: "/pricing", note: "plans and limits" },
+  { path: "/#pricing", note: "plans and limits" },
   { path: "/dashboard", note: "your workspaces" },
   { path: "/ping", note: "live status of the cluster" },
 ];

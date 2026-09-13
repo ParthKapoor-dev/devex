@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
  * The section eyebrow: an amber index chip and an uppercase mono label.
  *
  * The index is the section's position on the landing page, so it only means
- * something there — pages that reuse a section (e.g. /pricing) omit `n`.
+ * something there — a section reused elsewhere omits `n`.
  */
 export function Eyebrow({
   n,

@@ -25,7 +25,9 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 
 const PUBLIC_NAV = [
   { name: "Docs", link: "/docs" },
-  { name: "Pricing", link: "/pricing" },
+  // The plans live on the landing page, so this scrolls there rather than
+  // opening a page of their own.
+  { name: "Pricing", link: "/#pricing" },
 ];
 
 const AUTHENTICATED_NAV = [

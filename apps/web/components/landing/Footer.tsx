@@ -24,7 +24,7 @@ const COLUMNS: {
     links: [
       { label: "Start a workspace", href: "/login" },
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Pricing", href: "/pricing" },
+      { label: "Pricing", href: "/#pricing" },
       { label: "How it works", href: "/#how-it-works" },
       { label: "Status", href: "/ping" },
     ],
