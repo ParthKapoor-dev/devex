@@ -32,7 +32,7 @@ const CELLS = [
   {
     icon: Bot,
     title: "Give an AI agent a real machine",
-    body: "An MCP server runs beside each workspace, so an assistant can read the same files you are working on instead of guessing at them. Early, and growing.",
+    body: "An optional MCP server can run beside each workspace, so an assistant reads the same files you are working on instead of guessing at them. Early, and growing.",
     // The server's live tools today are Ping and read_file; show the real one.
     code: [
       '→ tools/call read_file {"path":"src/index.ts"}',
@@ -56,7 +56,7 @@ export default function YoursToRun() {
         </>
       }
     >
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         {CELLS.map(({ icon: Icon, title, body, code, href, cta }) => (
           <article
             key={title}
@@ -65,7 +65,7 @@ export default function YoursToRun() {
             <Icon className="size-5 text-brand" aria-hidden="true" />
             <h3 className="mt-5 font-display text-xl font-medium tracking-[-0.02em] text-ink">{title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>
-            <pre className="mt-6 overflow-x-auto rounded-md border border-term-edge bg-term-bg px-4 py-3 font-mono text-xs leading-relaxed text-term-ink">
+            <pre className="mt-6 overflow-x-auto rounded-md border border-term-edge bg-term-bg px-4 py-3 font-mono text-[11px] leading-relaxed text-term-ink sm:text-xs">
               {code.join("\n")}
             </pre>
             <Link

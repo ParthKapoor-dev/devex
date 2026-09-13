@@ -1,92 +1,195 @@
 ---
 title: MCP server
-description: Give an AI agent a real machine. The DevEx MCP server exposes REPL files and terminals as Model Context Protocol tools, so assistants can run and verify code instead of guessing.
+description: An optional sidecar that exposes a REPL's workspace to AI agents over Model Context Protocol. Today it can read files; write and terminal tools are planned.
 section: Guides
 order: 1
 ---
 
-Most AI coding tools write code they cannot run. The DevEx MCP server closes
-that loop: it exposes a live REPL — filesystem and shell — as
-[Model Context Protocol](https://modelcontextprotocol.io) tools, so an assistant
-can execute what it wrote, read the error, and fix it.
+The DevEx MCP server lets an AI assistant look inside a running REPL through
+[Model Context Protocol](https://modelcontextprotocol.io). It is early: today it
+exposes two tools, and the only one that touches the workspace is `read_file`.
+Writing files and running commands are planned, not shipped.
 
-<Callout type="info" title="Why a container and not a sandbox API">
-  Because the agent gets the same environment you do. If it needs to
-  `npm install` a dependency, run a migration, or start a server and curl it,
-  it can — inside a namespace that is destroyed when the REPL stops.
+This page describes what the code does now.
+
+## How it works
+
+The server is a small Go binary (`apps/mcp`) built into the image
+`ghcr.io/parthkapoor-dev/devex/mcp:latest`. It does not run on its own — core
+adds it as a **sidecar container** to a REPL pod, next to the runner.
+
+| Piece | Detail |
+| --- | --- |
+| Enabled by | `ENABLE_MCP_SIDECAR=true` in core's environment. Default is `false`. |
+| Container | `mcp-server` in the REPL's Deployment |
+| Transport | Streamable HTTP on port `8080`, served at every path |
+| Workspace access | gRPC to the runner at `:50051`, inside the same pod |
+| Public URL | `https://<RUNNER_CLUSTER_IP>/mcp/<repl-id>` |
+
+When a tool is called, the server makes a gRPC `FetchContent` call to the
+runner's `ReplService`. The runner reads the file from `/workspaces` — the same
+volume the editor and terminal use — and returns its contents.
+
+For the public URL, core adds a `/mcp/<repl-id>` path to the REPL's Ingress,
+pointing at service port `8080`, and a Traefik `stripPrefix` middleware removes
+that prefix before the request reaches the server.
+
+<Callout type="info" title="The sidecar flag is read when a REPL starts">
+  Core builds the pod spec at start time. Setting `ENABLE_MCP_SIDECAR` affects
+  REPLs started afterwards; a REPL that is already running has no MCP container
+  until you stop and start it again.
 </Callout>
 
-## What it exposes
+## Tools
 
-The server surfaces the runner's capabilities as tools:
+| Tool | Arguments | Returns |
+| --- | --- | --- |
+| `Ping` | none | The text `hello world`. Proves the MCP server is up; it does not touch the runner. |
+| `read_file` | `path` (string, required) — relative to the workspace root | The file's contents as text |
 
-| Tool | Purpose |
-| --- | --- |
-| `listFiles` | Walk the REPL's file tree |
-| `readFile` | Read a file's contents |
-| `writeFile` | Create or overwrite a file |
-| `runCommand` | Execute a command in the REPL shell and capture output |
+`read_file` resolves `path` as `/workspaces/<path>`. If the runner cannot read
+the file, the tool returns an error result (`isError: true`) with the reason in
+its text, rather than failing the request.
 
-Together these are enough for an agent to run the full edit → execute → read
-error → fix loop without a human relaying output.
+<Callout type="warning" title="The endpoint has no authentication">
+  Anyone who knows a REPL's ID can reach `/mcp/<repl-id>` and call its tools.
+  Treat the sidecar as experimental: leave it off unless you accept that, run
+  it only on clusters you control, and never keep secrets in a REPL that has
+  it enabled.
+</Callout>
 
-## Testing with the Inspector
+## Running it locally
 
-The MCP Inspector is the fastest way to confirm the server is wired up before
-pointing a real assistant at it.
+The MCP server needs a runner to talk to, and both need the generated gRPC
+code in `packages/pb`.
 
 <Steps>
 
-### Start your MCP server
+### Generate the protobuf code
 
-Either inside a runner pod, or standalone against a running REPL.
-
-### Run the Inspector
+From the repository root. This needs `protoc`, `protoc-gen-go` and
+`protoc-gen-go-grpc` on your `PATH`.
 
 ```bash
-npx @modelcontextprotocol/inspector node path/to/devex-mcp-server
+make generate-proto
 ```
 
-This starts the Inspector UI on port `6274` and proxies tool calls to your
-server on `6277`.
+### Start the runner
 
-### Open the UI
+```bash
+cd apps/runner
+go run ./cmd/main.go
+```
 
-Visit [http://localhost:6274](http://localhost:6274). You get the tool list, a
-form to invoke each tool by hand, and a live log of requests and responses.
+It serves HTTP on `:8081` and gRPC on `:50051`. `read_file` reads from
+`/workspaces` on your machine, so put the files you want to test there.
 
-### Invoke a tool
+### Start the MCP server
 
-Call `listFiles` first — it is the cheapest round trip that proves the server
-can reach the REPL. If it returns a tree, everything downstream will work.
+```bash
+cd apps/mcp
+go run ./cmd/main.go
+```
+
+It listens on `:8080` and dials the runner at `localhost:50051`. Core also
+defaults to `8080`, so stop core first if it is running locally.
 
 </Steps>
 
+## Testing with the Inspector
+
+The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
+connects to HTTP servers directly — there is no command to wrap.
+
+<Steps>
+
+### Start the Inspector
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+This opens the UI on port `6274`, with its proxy on `6277`.
+
+### Connect
+
+Visit [http://localhost:6274](http://localhost:6274). Set **Transport Type**
+to **Streamable HTTP** and the URL to `http://localhost:8080` — or, for a
+deployed REPL, `https://repl.example.com/mcp/<repl-id>`. Click **Connect**.
+
+### Call Ping, then read_file
+
+`Ping` confirms the MCP server answers. `read_file` with a path that exists
+confirms the gRPC hop to the runner works too.
+
+</Steps>
+
+The Inspector also has a CLI mode, useful for scripting the same checks:
+
+```bash
+npx @modelcontextprotocol/inspector --cli http://localhost:8080 \
+  --transport http --method tools/list
+
+npx @modelcontextprotocol/inspector --cli http://localhost:8080 \
+  --transport http --method tools/call \
+  --tool-name read_file --tool-arg path=README.md
+```
+
 ## Connecting an assistant
 
-Once the Inspector shows tools responding, any MCP-capable client can connect —
-Claude Desktop, Cursor, or anything else that speaks the protocol. Point it at
-the same server command the Inspector wrapped.
+Any MCP client that supports remote servers over Streamable HTTP can connect to
+the REPL's URL. With Claude Code:
 
-<Callout type="warning" title="An agent with runCommand can do anything you can">
-  `runCommand` is a shell. Inside a REPL that is the point — the blast radius is
-  one disposable container. Do not expose the same server against anything you
-  would not hand a stranger a terminal on.
-</Callout>
+```bash
+claude mcp add --transport http devex https://repl.example.com/mcp/<repl-id>
+```
+
+Clients that only launch local stdio servers need an HTTP bridge in between.
+
+The URL lives exactly as long as the REPL. Stopping it deletes the Deployment,
+Service, Ingress and middleware, so the endpoint disappears with them. The
+runner also asks core to stop a REPL after four minutes with no editor
+WebSocket connected, and MCP requests do not reset that timer.
+
+## Planned tools
+
+These tools are written out in `apps/mcp/cmd/server/api.go` but commented out.
+They are **not available** in the current image.
+
+| Tool | Arguments |
+| --- | --- |
+| `write_file` | `path`, `content` |
+| `list_files` | `path` (empty for the workspace root) |
+| `create_file` | `path` |
+| `create_folder` | `path` |
+| `delete` | `path` |
+| `rename` | `old_path`, `new_path` |
+| `copy` | `source_path`, `target_path` |
+| `execute_command` | `command`, `working_dir` (optional), `timeout` in seconds (default `30`) |
+| `create_terminal` | `name` (optional) |
+| `send_to_terminal` | `session_id`, `input` |
+| `close_terminal` | `session_id` |
+
+The runner's gRPC service implements only `FetchContent` today, so each of
+these needs a matching RPC on the runner before it can be enabled.
 
 ## Troubleshooting
 
-**Tools list is empty.** The server started but registered nothing. Check that
-it reached the runner's WebSocket — an unreachable runner usually fails silently
-into an empty tool set.
+**404 on `/mcp/<repl-id>`.** The REPL was started without the sidecar. Set
+`ENABLE_MCP_SIDECAR=true` on core, then stop and start the REPL.
 
-**`runCommand` hangs.** The command is waiting on input, or it started a
-long-running process. Tools expect commands that terminate; start servers in an
-explicit background form and poll instead.
+**`read_file` returns `Failed to read file: ...`.** The call reached the MCP
+server but the runner did not answer it or could not read the path. Check the
+runner is listening on `:50051`, and that `path` is relative to `/workspaces`
+— `src/index.js`, not `/workspaces/src/index.js`.
 
-**Connection refused on 6277.** The Inspector proxy could not start your server.
-Run the command that follows `npx @modelcontextprotocol/inspector` on its own
-first — the failure is almost always in that command, not the Inspector.
+**The Inspector cannot connect.** Check the transport is Streamable HTTP, not
+STDIO or SSE, and that the REPL is still running.
+
+**The REPL stopped while an agent was using it.** MCP calls do not count as
+activity. After four minutes without an editor WebSocket connection the
+runner asks core to stop the REPL, so keep it open in a browser tab while an
+agent works in it.
 
 ## Learn more
 
