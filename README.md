@@ -17,6 +17,8 @@
   &nbsp;·&nbsp;
   <a href="https://devx.parthkapoor.me/docs">Docs</a>
   &nbsp;·&nbsp;
+  <a href="https://discord.gg/KNPrWpKSvy">Discord</a>
+  &nbsp;·&nbsp;
   <a href="https://www.youtube.com/watch?v=Tlck20bJeFE">Demo video</a>
   &nbsp;·&nbsp;
   <a href="https://www.producthunt.com/products/devex">Product Hunt</a>
@@ -25,6 +27,7 @@
 <p align="center">
   <a href="https://github.com/ParthKapoor-dev/devex/actions/workflows/ci.yaml"><img alt="CI" src="https://github.com/ParthKapoor-dev/devex/actions/workflows/ci.yaml/badge.svg?branch=develop" /></a>
   <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/ParthKapoor-dev/devex?color=f59e0b" /></a>
+  <a href="https://discord.gg/KNPrWpKSvy"><img alt="Discord" src="https://img.shields.io/badge/chat-discord-5865F2?logo=discord&logoColor=white" /></a>
   <a href="https://github.com/ParthKapoor-dev/devex/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/ParthKapoor-dev/devex?color=f59e0b" /></a>
 </p>
 
