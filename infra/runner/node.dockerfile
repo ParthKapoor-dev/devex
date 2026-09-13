@@ -1,3 +1,10 @@
+# The runner binary comes from the runner-service image built from the SAME
+# commit. The runner pipeline builds and pushes runner-service:<sha> first and
+# then passes that sha here as RUNNER_IMAGE_TAG. A plain local `docker build`
+# falls back to :latest.
+ARG RUNNER_IMAGE_TAG=latest
+FROM ghcr.io/parthkapoor-dev/devex/runner-service:${RUNNER_IMAGE_TAG} AS runner
+
 # Base Node.js image
 FROM node:20-slim
 
@@ -25,10 +32,8 @@ RUN npm install -g nodemon typescript ts-node
 RUN curl -sS https://starship.rs/install.sh | sh -s -- -y && \
     echo 'eval "$(starship init bash)"' >> /root/.bashrc
 
-# Copy the compiled Go binary from a *previously built* runner image.
-# This line will be executed after 'docker build' for this Dockerfile.
-# The `runner-builder` image needs to exist locally or be pulled from a registry.
-COPY --from=ghcr.io/parthkapoor-dev/devex/runner-service:latest /app/main /app/runner
+# Copy the compiled Go binary from the runner stage above.
+COPY --from=runner /app/main /app/runner
 
 # Set permissions for the copied binary
 RUN chmod +x /app/runner
