@@ -12,10 +12,39 @@ import { useParams } from "next/navigation";
 import Sandbox from "@/components/sandbox/index";
 import { Button } from "@/components/ui/button";
 import { FileTreeAction, Tree } from "@/components/sandbox/FileTree";
+import {
+  isSameOrInside,
+  joinPath,
+  parentOf,
+  rebasePath,
+} from "@/components/sandbox/FileTree/paths";
 import { toast } from "sonner";
 import { TerminalRef } from "@/components/sandbox/Terminal";
 import { ProtectedRoute } from "@/components/Auth/ProtectedRoute";
 import { CoreService } from "@/lib/core";
+
+const WELCOME = `// Welcome to Devex: your Cloud IDE Editor`;
+
+/** Every folder from the root down to `path`'s parent: `a/b/c` → "", a, a/b. */
+function ancestorsOf(path: string) {
+  const dirs = [""];
+  let cursor = "";
+  for (const segment of parentOf(path).split("/").filter(Boolean)) {
+    cursor = joinPath(cursor, segment);
+    dirs.push(cursor);
+  }
+  return dirs;
+}
+
+/** The tree without `path` and anything cached beneath it. */
+function pruneTree(tree: Tree | null, path: string): Tree | null {
+  if (!tree) return tree;
+  const next: Tree = {};
+  for (const key of Object.keys(tree)) {
+    if (key === "" || !isSameOrInside(key, path)) next[key] = tree[key];
+  }
+  return next;
+}
 
 export default function ReplPage() {
   const { slug } = useParams();
@@ -57,9 +86,7 @@ export default function ReplPage() {
 
   // sandbox states
   const [tree, setTree] = useState<Tree | null>(null);
-  const [code, setCode] = useState<string>(
-    `// Welcome to Devex: your Cloud IDE Editor`,
-  );
+  const [code, setCode] = useState<string>(WELCOME);
   const [fileType, setFileType] = useState<string>("js");
   const [filePath, setFilePath] = useState<string>("");
 
@@ -132,89 +159,75 @@ export default function ReplPage() {
       }
     });
 
-    // File operation response handlers
+    // File operation response handlers.
+    //
+    // Successes are quiet: the tree changing in front of you is the
+    // confirmation, and a toast for every new file buried the ones that
+    // mattered. Failures still toast, with the runner's reason.
+    const refreshDirs = (dirs: string[]) => {
+      for (const dir of new Set(dirs)) emit("fetchDir", { Dir: dir });
+    };
+
     on("createFileResponse", (data) => {
-      console.log("📄 Create file response:", data);
       if (data.error) {
-        toast.error(`Failed to create file: ${data.error}`);
-      } else {
-        toast.success(`File created: ${data.path}`);
-        // Refresh the parent directory
-        const parentPath = data.path.split("/").slice(0, -1).join("/");
-        emit("fetchDir", { Dir: parentPath });
+        toast.error(`Couldn't create the file: ${data.error}`);
+        return;
       }
+      // Every folder on the way: `src/lib/a.ts` may have created `src/lib`.
+      refreshDirs(ancestorsOf(data.path));
+      // Open what you just made, as every editor does.
+      emit("fetchContent", { path: data.path });
     });
 
     on("createFolderResponse", (data) => {
-      console.log("📁 Create folder response:", data);
       if (data.error) {
-        toast.error(`Failed to create folder: ${data.error}`);
-      } else {
-        toast.success(`Folder created: ${data.path}`);
-        // Refresh the parent directory
-        const parentPath = data.path.split("/").slice(0, -1).join("/");
-        emit("fetchDir", { Dir: parentPath });
+        toast.error(`Couldn't create the folder: ${data.error}`);
+        return;
       }
+      refreshDirs([...ancestorsOf(data.path), data.path]);
     });
 
     on("deleteResponse", (data) => {
-      console.log("🗑️ Delete response:", data);
       if (data.error) {
-        toast.error(`Failed to delete: ${data.error}`);
-      } else {
-        toast.success(`Deleted: ${data.path}`);
-        // Refresh the parent directory
-        const parentPath = data.path.split("/").slice(0, -1).join("/");
-        emit("fetchDir", { Dir: parentPath });
+        toast.error(`Couldn't delete ${data.path ?? "that"}: ${data.error}`);
+        return;
+      }
+      setTree((prev) => pruneTree(prev, data.path));
+      refreshDirs([parentOf(data.path)]);
+      // Deleting the open file (or a folder holding it) left the editor
+      // pointed at a path that no longer existed, and the next save failed.
+      if (filePathRef.current && isSameOrInside(filePathRef.current, data.path)) {
+        setFilePath("");
+        setCode(WELCOME);
       }
     });
 
+    // Rename and move are the same runner event.
     on("renameResponse", (data) => {
-      console.log("✏️ Rename response:", data);
       if (data.error) {
-        toast.error(`Failed to rename: ${data.error}`);
-      } else {
-        toast.success(`Renamed: ${data.oldPath} → ${data.newPath}`);
-        // Refresh the parent directory
-        const parentPath = data.newPath.split("/").slice(0, -1).join("/");
-        emit("fetchDir", { Dir: parentPath });
+        toast.error(`Couldn't move or rename: ${data.error}`);
+        return;
+      }
+      setTree((prev) => pruneTree(prev, data.oldPath));
+      // Both folders: a move used to refresh only the destination, so the
+      // item stayed listed where it came from until a manual refresh.
+      refreshDirs([parentOf(data.oldPath), parentOf(data.newPath)]);
+      // Keep the editor on the file it has open, under its new path.
+      // Otherwise every later save was sent to the old path and failed.
+      const open = filePathRef.current;
+      if (open && isSameOrInside(open, data.oldPath)) {
+        const moved = rebasePath(open, data.oldPath, data.newPath);
+        setFilePath(moved);
+        setFileType(moved.split(".").pop()?.toLowerCase() || "txt");
       }
     });
 
     on("copyResponse", (data) => {
-      console.log("📋 Copy response:", data);
       if (data.error) {
-        toast.error(`Failed to copy: ${data.error}`);
-      } else {
-        toast.success(`Copied: ${data.sourcePath} → ${data.targetPath}`);
-        // Refresh the target directory
-        const targetDir = data.targetPath.split("/").slice(0, -1).join("/");
-        emit("fetchDir", { Dir: targetDir });
+        toast.error(`Couldn't copy: ${data.error}`);
+        return;
       }
-    });
-
-    on("cutResponse", (data) => {
-      console.log("✂️ Cut response:", data);
-      if (data.error) {
-        toast.error(`Failed to cut: ${data.error}`);
-      } else {
-        toast.success(`Cut: ${data.sourcePath}`);
-        // Refresh the source directory
-        const sourceDir = data.sourcePath.split("/").slice(0, -1).join("/");
-        emit("fetchDir", { Dir: sourceDir });
-      }
-    });
-
-    on("pasteResponse", (data) => {
-      console.log("📋 Paste response:", data);
-      if (data.error) {
-        toast.error(`Failed to paste: ${data.error}`);
-      } else {
-        toast.success(`Pasted to: ${data.targetPath}`);
-        // Refresh the target directory
-        const targetDir = data.targetPath.split("/").slice(0, -1).join("/");
-        emit("fetchDir", { Dir: targetDir });
-      }
+      refreshDirs([parentOf(data.targetPath)]);
     });
 
     // Terminal response handlers
@@ -265,8 +278,6 @@ export default function ReplPage() {
       off("deleteResponse");
       off("renameResponse");
       off("copyResponse");
-      off("cutResponse");
-      off("pasteResponse");
       off("terminalResponse");
       off("terminalConnected");
       off("terminalClosed");
@@ -306,55 +317,37 @@ export default function ReplPage() {
 
   const handleFileTreeAction = useCallback(
     (action: FileTreeAction) => {
-    switch (action.type) {
-      case "create-file":
-        emit("createFile", {
-          path: `${action.path}/${action.newName}`,
-        });
-        break;
+      switch (action.type) {
+        case "create-file":
+          emit("createFile", { path: joinPath(action.path, action.newName) });
+          break;
 
-      case "create-folder":
-        emit("createFolder", {
-          path: `${action.path}/${action.newName}`,
-        });
-        break;
+        case "create-folder":
+          emit("createFolder", { path: joinPath(action.path, action.newName) });
+          break;
 
-      case "rename":
-        emit("rename", {
-          oldPath: action.path,
-          newPath: `${action.path.split("/").slice(0, -1).join("/")}/${action.newName}`,
-        });
-        break;
+        case "rename":
+          emit("rename", {
+            oldPath: action.path,
+            newPath: joinPath(parentOf(action.path), action.newName),
+          });
+          break;
 
-      case "delete":
-        emit("delete", {
-          path: action.path,
-        });
-        break;
+        case "move":
+          emit("rename", { oldPath: action.path, newPath: action.targetPath });
+          break;
 
-      case "copy":
-        emit("copy", {
-          sourcePath: action.path,
-          targetPath: action.targetPath,
-        });
-        break;
+        case "copy":
+          emit("copy", {
+            sourcePath: action.path,
+            targetPath: action.targetPath,
+          });
+          break;
 
-      case "cut":
-        emit("cut", {
-          sourcePath: action.path,
-        });
-        break;
-
-      case "paste":
-        emit("paste", {
-          targetPath: action.targetPath,
-        });
-        break;
-
-      default:
-        console.warn(`Unknown action type: ${action.type}`);
-        break;
-    }
+        case "delete":
+          emit("delete", { path: action.path });
+          break;
+      }
     },
     [emit],
   );
