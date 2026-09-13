@@ -90,6 +90,10 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
 
   return (
     <motion.div
+      // Start at the target values: without this, the first frame animates
+      // `max-width` from the CSS default `none`, which cannot be tweened and
+      // made the bar jump (and warn) on every page load.
+      initial={false}
       animate={{
         maxWidth: visible ? PILL_WIDTH : REST_WIDTH,
         y: visible ? 12 : 0,

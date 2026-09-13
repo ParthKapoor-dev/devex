@@ -40,10 +40,9 @@ export default function Header() {
   const [visible, setVisible] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { scrollY } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"],
-  });
+  // Page scroll. A `target` here only made motion measure a `fixed` element
+  // and warn about its position; the bar just needs how far the page moved.
+  const { scrollY } = useScroll();
 
   useMotionValueEvent(scrollY, "change", (latest) => setVisible(latest > 100));
 
