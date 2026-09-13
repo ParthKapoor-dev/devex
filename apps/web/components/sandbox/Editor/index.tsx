@@ -27,19 +27,21 @@ import React, {
 import { diff_match_patch } from "diff-match-patch";
 import EditorSettingsPopup from "./settings";
 import { Button } from "@/components/ui/button";
+import { mono } from "@/app/fonts";
+import { EDITOR_THEME_NAME, editorTheme } from "./theme";
 
 // Dynamically import Monaco Editor (SSR disabled)
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-        <p className="text-emerald-400 font-medium">Loading Editor...</p>
-      </div>
+    <div className="flex h-full w-full items-center justify-center bg-term-bg">
+      <p className="label text-ink-subtle">Loading editor</p>
     </div>
   ),
 });
+
+/** Idle window before a run of keystrokes is diffed and sent. */
+const DIFF_DEBOUNCE_MS = 300;
 
 interface Theme {
   value: string;
@@ -53,6 +55,7 @@ const Editor = ({
   sendDiff,
   showSettings,
   setShowSettings,
+  onDirtyChange,
 }: {
   code: string;
   setCode: React.Dispatch<React.SetStateAction<string>>;
@@ -60,11 +63,22 @@ const Editor = ({
   sendDiff: (patch: string) => void;
   showSettings: boolean;
   setShowSettings: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * Fired only when the pending/synced state actually flips, never per
+   * keystroke — the tab strip's dot needs two events per typing burst, and
+   * this component must not re-render Monaco for anything less.
+   */
+  onDirtyChange?: (dirty: boolean) => void;
 }) => {
   const editorRef = useRef<any>(null);
   const [language, setLanguage] = useState<string>("javascript");
-  const [theme, setTheme] = useState<string>("vs-dark");
+  const [theme, setTheme] = useState<string>(EDITOR_THEME_NAME);
   const prevCodeRef = useRef<string>(code);
+  /** The buffer as of the last keystroke, whether or not it has synced. */
+  const latestCodeRef = useRef<string>(code);
+  const pendingFlushRef = useRef<number | null>(null);
+  /** Mirrors whether a flush is queued, so the callback fires on edges only. */
+  const dirtyRef = useRef(false);
   const [fontSize, setFontSize] = useState<number>(14);
   const [editor, setEditor] = useState<any>(null);
   const [wordWrap, setWordWrap] = useState<"off" | "on" | "wordWrapColumn">(
@@ -84,37 +98,22 @@ const Editor = ({
 
   // Update Prev Code Ref on code change
   useEffect(() => {
-    if (prevCodeRef.current != code) prevCodeRef.current = code;
+    if (prevCodeRef.current != code) {
+      prevCodeRef.current = code;
+      latestCodeRef.current = code;
+    }
   }, [code]);
 
-  // Supported languages and themes
-  const languages = useMemo(
-    () => [
-      "javascript",
-      "typescript",
-      "python",
-      "java",
-      "cpp",
-      "c",
-      "csharp",
-      "php",
-      "ruby",
-      "go",
-      "rust",
-      "swift",
-      "kotlin",
-      "html",
-      "css",
-      "json",
-    ],
-    [],
-  );
-
+  // An eighteen-entry `languages` list used to live here. It was passed to the
+  // settings panel, destructured there, and never rendered — the editor takes
+  // its language from the open file's extension, which is the only correct
+  // source for it.
   const themes: Theme[] = useMemo(
     () => [
-      { value: "vs", label: "Light" },
+      { value: EDITOR_THEME_NAME, label: "DevEx" },
       { value: "vs-dark", label: "Dark" },
-      { value: "hc-black", label: "High Contrast Dark" },
+      { value: "vs", label: "Light" },
+      { value: "hc-black", label: "High Contrast" },
     ],
     [],
   );
@@ -123,7 +122,8 @@ const Editor = ({
   const editorOptions: editor.IStandaloneEditorConstructionOptions = useMemo(
     () => ({
       fontSize,
-      fontFamily: "Jetbrains mono",
+      // next/font hashes the family name, so it has to come from the loader.
+      fontFamily: mono.style.fontFamily,
       wordWrap,
       minimap: { enabled: minimap },
       automaticLayout: true,
@@ -139,10 +139,35 @@ const Editor = ({
     [fontSize, wordWrap, minimap],
   );
 
-  // Handlers
-  function handleCodeChange(newValue: string) {
-    const currentCode = (newValue || "").replace(/\r\n/g, "\n");
+  /**
+   * Diff the buffer against the last synced copy and ship the patch.
+   *
+   * `diff_match_patch` is O(n*m) on the two texts, so running it inline on
+   * every keystroke made typing cost grow with file length — on a large file
+   * that is a diff of the whole document per character, on the main thread,
+   * between the keypress and the glyph appearing.
+   *
+   * Coalescing on a short idle window collapses a burst of typing into one
+   * diff and one socket frame without the user ever noticing a delay. The
+   * patch is still computed against `prevCodeRef`, so a coalesced run
+   * produces exactly the patch the per-keystroke runs would have summed to.
+   */
+  const markDirty = useCallback(
+    (dirty: boolean) => {
+      if (dirtyRef.current === dirty) return;
+      dirtyRef.current = dirty;
+      onDirtyChange?.(dirty);
+    },
+    [onDirtyChange],
+  );
+
+  const flushDiff = useCallback(() => {
+    pendingFlushRef.current = null;
+    markDirty(false);
+
+    const currentCode = latestCodeRef.current.replace(/\r\n/g, "\n");
     const prevCode = prevCodeRef.current.replace(/\r\n/g, "\n");
+    if (currentCode === prevCode) return;
 
     const dmp = new diff_match_patch();
     const diffs = dmp.diff_main(prevCode, currentCode);
@@ -153,7 +178,28 @@ const Editor = ({
       sendDiff(patchText);
       prevCodeRef.current = currentCode;
     }
+  }, [sendDiff, markDirty]);
+
+  function handleCodeChange(newValue: string) {
+    latestCodeRef.current = newValue || "";
+    markDirty(true);
+
+    if (pendingFlushRef.current !== null) {
+      window.clearTimeout(pendingFlushRef.current);
+    }
+    pendingFlushRef.current = window.setTimeout(flushDiff, DIFF_DEBOUNCE_MS);
   }
+
+  // Never lose the tail of a burst: flush whatever is pending when the editor
+  // goes away or the debounce identity changes.
+  useEffect(() => {
+    return () => {
+      if (pendingFlushRef.current !== null) {
+        window.clearTimeout(pendingFlushRef.current);
+        flushDiff();
+      }
+    };
+  }, [flushDiff]);
 
   const getFileExtension = (lang: string): string => {
     const extensions: Record<string, string> = {
@@ -227,6 +273,20 @@ const Editor = ({
     };
     return langMap[ext.toLowerCase()];
   };
+
+  /**
+   * Register the theme *before* the editor is constructed.
+   *
+   * `onMount` is too late. `@monaco-editor/react` passes `theme` straight to
+   * `monaco.editor.create`, so naming a theme Monaco has never been handed
+   * makes it fall back to `vs-dark` — the editor came up in GitHub-ish blues
+   * and oranges instead of our palette. `beforeMount` runs after the Monaco
+   * instance exists but before the editor is created, which is exactly the
+   * window this needs.
+   */
+  const handleEditorBeforeMount = useCallback((monaco: any) => {
+    monaco.editor.defineTheme(EDITOR_THEME_NAME, editorTheme);
+  }, []);
 
   const handleEditorMount = useCallback((editor: any, monaco: any) => {
     editorRef.current = editor;
@@ -325,17 +385,12 @@ const Editor = ({
 
   return (
     <div
-      className={`flex flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white border border-emerald-500/20  overflow-hidden shadow-2xl shadow-black/50 ${
-        isFullscreen ? "fixed inset-0 z-50 rounded-none" : "h-full"
+      className={`flex flex-col overflow-hidden bg-term-bg text-ink ${
+        isFullscreen ? "fixed inset-0 z-50" : "h-full"
       }`}
     >
-      {/* Editor Container */}
-      <div className="flex-1 relative overflow-hidden">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-5 bg-[radial-gradient(circle_at_1px_1px,_rgba(16,185,129,0.3)_1px,_transparent_0)] bg-[length:20px_20px]" />
-
-        {/* Editor */}
-        <div className="relative z-10 h-full">
+      <div className="relative flex-1 overflow-hidden">
+        <div className="h-full">
           <MonacoEditor
             height="100%"
             language={language}
@@ -343,32 +398,29 @@ const Editor = ({
             value={code}
             onChange={(newValue) => handleCodeChange(newValue || "")}
             options={editorOptions}
+            beforeMount={handleEditorBeforeMount}
             onMount={handleEditorMount}
           />
         </div>
 
-        {/* Corner accent */}
-        <div className="absolute bottom-0 right-0 w-16 h-16 bg-gradient-to-tl from-emerald-500/10 to-transparent pointer-events-none" />
       </div>
 
       <style jsx>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #10b981;
+          height: 12px;
+          width: 12px;
+          border-radius: 2px;
+          background: var(--color-brand);
           cursor: pointer;
-          box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
         .slider::-moz-range-thumb {
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #10b981;
+          height: 12px;
+          width: 12px;
+          border-radius: 2px;
+          background: var(--color-brand);
           cursor: pointer;
           border: none;
-          box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
       `}</style>
       {showSettings && (
@@ -379,7 +431,6 @@ const Editor = ({
           fontSize={fontSize}
           wordWrap={wordWrap}
           minimap={minimap}
-          languages={languages}
           themes={themes}
           onThemeChange={handleThemeChange}
           onFontSizeChange={handleFontSizeChange}
@@ -395,4 +446,10 @@ const Editor = ({
   );
 };
 
-export default Editor;
+
+/**
+ * Memoised because the sandbox shell above it owns eleven pieces of chrome
+ * state — sidebar open, active panel, settings dialog, terminal maximised and
+ * so on. Without this, toggling any one of them re-rendered this subtree too.
+ */
+export default React.memo(Editor);

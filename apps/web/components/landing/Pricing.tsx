@@ -1,371 +1,275 @@
 "use client";
 
-import { buttonVariants } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
-import {
-  Check,
-  Star,
-  Zap,
-  Code,
-  Database,
-  Cpu,
-  HardDrive,
-  GitBranch,
-  Box,
-  Shield,
-  Sparkles,
-} from "lucide-react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
-import confetti from "canvas-confetti";
+import { Check } from "lucide-react";
+// `framer-motion` is not a dependency — it only resolved because `motion`
+// happens to depend on it. Import from `motion/react`, as everywhere else.
 import NumberFlow from "@number-flow/react";
+import confetti from "canvas-confetti";
+import { cn } from "@/lib/utils";
+import { token } from "@/lib/tokens";
+import { PLANS, SPEC_ROWS, type Plan } from "@/lib/pricing";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { Section, HairlineGrid } from "./section";
 
-// Define your plans with DevX-specific features
-const plans = [
-  {
-    name: "FREE",
-    price: "0",
-    yearlyPrice: "0",
-    period: "forever",
-    badge: "Perfect for Learning",
-    features: [
-      { icon: Code, text: "Up to 2 REPLs" },
-      { icon: Cpu, text: "125m CPU per REPL" },
-      { icon: HardDrive, text: "256Mi RAM per REPL" },
-      { icon: Database, text: "200MB backup storage" },
-      { icon: Box, text: "Basic container templates" },
-      { icon: Shield, text: "Community support" },
-    ],
-    description: "Get started with cloud development for free",
-    buttonText: "Start Coding",
-    href: "/dashboard",
-    isPopular: false,
-    gradient: "from-gray-600 to-gray-800",
-  },
-  {
-    name: "PROFESSIONAL",
-    price: "15",
-    yearlyPrice: "12",
-    period: "per month",
-    badge: "Most Popular",
-    features: [
-      { icon: Code, text: "Up to 25 REPLs" },
-      { icon: Cpu, text: "1.25 CPU cores per REPL" },
-      { icon: HardDrive, text: "2.5GB RAM per REPL" },
-      { icon: Database, text: "15GB backup storage" },
-      { icon: Sparkles, text: "Premium templates library" },
-      { icon: GitBranch, text: "GitHub Actions integration" },
-      { icon: Shield, text: "Priority support" },
-      { icon: Zap, text: "Advanced analytics" },
-    ],
-    description: "Perfect for professional developers and teams",
-    buttonText: "Go Professional",
-    href: "/dashboard",
-    isPopular: true,
-    gradient: "from-emerald-500 to-teal-600",
-  },
-  {
-    name: "ENTERPRISE SDK",
-    price: "99",
-    yearlyPrice: "79",
-    period: "per month",
-    badge: "For Businesses",
-    features: [
-      { icon: Code, text: "Unlimited REPLs" },
-      { icon: Cpu, text: "Custom resource allocation" },
-      { icon: Database, text: "Unlimited backup storage" },
-      { icon: Box, text: "DevX Sandbox SDK access" },
-      { icon: Zap, text: "API rate limiting: 10k/hour" },
-      { icon: GitBranch, text: "Custom integrations" },
-      { icon: Shield, text: "SLA & dedicated support" },
-      { icon: Sparkles, text: "White-label options" },
-    ],
-    description: "Integrate DevX sandboxes into your applications",
-    buttonText: "Contact Sales",
-    href: "https://parthkapoor.me",
-    isPopular: false,
-    gradient: "from-purple-600 to-blue-600",
-  },
-];
+/**
+ * Pricing, as a spec sheet.
+ *
+ * The previous version was the last section left over from before the
+ * redesign, and it broke the accent rule harder than anything else on the
+ * site: twenty-two amber icon bubbles, an amber glow, an amber savings pill and
+ * an amber gradient wash, on a page whose whole premise is that amber means
+ * "this is the thing you are on". Everything was centred, in a bold weight the
+ * display face is not meant to carry, inside cards that looked nothing like
+ * the hairline grid directly above them.
+ *
+ * What replaced it leans on the one thing a developer actually reads a pricing
+ * page for: the numbers. The plans share an identical set of spec rows, so
+ * `2 / 25 / Unlimited` line up horizontally across the three columns and the
+ * comparison needs no table. Units are the Kubernetes ones, because that is
+ * what the limits genuinely are.
+ */
 
-interface PricingFeature {
-  icon: any;
-  text: string;
-}
+export default function Pricing({ n }: { n?: string } = {}) {
+  const [annual, setAnnual] = useState(false);
+  const reducedMotion = useReducedMotion();
 
-interface PricingPlan {
-  name: string;
-  price: string;
-  yearlyPrice: string;
-  period: string;
-  badge: string;
-  features: PricingFeature[];
-  description: string;
-  buttonText: string;
-  href: string;
-  isPopular: boolean;
-  gradient: string;
-}
+  const choose = useCallback(
+    (next: boolean, event: React.MouseEvent<HTMLButtonElement>) => {
+      setAnnual(next);
 
-export default function DevXPricing() {
-  const [isMonthly, setIsMonthly] = useState(true);
-  const switchRef = useRef<HTMLButtonElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
+      // A small reward for finding the cheaper option, fired from the button
+      // itself so the burst starts where the pointer already is. Suppressed
+      // outright under reduced motion rather than slowed down.
+      if (!next || reducedMotion) return;
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  const handleToggle = (checked: boolean) => {
-    setIsMonthly(!checked);
-    if (checked && switchRef.current) {
-      const rect = switchRef.current.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-
+      const rect = event.currentTarget.getBoundingClientRect();
       confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: {
-          x: x / window.innerWidth,
-          y: y / window.innerHeight,
-        },
-        colors: ["#14b8a6", "#10b981", "#06b6d4", "#8b5cf6", "#f59e0b"],
-        ticks: 200,
+        particleCount: 44,
+        spread: 62,
+        startVelocity: 26,
         gravity: 1.2,
-        decay: 0.94,
-        startVelocity: 30,
+        decay: 0.93,
+        ticks: 160,
+        scalar: 0.8,
+        origin: {
+          x: (rect.left + rect.width / 2) / window.innerWidth,
+          y: (rect.top + rect.height / 2) / window.innerHeight,
+        },
+        // canvas-confetti parses hex itself and cannot resolve `var()` or
+        // `oklch()` — these come from the token mirrors in lib/tokens.
+        colors: [token.brand300, token.brand400, token.brand500, token.brand600],
         shapes: ["circle", "square"],
+        disableForReducedMotion: true,
       });
-    }
-  };
+    },
+    [reducedMotion],
+  );
 
   return (
-    <div className="container py-20 max-md:px-8">
-      {/* Header */}
-      <div className="mb-16 flex flex-col gap-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 sm:text-6xl">
-            Power Up Your Development
-          </h2>
-          <p className="mt-4 text-xl text-gray-300 max-w-3xl mx-auto">
-            From learning to enterprise-scale applications, DevX scales with
-            your needs. Choose the perfect plan for your cloud development
-            journey.
-          </p>
-        </motion.div>
-
-        {/* Billing Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex justify-center items-center gap-4"
-        >
-          <span
-            className={cn(
-              "font-semibold transition-colors",
-              isMonthly ? "text-white" : "text-gray-400",
-            )}
-          >
-            Monthly
-          </span>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <Switch
-              ref={switchRef as any}
-              checked={!isMonthly}
-              onCheckedChange={handleToggle}
-              className="relative bg-amber-500"
-            />
-          </label>
-          <span
-            className={cn(
-              "font-semibold transition-colors",
-              !isMonthly ? "text-white" : "text-gray-400",
-            )}
-          >
-            Annual
-          </span>
-          <span className="ml-2 px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold rounded-full">
-            Save 20%
-          </span>
-        </motion.div>
-      </div>
-
-      {/* Pricing Cards */}
-      <div className="grid grid-cols-1 gap-0 max-md:gap-4 md:grid-cols-3 max-w-7xl mx-auto">
-        {plans.map((plan, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={
-              !isMobile
-                ? {
-                    opacity: 1,
-                    y: plan.isPopular ? -10 : 0,
-                    x: index === 2 ? -20 : index === 0 ? 20 : 0,
-                    scale: index === 0 || index === 2 ? 0.95 : 1.0,
-                  }
-                : { opacity: 1, y: 0 }
-            }
-            viewport={{ once: true }}
-            transition={{
-              duration: 0.8,
-              type: "spring",
-              stiffness: 100,
-              damping: 20,
-              delay: index * 0.1,
-            }}
-            className={cn(
-              "relative rounded-3xl border bg-black/40 backdrop-blur-sm p-8 text-center flex flex-col",
-              plan.isPopular
-                ? "border-2 border-emerald-500/50 shadow-2xl shadow-emerald-500/20"
-                : "border-gray-600/30",
-              "transform-gpu transition-all duration-300 hover:scale-[1.02]",
-              index === 0 || index === 2 ? "z-0" : "z-10",
-            )}
-          >
-            {/* Background Gradient */}
-            <div
-              className={cn(
-                "absolute inset-0 rounded-3xl opacity-10 bg-gradient-to-br",
-                plan.gradient,
-              )}
-            />
-
-            {/* Popular Badge */}
-            {plan.isPopular && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 rounded-full">
-                  <Star className="h-4 w-4 fill-current text-white" />
-                  <span className="text-white font-semibold text-sm">
-                    Most Popular
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="relative z-10 flex flex-1 flex-col">
-              {/* Plan Header */}
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  {plan.name}
-                </h3>
-                <p className="text-sm text-gray-400 font-medium">
-                  {plan.badge}
-                </p>
-              </div>
-
-              {/* Pricing */}
-              <div className="mb-6">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-5xl font-bold text-white">
-                    <NumberFlow
-                      value={
-                        isMonthly
-                          ? Number(plan.price)
-                          : Number(plan.yearlyPrice)
-                      }
-                      format={{
-                        style: "currency",
-                        currency: "USD",
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }}
-                      transformTiming={{
-                        duration: 500,
-                        easing: "ease-out",
-                      }}
-                      willChange
-                      className="font-variant-numeric: tabular-nums"
-                    />
-                  </span>
-                  {plan.period !== "forever" && (
-                    <span className="text-gray-400 text-sm">
-                      / {plan.period}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {plan.period === "forever"
-                    ? "No credit card required"
-                    : isMonthly
-                      ? "billed monthly"
-                      : "billed annually"}
-                </p>
-              </div>
-
-              {/* Features */}
-              <ul className="flex flex-col gap-2 mb-8 flex-1">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center mt-0.5">
-                      <feature.icon className="h-3 w-3 text-emerald-400" />
-                    </div>
-                    <span className="text-gray-300 text-sm text-left">
-                      {feature.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA Button */}
-              <Link
-                href={plan.href}
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tight py-6 rounded-xl transition-all duration-300",
-                  plan.isPopular
-                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/25"
-                    : "bg-transparent text-white border-gray-600 hover:bg-white hover:text-black hover:border-white",
-                )}
-              >
-                {plan.buttonText}
-              </Link>
-
-              {/* Description */}
-              <p className="mt-4 text-xs text-gray-500 leading-relaxed">
-                {plan.description}
-              </p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Bottom CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.4 }}
-        className="mt-16 text-center"
+    <Section
+      id="pricing"
+      n={n}
+      eyebrow="Pricing"
+      title={
+        <>
+          Start free. <span className="text-brand">Scale when you do.</span>
+        </>
+      }
+      lead="Every plan runs the same containers on the same cluster. What changes is how many you get at once, and how much you can ask of each."
+      aside={<BillingToggle annual={annual} onChange={choose} />}
+    >
+      {/* Below `md` the plans are a swipeable row with the next card peeking
+          in, instead of three full-height cards stacked into a long scroll.
+          The row bleeds to the screen edges so a card can start at the
+          gutter and still scroll off the side. */}
+      <HairlineGrid
+        className={cn(
+          "md:grid-cols-3",
+          "max-md:-mx-6 max-md:flex max-md:snap-x max-md:snap-mandatory max-md:gap-3 max-md:overflow-x-auto max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:px-6 max-md:pb-2 max-md:scroll-px-6",
+          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        )}
       >
-        <p className="text-gray-400 mb-4">
-          Need something custom? We&apos;re here to help.
-        </p>
+        {PLANS.map((plan) => (
+          <PlanCell key={plan.name} plan={plan} annual={annual} />
+        ))}
+      </HairlineGrid>
+      <p aria-hidden="true" className="mt-3 font-mono text-[11px] text-ink-subtle md:hidden">
+        swipe for more plans →
+      </p>
+
+      <p className="mt-6 text-sm text-ink-subtle">
+        Self-hosting is free and always will be —{" "}
         <Link
-          href="/contact"
-          className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+          href="/docs/self-hosting"
+          className="text-ink-muted underline decoration-edge-strong underline-offset-4 transition-colors duration-[--duration-fast] hover:text-brand hover:decoration-brand"
         >
-          Contact our team <Zap className="h-4 w-4" />
-        </Link>
-      </motion.div>
+          bring your own cluster
+        </Link>{" "}
+        and none of the above applies.
+      </p>
+    </Section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A segmented control, matching the dashboard's.
+ *
+ * It was a `Switch` with a word either side, which is the one control shape
+ * where nobody can tell at a glance which of the two labels is currently
+ * selected — both are always visible and only the slider's position says which
+ * one won. Two buttons with an explicit selected state cannot have that
+ * problem.
+ */
+function BillingToggle({
+  annual,
+  onChange,
+}: {
+  annual: boolean;
+  onChange: (annual: boolean, event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Billing period"
+      className="inline-flex items-center gap-0.5 rounded-md border border-edge bg-canvas p-0.5"
+    >
+      {[
+        { value: false, label: "Monthly", note: null },
+        { value: true, label: "Annual", note: "−20%" },
+      ].map(({ value, label, note }) => {
+        const active = annual === value;
+        return (
+          <button
+            key={label}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={(event) => onChange(value, event)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-sm px-3 py-1.5 font-mono text-xs",
+              "transition-colors duration-[--duration-fast]",
+              "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+              active
+                ? "bg-raised text-ink"
+                : "bg-transparent text-ink-subtle hover:text-ink-muted",
+            )}
+          >
+            {label}
+            {note ? (
+              // A discount is information, not the primary action, so it is
+              // never amber. Green only once it is the live choice.
+              <span className={active ? "text-success" : "text-ink-subtle"}>
+                {note}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PlanCell({ plan, annual }: { plan: Plan; annual: boolean }) {
+  const price = annual ? plan.yearlyPrice : plan.price;
+
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col p-6 transition-colors duration-[--duration-fast]",
+        "max-md:w-[84%] max-md:max-w-sm max-md:shrink-0 max-md:snap-start max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-edge",
+        plan.popular ? "bg-surface" : "bg-canvas hover:bg-surface/60",
+      )}
+    >
+      {/* The only amber on the whole section: a hairline over the plan we
+          actually want people to take. */}
+      {plan.popular ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-px bg-brand"
+        />
+      ) : null}
+
+      <div className="flex items-center justify-between">
+        <span className="label text-ink">{plan.name}</span>
+        {plan.popular ? (
+          <span className="label text-brand">Most popular</span>
+        ) : null}
+      </div>
+
+      <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+        {plan.summary}
+      </p>
+
+      <div className="mt-6 flex items-baseline gap-1.5">
+        <span className="font-display text-4xl font-medium tracking-[-0.03em] text-ink tabular-nums">
+          <NumberFlow
+            value={price}
+            format={{
+              style: "currency",
+              currency: "USD",
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }}
+            transformTiming={{ duration: 420, easing: "ease-out" }}
+            willChange
+          />
+        </span>
+        {price > 0 ? (
+          <span className="font-mono text-xs text-ink-subtle">/ month</span>
+        ) : null}
+      </div>
+      <p className="mt-1.5 font-mono text-xs text-ink-subtle">
+        {price === 0
+          ? "forever, no card"
+          : annual
+            ? "billed annually"
+            : "billed monthly"}
+      </p>
+
+      <Link
+        href={plan.href}
+        {...(plan.external
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : {})}
+        className={cn(
+          "mt-6 inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium",
+          "transition-colors duration-[--duration-fast]",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          plan.popular
+            ? "bg-brand text-brand-fg hover:bg-brand-400"
+            : "border border-edge-strong text-ink hover:bg-raised",
+        )}
+      >
+        {plan.cta}
+      </Link>
+
+      {/* The spec block. Every plan declares the same rows in the same order,
+          so the values line up across the three columns and the reader can
+          compare down a line without a table. */}
+      <dl className="mt-8 space-y-2 border-t border-edge pt-6 font-mono text-xs">
+        {SPEC_ROWS.map((row, index) => (
+          <div key={row} className="flex items-baseline justify-between gap-4">
+            <dt className="text-ink-subtle">{row}</dt>
+            <dd className="tabular-nums text-ink">{plan.specs[index]}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <ul className="mt-6 space-y-2 border-t border-edge pt-6">
+        {plan.extras.map((extra) => (
+          <li key={extra} className="flex gap-2.5 text-sm text-ink-muted">
+            <Check
+              className="mt-[3px] size-3.5 shrink-0 text-ink-subtle"
+              aria-hidden="true"
+            />
+            {extra}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

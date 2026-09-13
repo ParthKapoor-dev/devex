@@ -6,7 +6,6 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
-import { File, Folder, Tree } from "@/components/magicui/file-tree";
 import {
   Copy,
   Edit3,
@@ -47,61 +46,61 @@ const FileContextMenu = ({
 }) => (
   <ContextMenu>
     <ContextMenuTrigger>{children}</ContextMenuTrigger>
-    <ContextMenuContent className="w-52 bg-gray-800 border-gray-700 text-gray-100">
+    <ContextMenuContent className="w-52 bg-raised border-edge text-ink">
       {isDir && (
         <>
           <ContextMenuItem
             onClick={() => handleCreateFile(path)}
-            className="hover:bg-gray-700 focus:bg-gray-700"
+            className="hover:bg-raised focus:bg-raised"
           >
-            <FilePlus className="w-4 h-4 mr-2 text-green-400" />
+            <FilePlus className="w-4 h-4 mr-2 text-success" />
             New File
           </ContextMenuItem>
           <ContextMenuItem
             onClick={() => handleCreateFolder(path)}
-            className="hover:bg-gray-700 focus:bg-gray-700"
+            className="hover:bg-raised focus:bg-raised"
           >
-            <FolderPlus className="w-4 h-4 mr-2 text-blue-400" />
+            <FolderPlus className="w-4 h-4 mr-2 text-info" />
             New Folder
           </ContextMenuItem>
-          <ContextMenuSeparator className="bg-gray-700" />
+          <ContextMenuSeparator className="bg-raised" />
         </>
       )}
       <ContextMenuItem
         onClick={() => handleRename(path, path.split("/").pop() || "")}
-        className="hover:bg-gray-700 focus:bg-gray-700"
+        className="hover:bg-raised focus:bg-raised"
       >
         <Edit3 className="w-4 h-4 mr-2 text-orange-400" />
         Rename
       </ContextMenuItem>
       <ContextMenuItem
         onClick={() => handleDelete(path)}
-        className="hover:bg-gray-700 focus:bg-gray-700 text-red-400"
+        className="hover:bg-raised focus:bg-raised text-danger"
       >
         <Trash className="w-4 h-4 mr-2" />
         Delete
       </ContextMenuItem>
-      <ContextMenuSeparator className="bg-gray-700" />
+      <ContextMenuSeparator className="bg-raised" />
       <ContextMenuItem
         onClick={() => handleCopy(path)}
-        className="hover:bg-gray-700 focus:bg-gray-700"
+        className="hover:bg-raised focus:bg-raised"
       >
-        <Copy className="w-4 h-4 mr-2 text-blue-400" />
+        <Copy className="w-4 h-4 mr-2 text-info" />
         Copy
       </ContextMenuItem>
       <ContextMenuItem
         onClick={() => handleCut(path)}
-        className="hover:bg-gray-700 focus:bg-gray-700"
+        className="hover:bg-raised focus:bg-raised"
       >
-        <Scissors className="w-4 h-4 mr-2 text-yellow-400" />
+        <Scissors className="w-4 h-4 mr-2 text-warning" />
         Cut
       </ContextMenuItem>
       {clipboard && isDir && (
         <ContextMenuItem
           onClick={() => handlePaste(path)}
-          className="hover:bg-gray-700 focus:bg-gray-700"
+          className="hover:bg-raised focus:bg-raised"
         >
-          <Plus className="w-4 h-4 mr-2 text-green-400" />
+          <Plus className="w-4 h-4 mr-2 text-success" />
           Paste
         </ContextMenuItem>
       )}

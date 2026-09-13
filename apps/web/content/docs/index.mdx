@@ -1,0 +1,78 @@
+---
+title: Introduction
+description: DevEx gives you a full containerised development environment in the browser — a real terminal, a real editor, and files that persist, all running on Kubernetes.
+section: Getting started
+order: 1
+---
+
+DevEx is an open-source platform for **cloud development environments**. You open
+a browser tab and get a real machine: a shell, an editor, a filesystem that
+survives a refresh, and ports you can hit from the public internet.
+
+Each environment — we call it a **REPL** — is a container scheduled onto a
+Kubernetes cluster. It boots in seconds, runs your stack, and syncs your files
+to object storage when it stops.
+
+<Callout type="info" title="Not another web playground">
+  A REPL is not a sandboxed snippet runner. It is a container with a package
+  manager, a network, and root in its own namespace. If it works in Docker, it
+  works here.
+</Callout>
+
+## Why it exists
+
+Local development breaks down in predictable ways. Onboarding takes a day of
+version mismatches. "Works on my machine" is a real bug class. Reviewing a
+teammate's branch means stashing your own work. Anything GPU-shaped or
+memory-shaped is gated on the laptop you happen to own.
+
+DevEx moves the environment to where the compute is, without moving your
+workflow:
+
+<Cards>
+  <Card title="Instant REPLs" icon="zap">
+    A template becomes a running container in seconds — no image build on the
+    critical path.
+  </Card>
+  <Card title="Real terminals" icon="terminal">
+    A PTY over WebSocket. Not an emulator: job control, colours, `vim`, and
+    Ctrl-C all behave.
+  </Card>
+  <Card title="Persistent files" icon="database">
+    Your work syncs to S3 when the REPL stops and restores when it starts.
+  </Card>
+  <Card title="Self-hostable" icon="server">
+    MIT-licensed, Kubernetes-native. Run it on your own cluster with your own
+    storage.
+  </Card>
+</Cards>
+
+## How a REPL works
+
+The short version: the core API asks Kubernetes for a Deployment, a Service and
+an Ingress; the runner inside the pod speaks WebSocket to your browser.
+
+<Steps>
+
+### You create a REPL
+
+The core API copies the chosen template into S3 under
+`username/repl-id/`, then records the REPL against your account.
+
+### Kubernetes schedules the pod
+
+Core creates a Deployment, a Service and an Ingress. The runner container starts
+and pulls your files down from S3.
+
+### The browser connects
+
+The editor and terminal open WebSocket connections straight to the runner
+through the Ingress. File edits and keystrokes go over that same channel.
+
+### Work syncs back
+
+When the REPL stops, an ephemeral container pushes changed files back to S3, and
+the pod's resources are released.
+
+</Steps>
+

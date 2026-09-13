@@ -1,0 +1,401 @@
+---
+title: Self-hosting
+description: Run DevEx REPLs on your own Kubernetes cluster and the core API on a Docker Swarm host. Works on any provider — the cluster design avoids cloud load balancers, so one public node is enough.
+section: Self-hosting
+order: 1
+---
+
+DevEx runs in two places:
+
+- **REPLs run on Kubernetes.** Each running REPL is a Deployment, Service,
+  Ingress and Traefik middleware in the `default` namespace, all created and
+  deleted by core.
+- **Core runs outside the cluster**, on its own host under Docker Swarm, and
+  talks to the Kubernetes API with a kubeconfig file.
+
+The web app is a Next.js standalone build you can host anywhere.
+
+The cluster side is provider-agnostic. It needs no managed load balancer, no
+specific CNI and no cloud-specific ingress controller. If you can get one
+public node IP and open ports 80 and 443, you can run it.
+
+## Requirements
+
+| Requirement | Why |
+| --- | --- |
+| A Kubernetes cluster | Schedules REPL pods |
+| One node with a public IP | Traefik binds `:80`/`:443` on it directly |
+| Inbound TCP 80 and 443 to that node | HTTP-01 certificate challenges and REPL traffic |
+| A host with Docker Swarm | Runs core and its own Traefik |
+| Two DNS records | One for REPLs, one for the core API |
+| An S3-compatible bucket | Templates, and REPL files between sessions |
+| Redis | Sessions and REPL records |
+
+Tooling: `kubectl`, `helm`, `curl`, `openssl`, `docker`.
+
+<Callout type="tip" title="No cloud load balancer needed">
+  Traefik runs with `hostNetwork: true` and binds the node's ports directly.
+  That keeps this viable on a single-node cluster, bare metal, or a cheap VPS —
+  and avoids a per-service LB bill on the clouds that charge one.
+</Callout>
+
+## DNS and routing
+
+REPLs share **one hostname** and are routed by path, not by subdomain:
+
+```text
+https://repl.example.com/<repl-id>/<route>   →   runner pod /<route>
+```
+
+So you need a plain A record for the REPL host — no wildcard — plus one for the
+core API:
+
+```text
+repl.example.com   A   <public-ingress-node-ip>
+api.example.com    A   <core-host-ip>
+```
+
+Verify before going further — almost every certificate failure downstream is
+actually a DNS failure:
+
+```bash
+nslookup repl.example.com
+nslookup api.example.com
+```
+
+## Cluster setup
+
+The manifests in `infra/k8s` are written for the upstream deployment. Before
+applying them, replace the hostname `repl.parthkapoor.me` with your REPL host
+in `certificate-staging.yaml`, `certificate-production.yaml` and
+`smoke-test-whoami.yaml`, and the ACME `email` in `cert-issuer-staging.yaml`
+and `cert-issuer-production.yaml` with an address you read — Let's Encrypt
+sends expiry warnings there.
+
+```bash
+grep -rn "parthkapoor" infra/k8s/*.yaml
+```
+
+<Steps>
+
+### Choose the ingress node
+
+Pick the node whose public IP your REPL DNS record points at, and label it.
+
+```bash
+kubectl get nodes -o wide
+kubectl label node <INGRESS_NODE_NAME> devex.ingress=true --overwrite
+```
+
+On K3s, remove the bundled Traefik first so it does not fight over `:80` and
+`:443`:
+
+```bash
+kubectl -n kube-system get deploy,ds,svc | grep -i traefik || true
+```
+
+### Install Traefik
+
+Traefik is the ingress controller, running on the host network so it owns the
+node's `:80` and `:443`. The second values file pins it to the labelled node.
+
+```bash
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm upgrade --install traefik traefik/traefik \
+  --namespace traefik --create-namespace \
+  --reset-values \
+  -f infra/k8s/traefik-values.yaml \
+  -f infra/k8s/traefik-values-ingress-node.yaml
+```
+
+```bash
+kubectl -n traefik rollout status deploy/traefik --timeout=180s
+curl -v http://repl.example.com/
+```
+
+A `404` from Traefik is correct at this point — no routes exist yet.
+
+### Install cert-manager
+
+cert-manager issues the Let's Encrypt certificate for the REPL host. Traefik's
+own ACME support is deliberately left off.
+
+```bash
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm upgrade --install cert-manager jetstack/cert-manager \
+  --namespace cert-manager --create-namespace \
+  --version v1.18.1 \
+  --set crds.enabled=true
+```
+
+Wait for the webhook before applying any issuer, or the apply fails with
+`no endpoints available for service "cert-manager-webhook"`:
+
+```bash
+kubectl wait --for=condition=Available deployment/cert-manager-webhook \
+  -n cert-manager --timeout=180s
+```
+
+### Issue a staging certificate
+
+```bash
+kubectl apply -f infra/k8s/cert-issuer-staging.yaml
+kubectl apply -f infra/k8s/certificate-staging.yaml
+kubectl get certificate repl-root-certificate -n default
+```
+
+Wait for `READY=True`. The certificate is stored in the `tls-secret` Secret in
+`default`.
+
+### Run the smoke test
+
+The whoami deployment exercises the same Ingress + `stripPrefix` pattern core
+uses for every REPL.
+
+```bash
+kubectl apply -f infra/k8s/smoke-test-whoami.yaml
+curl -vk https://repl.example.com/test-repl/anything
+```
+
+The response should come from whoami, with the request path rewritten to
+`/anything`.
+
+### Switch to production
+
+```bash
+kubectl apply -f infra/k8s/cert-issuer-production.yaml
+kubectl apply -f infra/k8s/certificate-production.yaml
+```
+
+The production issuer is named `letsencrypt-cluster-issuer`, and the
+certificate writes to `tls-secret` — both names are hardcoded in core, so keep
+them. Confirm the issuer is no longer the staging CA:
+
+```bash
+openssl s_client -connect repl.example.com:443 -servername repl.example.com \
+  </dev/null 2>/dev/null | openssl x509 -noout -issuer -dates
+```
+
+### Create the bucket credentials secret
+
+Every REPL pod has an init container that downloads its files from the bucket,
+and core injects an uploader container when a REPL stops. Both read the
+`aws-creds` Secret in `default`:
+
+```bash
+kubectl -n default create secret generic aws-creds \
+  --from-literal=access_key='<ACCESS_KEY>' \
+  --from-literal=secret_key='<SECRET_KEY>'
+```
+
+</Steps>
+
+<Callout type="warning" title="Rate limits are real">
+  Let's Encrypt allows 5 failed validations per account per hostname per hour.
+  Debug against the **staging** issuer, then switch to production once a
+  certificate issues cleanly. Burning the production limit means an hour of
+  waiting.
+</Callout>
+
+## Seeding the bucket
+
+Core creates a REPL by copying `templates/<template>/` inside the bucket, so
+the templates must be there first. The repository's templates workflow does
+this with:
+
+```bash
+aws s3 cp templates/ s3://<bucket>/templates/ \
+  --recursive \
+  --endpoint-url <s3-endpoint> \
+  --exclude "*/README.md"
+```
+
+REPL files are then stored under `repl/<username>/<repl-id>/`.
+
+## Configuring core
+
+Core reads each setting from an environment variable first, then from a file
+at `/run/secrets/<NAME>` — which is how Docker Swarm secrets reach it.
+
+| Variable | Purpose |
+| --- | --- |
+| `RUNNER_CLUSTER_IP` | The REPL **hostname**, e.g. `repl.example.com`, despite the name. Used as the Ingress host. |
+| `KUBE_CONFIG_PATH` | Path to the kubeconfig core uses for the cluster |
+| `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT` | Where templates and REPL files live |
+| `S3_ACCESS_KEY`, `S3_SECRET_KEY` | Bucket credentials for core itself |
+| `REDIS_URL` | Sessions and REPL records |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URL` | GitHub OAuth |
+| `RESEND_API_KEY` | Magic-link email delivery |
+| `EMAIL_FROM` | Optional sender address for magic-link email |
+| `MAGICLINK_REDIRECT_URL` | Where a magic link lands |
+| `SESSION_SECRET` | Signs session cookies |
+| `FRONTEND_URL` | The web app's origin, allowed by CORS |
+| `ENVIRONMENT`, `PORT` | `production`, and the listen port (`8080`) |
+| `ENABLE_MCP_SIDECAR` | Optional. `true` adds the [MCP server](/docs/mcp) to REPL pods |
+
+The kubeconfig's credentials need to manage Deployments, Services, Ingresses,
+Traefik `middlewares` and pods (list, get, and update ephemeral containers) in
+the `default` namespace.
+
+<Callout type="danger" title="Set SESSION_SECRET and never commit it">
+  It signs session cookies. A default or leaked value means anyone can forge a
+  session for any user. Generate one with `openssl rand -hex 32` and store it
+  as the `session_secret` Docker secret.
+</Callout>
+
+## Deploying core
+
+`infra/core/docker-stack.yaml` defines two services: a Traefik reverse proxy
+that terminates TLS for the API with its own Let's Encrypt resolver, and
+`core_service`, running `ghcr.io/parthkapoor-dev/devex/core-service:latest`.
+
+<Steps>
+
+### Point Docker at the host
+
+```bash
+docker context create devex --docker "host=ssh://<user>@api.example.com"
+docker context use devex
+docker swarm init
+```
+
+### Create the secrets
+
+Put each value in its own file under a git-ignored `./secrets` directory, then:
+
+```bash
+docker secret create s3_access_key ./secrets/s3_access_key.txt
+docker secret create s3_secret_key ./secrets/s3_secret_key.txt
+docker secret create redis_url ./secrets/redis_url.txt
+docker secret create github_client_id ./secrets/github_client_id.txt
+docker secret create github_client_secret ./secrets/github_client_secret.txt
+docker secret create gmail_user ./secrets/gmail_user.txt
+docker secret create gmail_password ./secrets/gmail_password.txt
+docker secret create resend_api_key ./secrets/resend_api_key.txt
+docker secret create session_secret ./secrets/session_secret.txt
+docker secret create kubeconfig_file ./secrets/kubeconfig.yaml
+```
+
+Core sends email through Resend and does not read the Gmail values, but the
+stack file declares `gmail_user` and `gmail_password` as external secrets, so
+they must exist — placeholder values are fine.
+
+### Edit the stack file
+
+`docker-stack.yaml` carries the upstream values inline. Change the API host in
+the `traefik.http.routers.core.rule` label, the ACME email, `S3_BUCKET`,
+`S3_REGION`, `S3_ENDPOINT`, `RUNNER_CLUSTER_IP`, `GITHUB_REDIRECT_URL`,
+`MAGICLINK_REDIRECT_URL` and `FRONTEND_URL`.
+
+### Deploy
+
+```bash
+docker stack deploy -c infra/core/docker-stack.yaml devex
+docker service ls
+docker service logs -f devex_core_service
+```
+
+</Steps>
+
+## Configuring the web app
+
+The frontend needs to know where the API and the REPL host are, and — for
+correct SEO — its own public origin:
+
+```bash
+NEXT_PUBLIC_CORE_API_URL=https://api.example.com
+NEXT_PUBLIC_API_URL=https://api.example.com
+NEXT_PUBLIC_RUNNER_DOMAIN_NAME=repl.example.com
+NEXT_PUBLIC_SITE_URL=https://example.com
+```
+
+`NEXT_PUBLIC_CORE_API_URL` is what the client calls; `NEXT_PUBLIC_API_URL` is
+the target of the `/api/*` rewrite in `next.config.ts`. Set both to core.
+`NEXT_PUBLIC_RUNNER_DOMAIN_NAME` is a bare hostname — the editor connects to
+`wss://<host>/<repl-id>/api/v1/repl/ws`.
+
+<Callout type="info" title="NEXT_PUBLIC_SITE_URL matters more than it looks">
+  It is the base for canonical URLs, the sitemap and Open Graph tags. Left
+  unset, the app falls back to `http://localhost:3000`, and — outside Vercel —
+  `robots.txt` switches to `Disallow: /`. That is correct for a preview deploy
+  and wrong for production.
+</Callout>
+
+The web app builds to a standalone output:
+
+```bash
+npm --prefix apps/web ci
+npm --prefix apps/web run build
+```
+
+Copy the static assets alongside the standalone server, or the deployed app
+serves HTML with no CSS or JS:
+
+```bash
+cp -r apps/web/public apps/web/.next/standalone/
+cp -r apps/web/.next/static apps/web/.next/standalone/.next/
+node apps/web/.next/standalone/server.js
+```
+
+## Before you go live
+
+Two values are hardcoded to the upstream deployment rather than read from
+configuration:
+
+- **Runner images.** Core runs `ghcr.io/parthkapoor-dev/devex/runner-<template>:latest`
+  for every REPL. To run your own builds, change the image in
+  `apps/core/internal/k8s/create.go`.
+- **Auto-shutdown.** After four minutes without an editor connection, the
+  runner calls `DELETE https://api.devx.parthkapoor.me/api/runner/<repl-id>`.
+  Until you change that URL in `apps/runner/cmd/api/core.go` and rebuild the
+  runner images, idle REPLs on your cluster are not stopped by your core.
+
+## Verifying
+
+<Steps>
+
+### Create and start a REPL
+
+Sign in, create one and start it. If starting fails, core could not reach the
+Kubernetes API — check the `kubeconfig_file` secret and that its credentials
+have the permissions listed above.
+
+### Check the resources
+
+```bash
+kubectl get deploy,svc,ingress,middleware -n default | grep <repl-id>
+kubectl get pods -n default -l app=<repl-id> -w
+```
+
+`ImagePullBackOff` means the runner image for that template does not exist or
+is not reachable from the node. Images are published for `node` and `python`
+only. A pod stuck in `Init` means the `s3-downloader` init container failed —
+check the `aws-creds` secret.
+
+### Reach the runner
+
+```bash
+curl -vk https://repl.example.com/<repl-id>/ping
+```
+
+If this fails but the resources exist, look at the certificate:
+`kubectl describe certificate repl-root-certificate -n default`.
+
+### Stop it and restart
+
+This is the real test. Create a file, stop the REPL, start it again. If the
+file survives, the bucket sync works in both directions.
+
+</Steps>
+
+## Further reading
+
+The repository carries the detailed operational guides:
+
+- `infra/k8s/SETUP_GUIDE.md` — the full provider-agnostic cluster walkthrough,
+  with failure modes and fixes
+- `infra/k8s/README.md` — manifest reference
+- `infra/core/DEPLOYMENT.md` — deploying core with Docker Swarm
+- `infra/core/docker-stack.yaml` — the core stack, with a troubleshooting guide

@@ -1,0 +1,142 @@
+---
+title: Templates
+description: A template is the filesystem and image a new REPL starts from. Here is how they are structured, and the four files you touch to add one.
+section: Concepts
+order: 2
+---
+
+A template is two things: a **base image** (the runtime, the tools, the shell)
+and a **starter filesystem** (the files copied into every new REPL created from
+it).
+
+They are separate on purpose. The image is built once and cached on every node,
+so REPL creation never waits on a Docker build. The starter files live in the
+repo as plain files and are copied into S3 at creation time.
+
+```text
+templates/node/          ← starter files, copied into every new REPL
+├── index.js
+└── package.json
+
+apps/runner/node.dockerfile   ← the image the REPL pod runs
+```
+
+## Constraints
+
+<Callout type="warning" title="Keep starter files under 8 MB">
+  The starter directory is copied into S3 on every REPL creation. Anything
+  large makes creation slow for every user of that template. Fetch big assets
+  at runtime instead, or bake them into the image.
+</Callout>
+
+The template **key** — the directory name — is the identifier everywhere. It
+must be unique, URL-safe (use `-`, not spaces), and spelled identically in all
+four places listed below.
+
+## Adding a template
+
+Four files, in this order.
+
+<Steps>
+
+### Add the starter files
+
+Create `templates/<key>/` with the minimum a user needs to run something
+immediately. A `package.json`, a `main` file and nothing else is a good target.
+
+```bash
+mkdir -p templates/rust
+```
+
+Aim for a project that runs on the first command a user is likely to type.
+
+### Add the Dockerfile
+
+Create `apps/runner/<key>.dockerfile`. It is a two-stage build: compile the Go
+runner, then copy it into your runtime image.
+
+```dockerfile
+# ---- Build the runner ----
+FROM golang:1.24 AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod tidy
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o runner ./cmd/main.go
+
+# ---- Runtime ----
+FROM rust:1-slim
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends bash curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/runner .
+
+EXPOSE 8080
+CMD ["/app/runner"]
+```
+
+<Callout type="danger" title="Do not modify the runner source">
+  The Go runner is shared by every template. Change the runtime image around
+  it, never the runner itself — a change there affects every stack at once.
+</Callout>
+
+### Register it in the web UI
+
+Add an entry to `apps/web/lib/templates.tsx`. The `key` must match the
+directory name exactly.
+
+```tsx
+rust: {
+  key: "rust",
+  name: "Rust",
+  description: "Cargo project with the stable toolchain",
+  icon: <IconBrandRust className="h-9 w-9 rounded-full bg-orange-800 p-2" />,
+},
+```
+
+### Whitelist it in the backend
+
+Add it to `apps/core/models/template.go`. Core refuses any template key that
+is not in this map, so a missing entry here is the usual reason a new template
+"does not appear".
+
+```go
+"rust": {
+	BaseImage: "rust:1-slim",
+	Port:      8081,
+},
+```
+
+</Steps>
+
+## Existing templates
+
+| Key | Base image | What you get |
+| --- | --- | --- |
+| `node` | `node:20-slim` | Node 20, `npm`, `nodemon`, `typescript`, `ts-node` |
+| `python` | `python:3-slim` | CPython 3, `pip` |
+
+## Guidelines
+
+- **Keep images lean.** Every megabyte is pulled onto each node that schedules
+  the template, and a cold pull is the slowest part of a first start.
+- **Install what the stack needs, nothing more.** Users can `apt install` in a
+  running REPL; they cannot shrink your image.
+- **Never bake in secrets.** Template images are public artifacts.
+- **Pin the runtime major version.** `node:20-slim`, not `node:latest` — a
+  silent major bump breaks every REPL created from the template.
+
+## Testing locally
+
+Build the image and run it the way the cluster will:
+
+```bash
+docker build -f apps/runner/rust.dockerfile -t devex-rust apps/runner
+docker run --rm -p 8080:8080 devex-rust
+```
+
+A healthy runner accepts a WebSocket connection on `:8080` and serves the file
+tree of its working directory.

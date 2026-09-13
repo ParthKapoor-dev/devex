@@ -1,54 +1,50 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { MailCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { LoginButton } from "@/components/Auth/LoginButton";
-import Squares from "@/components/ui/background-squares";
-import { toast } from "sonner";
-import { CheckCircleIcon } from "lucide-react";
+import { LoginShell } from "@/components/Auth/LoginShell";
 
 export default function LoginSuccessPage() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.push("/dashboard");
-    }
+    if (!isLoading && isAuthenticated) router.replace("/dashboard");
   }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
-    return null;
-  }
-
   return (
-    <div className="flex items-center justify-center min-h-screen max-md:mx-6">
-      <Squares
-        speed={0.5}
-        squareSize={80}
-        direction="diagonal"
-        borderColor="black"
-        hoverFillColor="#222"
-      />
-
-      <div className="z-10 max-w-3xl  w-full flex flex-col items-center justify-center">
-        <CheckCircleIcon className="h-10 w-10 text-green-500" />
-        <div className="flex justify-center items-center mt-6 gap-3 text-3xl font-bold text-gray-100">
-          Magic link sent successfully. <br /> Check your email to continue.
-        </div>
-        <p className="mt-2 text-center text-lg text-gray-400">
-          You may close this window
+    <LoginShell
+      eyebrow={
+        <>
+          <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
+          Link sent
+        </>
+      }
+      title="Check your email"
+      subtitle="We sent you a sign-in link. Open it on this device and you will land straight in your dashboard."
+      footer={
+        <>
+          Nothing arrived? Check spam, or{" "}
+          <Link
+            href="/login"
+            className="underline decoration-edge-strong underline-offset-2 transition-colors duration-[--duration-fast] hover:text-ink"
+          >
+            send another
+          </Link>
+          .
+        </>
+      }
+    >
+      <div className="flex items-start gap-4 rounded-md border border-edge bg-surface p-5">
+        <MailCheck className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
+        <p className="text-sm leading-relaxed text-ink-muted">
+          The link works once and expires after 15 minutes. You can close this
+          tab.
         </p>
       </div>
-    </div>
+    </LoginShell>
   );
 }

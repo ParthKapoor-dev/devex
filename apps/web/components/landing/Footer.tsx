@@ -1,109 +1,171 @@
-"use client";
-
-import { Github, ExternalLink, BookOpen, Code } from "lucide-react";
 import Link from "next/link";
+import { ArrowUpRight, Github } from "lucide-react";
 import { DevExLogoDark } from "../icons/logo";
+import { siteConfig } from "@/lib/site";
+
+/**
+ * The footer: the site's index, and a signature.
+ *
+ * Three layers, top to bottom — identity and the link index; a giant outlined
+ * wordmark that the page ends on; and a tmux-style status line carrying the
+ * licence, the status page and the author. The status line is the same device
+ * as the hero's, so the page closes the way it opened.
+ *
+ * Used on every marketing page, so nothing in it is landing-specific. A server
+ * component: the year is computed at build time.
+ */
+
+const COLUMNS: {
+  title: string;
+  links: { label: string; href: string; external?: boolean }[];
+}[] = [
+  {
+    title: "Product",
+    links: [
+      { label: "Start a workspace", href: "/login" },
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Pricing", href: "/#pricing" },
+      { label: "How it works", href: "/#how-it-works" },
+      { label: "Status", href: "/ping" },
+    ],
+  },
+  {
+    title: "Docs",
+    links: [
+      { label: "Introduction", href: "/docs" },
+      { label: "Quickstart", href: "/docs/quickstart" },
+      { label: "Architecture", href: "/docs/architecture" },
+      { label: "Self-hosting", href: "/docs/self-hosting" },
+      { label: "MCP server", href: "/docs/mcp" },
+    ],
+  },
+  {
+    title: "Project",
+    links: [
+      { label: "Source", href: siteConfig.repo, external: true },
+      { label: "Contributing", href: "/docs/contributing" },
+      { label: "Book a call", href: siteConfig.links.call, external: true },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+      { label: "Privacy", href: "/privacy" },
+      // The index an agent reads first.
+      { label: "llms.txt", href: "/llms.txt" },
+    ],
+  },
+];
+
+const link =
+  "rounded-xs text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 mt-8 w-full overflow-hidden pb-8 pt-16 max-md:px-8">
-      <style jsx global>{`
-        .glass {
-          backdrop-filter: blur(8px) saturate(180%);
-          background: radial-gradient(
-            circle,
-            rgba(20, 20, 20, 0.85) 0%,
-            rgba(0, 40, 40, 0.3) 60%,
-            rgba(0, 0, 0, 0.95) 100%
-          );
-          border: 1px solid rgba(20, 184, 166, 0.2);
-          border-radius: 20px;
-          justify-content: center;
-          align-items: center;
-          transition: all 0.3s ease;
-          display: flex;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-        .glass:where(.dark, .dark *) {
-          backdrop-filter: blur(8px) saturate(180%) !important;
-          background: radial-gradient(
-            circle,
-            rgba(20, 20, 20, 0.9) 0%,
-            rgba(0, 40, 40, 0.4) 60%,
-            rgba(0, 0, 0, 0.98) 100%
-          ) !important;
-          border: 1px solid rgba(52, 211, 153, 0.3) !important;
-          border-radius: 20px !important;
-          justify-content: center !important;
-          align-items: center !important;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
-        }
-      `}</style>
-
-      <div className="glass relative mx-auto flex max-w-6xl flex-col items-center gap-8 rounded-2xl px-6 py-10 md:flex-row md:items-start md:justify-between md:gap-12">
-        <div className="flex flex-col items-center md:items-start">
-          <Link href="/" className="mb-4 flex items-center gap-2">
-            <DevExLogoDark height={35} width={35} />
-            <span className="bg-gradient-to-br from-emerald-300 to-teal-400 bg-clip-text text-xl font-semibold tracking-tight text-transparent">
-              devX
-            </span>
-          </Link>
-          <p className="mb-6 max-w-lg text-center text-sm text-gray-300 md:text-left">
-            DevX is an open-source cloud IDE platform where users can spin up
-            live REPLs, code in the browser, and access full terminals — all
-            powered by Kubernetes, S3, and GoLang. Think Replit, but fully
-            self-hosted and customizable.
-          </p>
-        </div>
-
-        <nav className="flex w-full flex-col gap-9 text-center md:w-auto md:flex-row md:justify-end md:text-left">
+    <footer className="relative z-10 mt-24 overflow-hidden border-t border-edge">
+      <div className="mx-auto max-w-6xl px-5 pt-16 sm:px-8">
+        <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
           <div>
-            {/* Developer Info */}
             <Link
-              href={"https://parthkapoor.me"}
-              target="_blank"
-              className="mb-4 flex items-center gap-3 rounded-lg bg-black/20 p-3 backdrop-blur-sm border border-teal-500/20"
+              href="/"
+              className="inline-flex items-center gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              <img
-                src="https://github.com/parthkapoor-dev.png"
-                alt="Parth Kapoor"
-                className="h-10 w-10 rounded-full border-2 border-teal-400/30"
-              />
-              <div>
-                <p className="text-sm font-medium text-gray-200">
-                  Built by Parth Kapoor
-                </p>
-                <p className="flex items-center gap-1 text-xs text-teal-400 hover:text-teal-300 transition-colors">
-                  parthkapoor.me <ExternalLink className="h-3 w-3" />
-                </p>
-              </div>
+              <DevExLogoDark height={28} width={28} />
+              <span className="font-display text-lg font-medium tracking-[-0.02em] text-ink">devX</span>
             </Link>
-
-            <div className="flex gap-4">
-              <a
-                href="https://github.com/parthkapoor-dev/devex"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="GitHub Repository"
-                className="flex items-center gap-2 rounded-lg bg-black/30 px-4 py-2 text-sm text-gray-300 transition-all hover:bg-black/40 hover:text-emerald-400 border border-gray-600/30"
-              >
-                <Github className="h-4 w-4" />
-                Contribute
-              </a>
-              <Link
-                href="/docs"
-                aria-label="Documentation"
-                className="flex items-center gap-2 rounded-lg bg-black/30 px-4 py-2 text-sm text-gray-300 transition-all hover:bg-black/40 hover:text-teal-400 border border-gray-600/30"
-              >
-                <BookOpen className="h-4 w-4" />
-                Docs
-              </Link>
-            </div>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-muted">
+              Open-source cloud development environments. A real container, a
+              real terminal and files that persist — in a browser tab, or on
+              your own cluster.
+            </p>
+            <a
+              href={siteConfig.repo}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex h-9 items-center gap-2 rounded-sm border border-edge px-3 font-mono text-xs text-ink-muted transition-colors duration-[--duration-fast] hover:border-brand/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              <Github className="size-3.5" aria-hidden="true" />
+              parthkapoor-dev/devex
+            </a>
           </div>
-        </nav>
+
+          <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+            {COLUMNS.map((column) => (
+              <div key={column.title}>
+                <h2 className="mb-4 font-mono text-xs text-ink-subtle">
+                  <span className="text-brand/70">{"// "}</span>
+                  {column.title.toLowerCase()}
+                </h2>
+                <ul className="space-y-2.5">
+                  {column.links.map((item) => (
+                    <li key={item.label}>
+                      {item.external ? (
+                        <a href={item.href} target="_blank" rel="noopener noreferrer" className={`${link} inline-flex items-center gap-1`}>
+                          {item.label}
+                          <ArrowUpRight className="size-3 text-ink-subtle" aria-hidden="true" />
+                        </a>
+                      ) : (
+                        <Link href={item.href} className={link}>
+                          {item.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
+        </div>
       </div>
-      <div className="relative z-10 mt-10 text-center text-xs text-gray-500">
-        <span>&copy; 2025 devX. Open source and free to use.</span>
+
+      {/* The signature. Outlined display type, cropped by the status line so
+          it reads as something the page is sitting on. Decorative. */}
+      <div aria-hidden="true" className="relative mx-auto mt-10 max-w-6xl select-none px-5 sm:px-8">
+        <p
+          className="translate-y-[18%] font-display text-[clamp(5rem,24vw,20rem)] font-semibold leading-[0.8] tracking-[-0.06em] text-transparent"
+          style={{
+            WebkitTextStroke: "1px color-mix(in oklab, var(--color-brand) 70%, transparent)",
+            backgroundImage:
+              "linear-gradient(to bottom, color-mix(in oklab, var(--color-brand) 28%, transparent), transparent 80%)",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+          }}
+        >
+          devex
+        </p>
+      </div>
+
+      <div className="relative border-t border-brand/15 bg-canvas">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-subtle sm:px-8">
+          <span className="bg-brand px-1.5 text-brand-fg">0:devex*</span>
+          <span>© {new Date().getFullYear()} DevEx · MIT</span>
+          <Link href="/ping" className="inline-flex items-center gap-2 hover:text-ink">
+            <span
+              aria-hidden="true"
+              className="size-1.5 rounded-full bg-term-accent shadow-[0_0_8px_var(--color-term-accent)]"
+            />
+            status
+          </Link>
+          <a
+            href={siteConfig.author.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto inline-flex items-center gap-2 normal-case tracking-normal hover:text-ink"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://github.com/parthkapoor-dev.png"
+              alt=""
+              width={18}
+              height={18}
+              loading="lazy"
+              className="size-[18px] rounded-full object-cover"
+            />
+            built by {siteConfig.author.name}
+          </a>
+        </div>
       </div>
     </footer>
   );

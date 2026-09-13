@@ -69,3 +69,76 @@ Devex is a cloud development IDE with sandboxed “repl” sessions. The system 
 - The system relies on `hostNetwork: true` for simplicity and cost.
 - The core service is the orchestrator; runner instances are ephemeral and created per repl session.
 - If you change protobufs in `packages/proto/`, regenerate via `make generate-proto`.
+
+---
+
+## Frontend
+
+**Working on `apps/web`? Read [`apps/web/AGENTS.md`](./apps/web/AGENTS.md) first.**
+It covers the design-token system (raw Tailwind palette shades are banned in
+component code), the animation/performance rules, MDX documentation authoring,
+and SEO. The frontend's distinctive animated look is a product asset — the brief
+is to keep it striking while keeping it cheap, not to simplify it away.
+
+The visual direction is **Graphite + Signal**: true-neutral surfaces at zero
+chroma with a single amber accent, rationed to roughly 1-2% of the pixels on
+screen. The accent means one thing — *this is the thing you are on*. Colour that
+is not the accent belongs in the backdrop, not the chrome.
+
+Things that bite immediately:
+
+- `apps/web` builds on **webpack, not Turbopack** (`npm run dev` omits the
+  flag). MDX plugins cannot cross Turbopack's loader boundary on Next 15.
+- **Do not run `npm run build` while `npm run dev` is running.** They share
+  `.next`; the build overwrites artifacts the dev server has open and it fails
+  with a `MODULE_NOT_FOUND` in `_document.js` that looks like a missing
+  dependency but is not.
+- Docs are authored MDX in `apps/web/content/docs/`, not scraped READMEs. The
+  old GitHub-scraping pipeline is deleted; do not reintroduce it.
+- Canvas, WebGL, Satori and the manifest cannot resolve `var()` or `oklch()`.
+  Import hex from `apps/web/lib/tokens.ts`.
+- The editor (Monaco) and the docs (Shiki) share one syntax palette. Change
+  `components/sandbox/Editor/theme.ts` and `lib/docs/shiki-theme.ts` together.
+- **Do not change the `glass` utility.** The maintainer asked to keep that
+  treatment as-is. (The footer itself was redesigned on 2026-09-13, at the
+  maintainer's request, along with everything after the FAQ.)
+- **The landing page runs exactly one WebGL context** — the hero's CRT — and it
+  pauses when the hero leaves the viewport. Do not add a second shader below
+  the fold; use CSS or scroll-linked transforms.
+- **`components/brand/block-wordmark.tsx` is unused on purpose.** The
+  maintainer asked to keep it for later; do not delete it as dead code.
+- **Run `npm run audit:agents` before calling a frontend change done.** It
+  scores how readable the site is to an AI agent (`npx ax audit
+  devx.parthkapoor.me`). Production was 30/100 when first measured. The audit
+  reads the deployed origin, not your working tree, so the number only moves
+  after a deploy. Every agent-facing document — robots.txt, llms.txt, the
+  markdown twins, the OpenAPI spec, the `/.well-known` catalogues — is
+  generated from `apps/web/lib/agents.ts`; change a fact there, not in the
+  documents. `apps/web/AGENTS.md` has the full table and the list of checks
+  that need backend work instead.
+
+## Transactional email (`apps/core/internal/email`)
+
+The magic-link email is a table-based HTML template in
+`internal/email/templates/`, rendered by `render.go`.
+
+- **It is parsed with `text/template`, NOT `html/template`.** `html/template`
+  strips every HTML comment, which silently deletes the MSO conditional comments
+  carrying the bulletproof VML button and the Outlook ghost tables. There is no
+  error — the button just breaks in Outlook. `render_test.go` guards this; if it
+  starts failing, someone switched the package.
+- Escaping is therefore ours. Every field on `magicLinkData` is escaped at
+  construction in `newMagicLinkData`. Anything added must be too.
+- **The template is authored dark**, and declares `<meta name="color-scheme"
+  content="dark">` — not `light dark` — so Apple Mail and iOS leave it alone
+  instead of inverting it. Clients that force an invert anyway (Outlook mobile,
+  OWA) are handled by re-asserting every colour under `[data-ogsc]` and
+  `[data-ogsb]`. `render_test.go` asserts the palette is the current one, so a
+  stale brand colour fails the build rather than shipping.
+- Banned in email HTML: `backdrop-filter`, `linear-gradient`, `display:flex`,
+  `position:absolute`, web fonts. Tests assert their absence. Use nested tables
+  and solid `bgcolor` cells — the accent bar is four adjacent coloured cells,
+  not a gradient.
+- Always send the `text/plain` alternative; HTML-only mail is a spam signal.
+- Preview it:
+  `EMAIL_PREVIEW_DIR=/tmp go test ./internal/email/ -run TestWriteEmailPreview`

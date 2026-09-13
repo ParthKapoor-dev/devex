@@ -1,23 +1,27 @@
 "use client";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  Link,
-  LucideGithub,
-  Mail,
-  AlertCircle,
-  Star,
-  ChevronDown,
-  ChevronUp,
-  LucideRouter,
-} from "lucide-react";
-import { Ref, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+
+import { useEffect, useId, useRef, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle, Github, Loader2, Mail } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export function LoginButton() {
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
+  // Its own flag, not the context's `isLoading`: that one means "the session
+  // check is still in flight", and tying the button to it made "Continue with
+  // GitHub" read "Connecting…" before anyone had clicked anything.
+  const [githubLoading, setGithubLoading] = useState(false);
+
+  // Coming back from GitHub restores this page from the bfcache with the
+  // spinner still showing; clear it.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => e.persisted && setGithubLoading(false);
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
   const inputRef: Ref<HTMLInputElement> | undefined = useRef(null);
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicLinkConsent, setMagicLinkConsent] = useState(false);
@@ -25,11 +29,15 @@ export function LoginButton() {
   const [magicLoading, setMagicLoading] = useState(false);
   const router = useRouter();
 
+  const panelId = useId();
+  const consentId = useId();
+
   function handleLoginError(err: string) {
     toast.error(err);
   }
+
   function handleLoginSuccess(email: string) {
-    toast.success(`Magic Link Sent to ${email} `);
+    toast.success(`Magic link sent to ${email}`);
     router.push("/login/success");
   }
 
@@ -46,140 +54,152 @@ export function LoginButton() {
     }
   };
 
+  const magicLinkDisabled =
+    !email || !magicLinkConsent || magicLoading;
+
   return (
-    <div className="flex flex-col gap-6 justify-center items-center w-full max-w-md mx-auto">
-      {/* GitHub Login - Recommended */}
-      <div className="w-full flex flex-col gap-3">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-          <p className="text-center text-sm font-medium text-gray-300">
-            Recommended for DevOps Features
-          </p>
-          <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-        </div>
-
-        <Button
-          onClick={() => login("github", handleLoginError, () => {})}
-          disabled={isLoading}
-          className="w-full gap-3 rounded-lg border-2 bg-gradient-to-r from-gray-800 via-gray-950 to-gray-800 text-white shadow-lg hover:from-gray-900 hover:to-gray-800 hover:shadow-xl transition-all duration-300 ease-out transform hover:scale-[1.02] active:scale-[0.98] border-gray-700 hover:border-gray-600 py-3 font-medium"
-          variant={"outline"}
-        >
-          <LucideGithub className="h-5 w-5" />
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Connecting...
-            </div>
-          ) : (
-            "Continue with GitHub"
+    <div className="flex w-full flex-col gap-5">
+      {/* GitHub — the primary path, and the only place the accent appears. */}
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setGithubLoading(true);
+            // On success the browser navigates away, so only an error resets it.
+            login(
+              "github",
+              (err) => {
+                setGithubLoading(false);
+                handleLoginError(err);
+              },
+              () => {},
+            );
+          }}
+          disabled={githubLoading}
+          className={cn(
+            "inline-flex w-full items-center justify-center gap-2.5 rounded-md px-4 py-2.5",
+            "bg-brand text-sm font-medium text-brand-fg",
+            "transition-colors duration-[--duration-fast] hover:bg-brand-400",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+            "disabled:pointer-events-none disabled:opacity-60",
           )}
-        </Button>
+        >
+          {githubLoading ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Github className="size-4" aria-hidden="true" />
+          )}
+          {githubLoading ? "Connecting…" : "Continue with GitHub"}
+        </button>
+        <p className="text-center text-xs text-ink-subtle">
+          Required for repository access and CI features.
+        </p>
       </div>
 
-      {/* Divider */}
-      <div className="flex items-center w-full gap-4">
-        <div className=" flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-        <span className="text-xs text-gray-400 font-medium">OR</span>
-        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-edge" />
+        <span className="label text-ink-subtle">or</span>
+        <span className="h-px flex-1 bg-edge" />
       </div>
 
-      {/* Magic Link Toggle */}
-      <div className="w-full">
-        <Button
-          onClick={() => setShowMagicLink(!showMagicLink)}
-          className="w-full gap-2 text-gray-300 hover:text-white hover:bg-gray-800/70 transition-all duration-300 py-3 rounded-lg border border-gray-700/50 hover:border-gray-600/50 bg-gradient-to-r from-gray-900 via-gray-950 to-gray-900"
-        >
-          <Mail className="h-4 w-4" />
-          Use Magic Link instead
-          {showMagicLink ? (
-            <ChevronUp className="h-4 w-4 ml-auto transition-transform duration-300" />
-          ) : (
-            <ChevronDown className="h-4 w-4 ml-auto transition-transform duration-300" />
+      {/* Magic link — secondary, and folded away until asked for. */}
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={() => setShowMagicLink((open) => !open)}
+          aria-expanded={showMagicLink}
+          aria-controls={panelId}
+          className={cn(
+            "inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5",
+            "border border-edge bg-surface text-sm text-ink-muted",
+            "transition-colors duration-[--duration-fast] hover:border-edge-strong hover:text-ink",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
           )}
-        </Button>
-
-        {/* Magic Link Form - Animated */}
-        <div
-          className={`overflow-hidden transition-all duration-500 ease-out ${
-            showMagicLink ? "max-h-96 opacity-100 mt-4" : "max-h-0 opacity-0"
-          }`}
         >
-          <div className="flex flex-col gap-4 p-4 rounded-lg border border-gray-700/50 bg-gray-900/70 backdrop-blur-sm">
-            {/* Warning Notice */}
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-900/20 border border-amber-700/30">
-              <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-amber-200">
-                <p className="font-medium mb-1">Limited DevOps Features</p>
-                <p className="text-amber-300/80">
-                  Magic Link authentication doesn&apos;t support GitHub integrations,
-                  CI/CD pipelines, and repository management features.
-                </p>
-              </div>
+          <Mail className="size-4" aria-hidden="true" />
+          Email me a magic link
+        </button>
+
+        {/*
+          Conditionally rendered rather than collapsed with `max-h-0`.
+          A zero-height overflow-hidden panel keeps its inputs in the
+          accessibility tree and in the tab order, so keyboard users used to
+          land inside a form they could not see.
+        */}
+        {showMagicLink && (
+          <div
+            id={panelId}
+            className="flex animate-fade-in flex-col gap-4 rounded-md border border-edge bg-surface p-4"
+          >
+            <div className="flex items-start gap-2.5 rounded-sm border border-warning/25 bg-warning/8 p-3">
+              <AlertTriangle
+                className="mt-px size-4 shrink-0 text-warning"
+                aria-hidden="true"
+              />
+              <p className="text-xs leading-relaxed text-ink-muted">
+                <span className="font-medium text-ink">Fewer features.</span>{" "}
+                A magic-link account cannot reach your GitHub repositories, so
+                cloning, pushing and CI are unavailable.
+              </p>
             </div>
 
-            {/* Email Input */}
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-300">
-                Email Address
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="magic-link-email"
+                className="label text-ink-subtle"
+              >
+                Email address
               </label>
               <Input
+                id="magic-link-email"
                 ref={inputRef}
                 type="email"
-                placeholder="Enter your email address"
+                autoComplete="email"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
+                className="border-edge bg-canvas font-mono text-sm text-ink placeholder:text-ink-subtle focus-visible:border-brand"
               />
             </div>
 
-            {/* Consent Checkbox */}
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2.5">
               <input
                 type="checkbox"
-                id="magic-link-consent"
+                id={consentId}
                 checked={magicLinkConsent}
                 onChange={(e) => setMagicLinkConsent(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
+                className="mt-0.5 size-3.5 shrink-0 accent-[var(--color-brand)]"
               />
               <label
-                htmlFor="magic-link-consent"
-                className="text-sm text-gray-300 cursor-pointer"
+                htmlFor={consentId}
+                className="cursor-pointer text-xs leading-relaxed text-ink-muted"
               >
-                I understand that Magic Link has limited DevOps functionality
-                compared to GitHub authentication
+                I understand this account will not have GitHub access.
               </label>
             </div>
 
-            {/* Magic Link Button */}
-            <Button
+            <button
+              type="button"
               onClick={handleMagicLinkLogin}
-              disabled={
-                isLoading || !email || !magicLinkConsent || magicLoading
-              }
-              className={`w-full gap-2 rounded-lg py-3 font-medium transition-all duration-300 ${
-                !email || !magicLinkConsent
-                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
-              }`}
-            >
-              <Link className="h-5 w-5" />
-              {magicLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Sending Magic Link...
-                </div>
-              ) : (
-                "Send Magic Link"
+              disabled={magicLinkDisabled}
+              className={cn(
+                "inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5",
+                "border border-edge text-sm font-medium",
+                "transition-colors duration-[--duration-fast]",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                magicLinkDisabled
+                  ? "cursor-not-allowed bg-raised text-ink-subtle"
+                  : "bg-raised text-ink hover:border-edge-strong",
               )}
-            </Button>
+            >
+              {magicLoading && (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              )}
+              {magicLoading ? "Sending…" : "Send magic link"}
+            </button>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Footer Note */}
-      <p className="text-xs text-center text-gray-400 mt-4">
-        By continuing, you agree to our Terms of Service and Privacy Policy
-      </p>
     </div>
   );
 }

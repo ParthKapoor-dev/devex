@@ -19,9 +19,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
+    // This is the first thing anyone sees on the dashboard and the sandbox.
+    // It was a 128px ring with a `border-gray-900` edge — near-black, spinning
+    // on a near-black page, so on this theme it rendered as nothing at all
+    // while the session was being checked.
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="flex min-h-dvh items-center justify-center">
+        <p className="label animate-pulse text-ink-subtle">
+          Checking your session
+        </p>
       </div>
     );
   }

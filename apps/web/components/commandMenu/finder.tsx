@@ -13,31 +13,10 @@ import {
   CommandMenuEmpty,
   useFinderMenuShortcut,
 } from "@/components/ui/command-menu";
-import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
-import {
-  Command,
-  Calendar,
-  User,
-  Settings,
-  Plus,
-  Upload,
-  Download,
-  Search,
-  FileText,
-  Home,
-  List,
-  Folder,
-  File,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { RunIcon } from "@codesandbox/sandpack-react";
+import { Folder, File } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ShortcutHint } from "@/components/ui/shortcut-hint";
 import { Tree, DirEntry } from "../sandbox/FileTree";
-
-// Utility function to detect OS and return appropriate modifier key
-const getModifierKey = () => {
-  return { key: "cmd", symbol: "⌘" };
-};
 
 type FileItem = {
   name: string;
@@ -56,8 +35,6 @@ export const FileFinder = ({
   handleFile: (path: string) => void;
   handleDir: (path: string) => void;
 }) => {
-  const router = useRouter();
-
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState("");
 
@@ -68,6 +45,11 @@ export const FileFinder = ({
     const items: FileItem[] = [];
 
     Object.entries(tree).forEach(([path, entries]) => {
+      // Belt and braces. The listing is normalised where it enters the app,
+      // but a palette should never be the thing that crashes the page over an
+      // unexpected shape on the wire.
+      if (!Array.isArray(entries)) return;
+
       entries.forEach((entry) => {
         const fullPath =
           path === "/" ? `/${entry.name}` : `${path}/${entry.name}`;
@@ -140,17 +122,27 @@ export const FileFinder = ({
   return (
     <CommandMenu open={open} onOpenChange={setOpen}>
       <CommandMenuTrigger asChild>
-        <kbd className="transition-colors duration-150 hover:bg-emerald-800 select-none items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-jetbrains-mono font-medium opacity-100 ml-auto flex">
-          ⌘ P
-        </kbd>
+        <button
+          type="button"
+          aria-label="Find a file"
+          title="Find a file"
+          className={cn(
+            "inline-flex h-6 select-none items-center gap-1 rounded-sm border border-edge px-1.5",
+            "font-mono text-[10px] text-ink-subtle",
+            "transition-colors duration-[--duration-fast] hover:border-edge-strong hover:text-ink",
+            "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+          )}
+        >
+          <ShortcutHint keyName="P" />
+        </button>
       </CommandMenuTrigger>
-      <CommandMenuContent className="rounded-xl outline-2 outline-[var(--app-accent)] outline-offset-2">
+      <CommandMenuContent className="rounded-lg border-edge bg-overlay">
         <CommandMenuInput
           placeholder="Type to search files and directories..."
           value={value}
           onChange={(e) => setValue(e.target.value)}
         />
-        <CommandMenuList maxHeight="400px">
+        <CommandMenuList maxHeight="min(60vh, 400px)">
           {Object.keys(groupedItems).length === 0 ? (
             <CommandMenuEmpty>
               No results found for &quot;{value}&quot;
@@ -169,9 +161,11 @@ export const FileFinder = ({
                         index={currentIndex}
                         onSelect={() => handleItemSelect(item)}
                       >
-                        <div className="flex flex-col items-start">
-                          <span>{item.name}</span>
-                          <span className="text-xs text-muted-foreground">
+                        <div className="flex min-w-0 flex-col items-start">
+                          <span className="truncate font-mono text-ink">
+                            {item.name}
+                          </span>
+                          <span className="truncate font-mono text-xs text-ink-subtle">
                             {item.path}
                           </span>
                         </div>

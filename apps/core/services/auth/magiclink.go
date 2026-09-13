@@ -72,8 +72,13 @@ func magiclinkLoginHandler(w http.ResponseWriter, r *http.Request, resend *resen
 	}
 
 	// Send magic link email
-	subject, body := email.GenerateMagicLink(norm_email, token)
-	if err := resend.SendEmail(norm_email, subject, body); err != nil {
+	msg, err := email.GenerateMagicLink(norm_email, token)
+	if err != nil {
+		log.Error("Build magic link email failed", "email", norm_email, "error", err)
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	if err := resend.SendEmail(norm_email, msg.Subject, msg.HTML, msg.Text); err != nil {
 		log.Error("Send magic link email failed", "email", norm_email, "error", err)
 		writeError(w, http.StatusInternalServerError, "Failed to send magic link")
 		return

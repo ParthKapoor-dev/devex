@@ -2,6 +2,7 @@ import { Star, GitFork, Eye } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { FaGithubAlt } from "react-icons/fa";
 import { NumberTicker } from "../magicui/number-ticker";
+import { token } from "@/lib/tokens";
 
 interface GitHubStarBadgeProps {
   owner: string;
@@ -47,28 +48,34 @@ const GitHubStarBadge = ({
 
   const sizeConfig = sizes[size];
 
-  // Theme configurations
+  // Theme configurations.
+  //
+  // The accent was emerald, left over from the previous brand — and this badge
+  // is the first coloured thing on the page. A star is conventionally gold
+  // anyway, so amber is both on-palette and the more expected colour. These
+  // are inline styles, which cannot resolve `var()` or `oklch()`, so they come
+  // from the hex mirrors in lib/tokens.
   const themes = {
     dark: {
-      background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)",
-      text: "#f0f6fc",
-      accent: "#10b981", // Changed from #f85149 to emerald
-      border: "rgba(240, 246, 252, 0.1)",
-      shadow: "rgba(0, 0, 0, 0.3)",
+      background: token.surface,
+      text: token.ink,
+      accent: token.brand400,
+      border: "rgba(255, 255, 255, 0.09)",
+      shadow: "rgba(0, 0, 0, 0.5)",
     },
     light: {
-      background: "linear-gradient(135deg, #ffffff 0%, #f6f8fa 100%)",
+      background: "#ffffff",
       text: "#24292f",
-      accent: "#0d9488", // Changed from #0969da to teal
+      accent: token.brand600,
       border: "rgba(27, 31, 36, 0.15)",
       shadow: "rgba(0, 0, 0, 0.1)",
     },
     gradient: {
-      background: "linear-gradient(135deg, #0f766e 0%, #10b981 100%)", // Changed from blue gradient to teal/emerald
-      text: "#ffffff",
-      accent: "#a7f3d0", // Changed from #ffd700 to light mint/emerald
-      border: "rgba(255, 255, 255, 0.2)",
-      shadow: "rgba(0, 0, 0, 0.2)",
+      background: `linear-gradient(135deg, ${token.raised} 0%, ${token.surface} 100%)`,
+      text: token.ink,
+      accent: token.brand400,
+      border: "rgba(255, 255, 255, 0.18)",
+      shadow: "rgba(0, 0, 0, 0.5)",
     },
   };
 
@@ -90,31 +97,41 @@ const GitHubStarBadge = ({
     return num.toString();
   };
 
-  // Fetch GitHub repository data
-  const fetchRepoData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}`,
-      );
-
-      if (!response.ok) {
-        throw new Error(`GitHub API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      setRepoData(data);
-      setError(null);
-    } catch (err: any) {
-      console.error("Error fetching GitHub data:", err);
-      setError(err.message ?? "Failed to load repository data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch GitHub repository data.
+  //
+  // Declared inside the effect rather than in the component body: it closes
+  // over `owner` and `repo` and nothing else, so this is the shape eslint's
+  // exhaustive-deps rule was asking for (it was warning on every build).
+  // `ignore` stops a late response for a previous repo overwriting a newer one.
   useEffect(() => {
-    fetchRepoData();
+    let ignore = false;
+
+    (async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}`,
+        );
+
+        if (!response.ok) {
+          throw new Error(`GitHub API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (ignore) return;
+        setRepoData(data);
+        setError(null);
+      } catch (err: any) {
+        if (ignore) return;
+        setError(err.message ?? "Failed to load repository data");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
   }, [owner, repo]);
 
   // Get the appropriate icon and count based on showMetric

@@ -28,6 +28,7 @@ import {
   ChevronDown,
   Settings,
   FileText,
+  LayoutDashboard,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +39,23 @@ import Terminal, { TerminalRef } from "./Terminal";
 import { FileFinder } from "../commandMenu/finder";
 import ShortcutKeysPopup from "./help";
 import { cn } from "@/lib/utils";
+import {
+  CHROME,
+  ChromeDivider,
+  EmptyEditorState,
+  EditorTabStrip,
+  ConnectionChip,
+  IconButton,
+  PanelTab,
+  StatusBar,
+  StatusItem,
+  WorkspaceMark,
+  AccountMenu,
+} from "./chrome";
+import { useAuth } from "@/contexts/AuthContext";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { isTypingTarget } from "@/lib/keyboard";
 
 interface SandboxProps {
   editor: {
@@ -45,6 +63,9 @@ interface SandboxProps {
     code: string;
     setCode: Dispatch<SetStateAction<string>>;
     fileType: string;
+    /** Edits typed but not yet pushed to the runner. Drives the tab dot. */
+    isDirty: boolean;
+    onDirtyChange: (dirty: boolean) => void;
   };
 
   fileTree: {
@@ -67,6 +88,7 @@ interface SandboxProps {
     error: string | null;
   };
   replId: string;
+  replName?: string | null;
   isConnected: boolean;
 }
 
@@ -75,8 +97,23 @@ const Sandbox: React.FC<SandboxProps> = ({
   fileTree,
   terminal,
   replId,
+  replName,
   isConnected,
 }) => {
+  // The marketing header does not render on this route, so the account menu
+  // it used to carry lives in this bar instead.
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+      router.push("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }, [logout, router]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [activeBottomPanel, setActiveBottomPanel] = useState<
@@ -85,7 +122,6 @@ const Sandbox: React.FC<SandboxProps> = ({
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [bottomPanelCollapsed, setBottomPanelCollapsed] = useState(false);
 
@@ -97,30 +133,39 @@ const Sandbox: React.FC<SandboxProps> = ({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Responsive detection
+  // Responsive detection.
+  //
+  // `matchMedia` rather than a `resize` listener: a resize listener fires for
+  // every pixel of a window drag, and this handler called four state setters
+  // each time — so dragging the window edge re-rendered the whole IDE, Monaco
+  // and xterm included, at frame rate. A media-query listener fires only when
+  // a breakpoint is actually crossed.
+  //
+  // The setters use the functional form and the effect has no dependencies, so
+  // it subscribes once for the life of the component instead of tearing down
+  // and re-subscribing whenever the panel state changes.
   useEffect(() => {
-    const checkResponsive = () => {
-      const width = window.innerWidth;
-      const newIsMobile = width < 768;
-      const newIsTablet = width >= 768 && width < 1024;
+    const mobile = window.matchMedia("(max-width: 767px)");
+    const narrow = window.matchMedia("(max-width: 639px)");
 
-      setIsMobile(newIsMobile);
-      setIsTablet(newIsTablet);
-
-      // Auto-collapse sidebar on mobile
-      if (newIsMobile && !sidebarCollapsed) {
-        setSidebarCollapsed(true);
-      }
-
-      // Auto-collapse bottom panel on very small screens
-      if (width < 640 && !bottomPanelCollapsed) {
-        setBottomPanelCollapsed(true);
-      }
+    const syncMobile = () => {
+      setIsMobile(mobile.matches);
+      if (mobile.matches) setSidebarCollapsed(true);
     };
 
-    checkResponsive();
-    window.addEventListener("resize", checkResponsive);
-    return () => window.removeEventListener("resize", checkResponsive);
+    const syncNarrow = () => {
+      if (narrow.matches) setBottomPanelCollapsed(true);
+    };
+
+    syncMobile();
+    syncNarrow();
+
+    mobile.addEventListener("change", syncMobile);
+    narrow.addEventListener("change", syncNarrow);
+    return () => {
+      mobile.removeEventListener("change", syncMobile);
+      narrow.removeEventListener("change", syncNarrow);
+    };
   }, []);
 
   // Terminal utility functions
@@ -142,7 +187,6 @@ const Sandbox: React.FC<SandboxProps> = ({
     terminal.ref.current?.reconnect();
   }, []);
 
-  const [terminalSearchTerm, setTerminalSearchTerm] = useState("");
   const searchInTerminal = useCallback((term: string) => {
     if (term && terminal.ref.current) {
       return terminal.ref.current.search(term);
@@ -158,6 +202,12 @@ const Sandbox: React.FC<SandboxProps> = ({
 
       // Disable some shortcuts on mobile
       if (isMobile) return;
+
+      // Never steal a keystroke from something the user is typing into.
+      // Without this, typing `?` in Monaco, in the rename box, or in the
+      // terminal opened the shortcuts modal — the bare-key shortcuts below
+      // have no modifier to tell them apart from ordinary text.
+      if (isTypingTarget(event.target)) return;
 
       // Ctrl+Shift+E: Focus sidebar (Explorer)
       if (isCtrlOrCmd && shiftKey && key.toLowerCase() === "e") {
@@ -179,7 +229,6 @@ const Sandbox: React.FC<SandboxProps> = ({
       // Shift+/: Open Shortcuts
       if (key.toLowerCase() === "?") {
         event.preventDefault();
-        console.log("Hello World");
         setShowHelp(true);
         return;
       }
@@ -281,6 +330,9 @@ const Sandbox: React.FC<SandboxProps> = ({
     [
       isMobile,
       sidebarCollapsed,
+      // Read by the Ctrl+` branch below. Omitting it pinned the handler to
+      // whatever the panel state was when it was first registered.
+      bottomPanelCollapsed,
       activeBottomPanel,
       clearTerminal,
       resetTerminal,
@@ -343,25 +395,25 @@ const Sandbox: React.FC<SandboxProps> = ({
   }
 
   return (
-    <div className="h-screen w-full  bg-gradient-to-br from-gray-900 via-black to-gray-900  flex flex-col pt-14">
+    // No `pt-14`: the marketing header hides itself on this route (see
+    // `components/header.tsx`) and the bar below is now the only one.
+    <div className="flex h-dvh w-full flex-col bg-term-bg">
       {/* Mobile header */}
       {isMobile && (
-        <div className="h-12 bg-gray-900 border-b border-gray-600 flex items-center justify-between px-3 relative z-50">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
+        <div className="relative z-50 flex h-10 shrink-0 items-center justify-between gap-2 border-b border-edge bg-surface px-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <IconButton
+              label={mobileMenuOpen ? "Close menu" : "Open menu"}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="h-8 w-8 p-0 text-gray-300 hover:text-white"
             >
-              <Menu className="h-4 w-4" />
-            </Button>
-            <span className="text-white text-sm font-medium truncate">
-              {fileTree.filePath || "Sandbox"}
+              <Menu className="size-4" />
+            </IconButton>
+            <span className="truncate font-mono text-xs text-ink-muted">
+              {fileTree.filePath || replName || "sandbox"}
             </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1">
             <FileFinder
               tree={fileTree.tree}
               handleFile={handleFetchFile}
@@ -369,12 +421,13 @@ const Sandbox: React.FC<SandboxProps> = ({
             />
 
             <Button
+              variant="ghost"
               onClick={() =>
                 fileTree.filePath == ""
                   ? toast("Open/Create a file to continue")
                   : setShowSettings(true)
               }
-              className=" items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-jetbrains-mono font-medium opacity-100 ml-auto flex"
+              className=" items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-mono font-medium opacity-100 ml-auto flex"
               title="Settings"
               size={"sm"}
             >
@@ -384,32 +437,27 @@ const Sandbox: React.FC<SandboxProps> = ({
               variant="ghost"
               size="sm"
               onClick={handleBottomPanelToggle}
-              className="h-8 px-2 text-xs text-gray-300 hover:text-white"
+              className="h-8 px-2 text-xs text-ink-muted hover:text-ink"
             >
               <TerminalIcon className="h-3 w-3" />
             </Button>
-            <div className="flex items-center gap-1">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  isConnected ? "bg-green-500" : "bg-red-500"
-                }`}
-              />
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  terminal.status === "connected"
-                    ? "bg-green-500"
-                    : terminal.status === "connecting"
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
-                }`}
-              />
-            </div>
+
+            {user && <AccountMenu user={user} onLogout={handleLogout} />}
           </div>
 
           {/* Mobile menu overlay */}
           {mobileMenuOpen && (
-            <div className="absolute top-12 left-0 right-0 bg-gray-900 border-b border-gray-600 p-3 shadow-lg">
+            <div className="absolute inset-x-0 top-10 border-b border-edge bg-overlay p-2">
               <div className="flex flex-col gap-2">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:bg-raised hover:text-ink"
+                >
+                  <LayoutDashboard className="size-4" />
+                  Workspaces
+                </Link>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -417,7 +465,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                     setSidebarCollapsed(false);
                     setMobileMenuOpen(false);
                   }}
-                  className="justify-start text-gray-300 hover:text-white"
+                  className="justify-start text-ink-muted hover:text-ink"
                 >
                   <PanelLeftOpen className="h-4 w-4 mr-2" />
                   Toggle Explorer
@@ -430,7 +478,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                     setBottomPanelCollapsed(false);
                     setMobileMenuOpen(false);
                   }}
-                  className="justify-start text-gray-300 hover:text-white"
+                  className="justify-start text-ink-muted hover:text-ink"
                 >
                   <TerminalIcon className="h-4 w-4 mr-2" />
                   Terminal
@@ -443,7 +491,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                     setBottomPanelCollapsed(false);
                     setMobileMenuOpen(false);
                   }}
-                  className="justify-start text-gray-300 hover:text-white"
+                  className="justify-start text-ink-muted hover:text-ink"
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Output
@@ -456,69 +504,75 @@ const Sandbox: React.FC<SandboxProps> = ({
 
       {/* Desktop top bar */}
       {!isMobile && (
-        <div className="h-10  bg-gradient-to-br from-gray-900 via-black to-emerald-900 border-b border-gray-600 flex items-center px-3 gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
+        <div
+          className={cn(
+            CHROME.topBar,
+            "flex shrink-0 items-center gap-1.5 border-b border-edge bg-surface px-2",
+          )}
+        >
+          {/* Identity first, where the marketing header used to put it, so the
+              row reads as the same bar rather than as the IDE having eaten
+              the site's chrome. */}
+          <WorkspaceMark />
+
+          <ChromeDivider />
+
+          <IconButton
+            label={`${sidebarCollapsed ? "Show" : "Hide"} explorer (Ctrl+B)`}
             onClick={handleSidebarToggle}
-            className="h-6 w-6 p-0 text-gray-300 hover:text-white"
-            title={`${sidebarCollapsed ? "Show" : "Hide"} Sidebar (Ctrl+B)`}
           >
             {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
+              <PanelLeftOpen className="size-4" />
             ) : (
-              <PanelLeftClose className="h-4 w-4" />
+              <PanelLeftClose className="size-4" />
             )}
-          </Button>
+          </IconButton>
 
-          {/* Connection status indicator */}
-          <div className="flex items-center gap-2 text-xs">
-            <div
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? "bg-green-500" : "bg-red-500"
-              }`}
-              title={`Socket: ${isConnected ? "Connected" : "Disconnected"}`}
-            />
-            <div
-              className={`w-2 h-2 rounded-full ${
-                terminal.status === "connected"
-                  ? "bg-green-500"
-                  : terminal.status === "connecting"
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
-              }`}
-              title={`Terminal: ${terminal.status}`}
-            />
+          <ChromeDivider />
 
-            <Button onClick={() => setShowHelp(true)}>
-              <kbd className=" transition-colors duration-150 hover:bg-emerald-800 select-none items-center gap-1 rounded border hover:border-emerald-950 border-border bg-muted px-2 text-sm font-jetbrains-mono font-medium opacity-100 ml-auto flex">
-                Shft + /
-              </kbd>
-            </Button>
-          </div>
-          <div className="flex items-center gap-1 ml-auto">
+          {/* The name, with the id kept as a tooltip — you still need it
+              for a bug report, but it is not what you want to read all day. */}
+          <span
+            className="min-w-0 truncate font-mono text-xs text-ink-muted"
+            title={replId}
+          >
+            {replName ?? replId}
+          </span>
+
+          <ConnectionChip connected={isConnected} />
+
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <FileFinder
               tree={fileTree.tree}
               handleFile={handleFetchFile}
               handleDir={handleFetchDir}
             />
 
-            <Button
+            <IconButton
+              label="Editor settings (Ctrl+Shift+P)"
               onClick={() =>
                 fileTree.filePath == ""
-                  ? toast("Open/Create a file to continue")
+                  ? toast("Open or create a file to continue")
                   : setShowSettings(true)
               }
-              className=" transition-colors duration-150 hover:bg-emerald-800 items-center gap-1 rounded border border-border bg-muted px-2 text-lg font-jetbrains-mono font-medium opacity-100 ml-auto flex"
-              title="Settings"
-              size={"sm"}
             >
-              <Settings className="h-2 w-2" />
-            </Button>
+              <Settings className="size-4" />
+            </IconButton>
 
-            <Button
-              variant={activeBottomPanel === "terminal" ? "secondary" : "ghost"}
-              size="sm"
+            <IconButton
+              label="Keyboard shortcuts (Shift+/)"
+              onClick={() => setShowHelp(true)}
+            >
+              <span aria-hidden="true" className="font-mono text-sm">
+                ?
+              </span>
+            </IconButton>
+
+            <ChromeDivider />
+
+            <IconButton
+              label="Toggle terminal (Ctrl+`)"
+              active={activeBottomPanel === "terminal"}
               onClick={() => {
                 if (activeBottomPanel === "terminal") {
                   setActiveBottomPanel(null);
@@ -528,19 +582,13 @@ const Sandbox: React.FC<SandboxProps> = ({
                   setTimeout(() => focusTerminal(), 100);
                 }
               }}
-              className="items-center gap-1 rounded border border-border bg-muted px-2 text-xs font-jetbrains-mono font-medium opacity-100 ml-auto flex transition-colors duration-150 hover:bg-emerald-800"
-              title="Toggle Terminal (Ctrl+`)"
             >
-              <TerminalIcon className="h-3 w-3 mr-1" />
-              <span className="hidden sm:inline">Terminal</span>
-              {terminal.error && (
-                <span className="ml-1 text-red-400 text-xs">!</span>
-              )}
-            </Button>
+              <TerminalIcon className="size-4" />
+            </IconButton>
 
-            <Button
-              variant={activeBottomPanel === "output" ? "secondary" : "ghost"}
-              size="sm"
+            <IconButton
+              label="Toggle output (Ctrl+Shift+Y)"
+              active={activeBottomPanel === "output"}
               onClick={() => {
                 if (activeBottomPanel === "output") {
                   setActiveBottomPanel(null);
@@ -549,12 +597,13 @@ const Sandbox: React.FC<SandboxProps> = ({
                   setBottomPanelCollapsed(false);
                 }
               }}
-              className=" items-center gap-1 rounded border border-border bg-muted px-2 text-xs font-jetbrains-mono font-medium opacity-100 ml-auto flex transition-colors duration-150 hover:bg-emerald-800"
-              title="Toggle Output (Ctrl+Shift+Y)"
             >
-              <Play className="h-3 w-3 mr-1" />
-              <span className="hidden sm:inline">Output</span>
-            </Button>
+              <Play className="size-4" />
+            </IconButton>
+
+            <ChromeDivider />
+
+            {user && <AccountMenu user={user} onLogout={handleLogout} />}
           </div>
         </div>
       )}
@@ -567,26 +616,22 @@ const Sandbox: React.FC<SandboxProps> = ({
             {/* Mobile sidebar overlay */}
             {!sidebarCollapsed && (
               <div
-                className="fixed inset-0 z-40 bg-black bg-opacity-50"
+                className="fixed inset-0 z-40 bg-canvas/60"
                 onClick={() => setSidebarCollapsed(true)}
               >
                 <div
-                  className="absolute left-0 top-0 bottom-0 w-full bg-gray-900 border-r border-gray-600"
+                  className="absolute inset-y-0 left-0 w-full border-r border-edge bg-surface"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="h-full">
-                    <div className="h-12 bg-gray-800 border-b border-gray-600 flex items-center justify-between px-3">
-                      <span className="text-white text-sm font-medium">
-                        Explorer
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                    <div className="flex h-10 items-center justify-between border-b border-edge bg-raised px-3">
+                      <span className="label text-ink-muted">Explorer</span>
+                      <IconButton
+                        label="Close explorer"
                         onClick={() => setSidebarCollapsed(true)}
-                        className="h-6 w-6 p-0 text-gray-300 hover:text-white"
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
+                        <X className="size-4" />
+                      </IconButton>
                     </div>
                     <div className="h-full pt-12">
                       <FileTree
@@ -596,6 +641,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                         onAction={fileTree.handleFileTreeAction}
                         activePath={activePath}
                         setActivePath={setActivePath}
+                        projectName={replName ?? "Workspace"}
                       />
                     </div>
                   </div>
@@ -607,61 +653,53 @@ const Sandbox: React.FC<SandboxProps> = ({
             <div
               className={`flex-1 ${!bottomPanelCollapsed && showBottomPanel ? "h-1/2" : "h-full"}`}
             >
-              <div ref={editorRef} className="h-full">
+              <div ref={editorRef} className="flex h-full flex-col">
                 {fileTree.filePath == "" ? (
-                  <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <FileText className="w-12 h-12 text-emerald-400" />
-                      <p className="text-emerald-400 font-medium font-jetbrains-mono">
-                        Select/Create a File to Continue
-                      </p>
-                      <p className="text-gray-500 text-sm">
-                        Open a file from the sidebar on the left
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <Editor
-                    sendDiff={editor.updateContent}
-                    code={editor.code}
-                    setCode={editor.setCode}
-                    fileType={editor.fileType}
-                    showSettings={showSettings}
-                    setShowSettings={setShowSettings}
+                  <EmptyEditorState
+                    icon={<FileText className="size-8" />}
+                    title="No file open"
+                    hint="Pick a file from the explorer, or press Ctrl+P to search."
                   />
+                ) : (
+                  <>
+                    <EditorTabStrip
+                      path={fileTree.filePath}
+                      dirty={editor.isDirty}
+                    />
+                    <div className="min-h-0 flex-1">
+                      <Editor
+                        sendDiff={editor.updateContent}
+                        code={editor.code}
+                        setCode={editor.setCode}
+                        fileType={editor.fileType}
+                        showSettings={showSettings}
+                        setShowSettings={setShowSettings}
+                        onDirtyChange={editor.onDirtyChange}
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             </div>
 
             {/* Mobile bottom panel */}
             {!bottomPanelCollapsed && showBottomPanel && (
-              <div className="h-1/2 border-t border-gray-700 flex flex-col">
-                <div className="h-10 bg-gray-800 border-b flex items-center justify-between px-3">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setActiveBottomPanel("terminal");
-                      }}
-                      className={`px-2 py-1 text-xs rounded transition-colors ${
-                        activeBottomPanel === "terminal"
-                          ? "bg-white text-gray-900"
-                          : "text-gray-600 hover:text-gray-100"
-                      }`}
+              <div className="flex h-1/2 flex-col border-t border-edge">
+                <div className={cn(CHROME.panelTab, "flex shrink-0 items-center justify-between border-b border-edge bg-raised pr-2")}>
+                  <div role="tablist" className="flex h-full">
+                    <PanelTab
+                      active={activeBottomPanel === "terminal"}
+                      attention={Boolean(terminal.error)}
+                      onClick={() => setActiveBottomPanel("terminal")}
                     >
                       Terminal
-                    </button>
-                    <button
-                      onClick={() => {
-                        setActiveBottomPanel("output");
-                      }}
-                      className={`px-2 py-1 text-xs rounded transition-colors ${
-                        activeBottomPanel === "output"
-                          ? "bg-white text-gray-900"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
+                    </PanelTab>
+                    <PanelTab
+                      active={activeBottomPanel === "output"}
+                      onClick={() => setActiveBottomPanel("output")}
                     >
                       Output
-                    </button>
+                    </PanelTab>
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -672,7 +710,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                           variant="ghost"
                           size="sm"
                           onClick={clearTerminal}
-                          className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                          className="text-ink-subtle hover:text-ink"
                           title="Clear Terminal"
                         >
                           <RotateCcw className="h-3 w-3" />
@@ -681,7 +719,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                           variant="ghost"
                           size="sm"
                           onClick={resetTerminal}
-                          className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                          className="text-ink-subtle hover:text-ink"
                           title="Reset Terminal"
                         >
                           <RotateCcw className="h-3 w-3" />
@@ -693,7 +731,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                             const term = prompt("Search in terminal:");
                             if (term) searchInTerminal(term);
                           }}
-                          className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                          className="text-ink-subtle hover:text-ink"
                           title="Search in Terminal"
                         >
                           <Search className="h-3 w-3" />
@@ -707,7 +745,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                       onClick={() =>
                         setIsTerminalMaximized(!isTerminalMaximized)
                       }
-                      className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                      className="text-ink-subtle hover:text-ink"
                       title={isTerminalMaximized ? "Restore" : "Maximize"}
                     >
                       {isTerminalMaximized ? (
@@ -721,7 +759,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={handleBottomPanelToggle}
-                      className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                      className="text-ink-subtle hover:text-ink"
                       title="Close Panel"
                     >
                       <ChevronDown className="h-3 w-3" />
@@ -778,6 +816,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                       onAction={fileTree.handleFileTreeAction}
                       activePath={activePath}
                       setActivePath={setActivePath}
+                      projectName={replName ?? "Workspace"}
                     />
                   </div>
                 </ResizablePanel>
@@ -793,28 +832,31 @@ const Sandbox: React.FC<SandboxProps> = ({
                   defaultSize={showBottomPanel ? 70 : 100}
                   minSize={30}
                 >
-                  <div ref={editorRef} className="h-full">
+                  <div ref={editorRef} className="flex h-full flex-col">
                     {fileTree.filePath == "" ? (
-                      <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-4">
-                          <FileText className="w-12 h-12 text-emerald-400" />
-                          <p className="text-emerald-400 font-medium font-jetbrains-mono">
-                            Select/Create a File to Continue
-                          </p>
-                          <p className="text-gray-500 text-sm">
-                            Open a file from the sidebar on the left
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <Editor
-                        sendDiff={editor.updateContent}
-                        code={editor.code}
-                        setCode={editor.setCode}
-                        fileType={editor.fileType}
-                        showSettings={showSettings}
-                        setShowSettings={setShowSettings}
+                      <EmptyEditorState
+                        icon={<FileText className="size-8" />}
+                        title="No file open"
+                        hint="Pick a file from the explorer, or press Ctrl+P to search."
                       />
+                    ) : (
+                      <>
+                        <EditorTabStrip
+                          path={fileTree.filePath}
+                          dirty={editor.isDirty}
+                        />
+                        <div className="min-h-0 flex-1">
+                          <Editor
+                            sendDiff={editor.updateContent}
+                            code={editor.code}
+                            setCode={editor.setCode}
+                            fileType={editor.fileType}
+                            showSettings={showSettings}
+                            setShowSettings={setShowSettings}
+                            onDirtyChange={editor.onDirtyChange}
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
                 </ResizablePanel>
@@ -828,42 +870,28 @@ const Sandbox: React.FC<SandboxProps> = ({
                       minSize={15}
                       className={cn(activeBottomPanel == null && "hidden")}
                     >
-                      <div className="h-full bg-zinc-900 border-t border-gray-800">
+                      <div className="h-full border-t border-edge bg-term-bg">
                         {/* Tab buttons for bottom panel */}
-                        <div className="h-8 bg-gradient-to-br from-gray-900 via-black/80 to-emerald-900 border-b border-gray-800 flex items-center justify-between px-2">
-                          <div className="flex gap-1">
-                            <button
+                        <div className={cn(CHROME.panelTab, "flex shrink-0 items-center justify-between border-b border-edge bg-raised pr-2")}>
+                          <div role="tablist" className="flex h-full">
+                            <PanelTab
+                              active={activeBottomPanel === "terminal"}
+                              attention={Boolean(terminal.error)}
                               onClick={() => {
                                 setActiveBottomPanel("terminal");
                                 setTimeout(() => focusTerminal(), 100);
                               }}
-                              className={`px-3 py-1 text-xs rounded-t border-b-2 transition-colors ${
-                                activeBottomPanel === "terminal"
-                                  ? "bg-white border-blue-500 text-gray-900"
-                                  : "bg-gray-100 border-transparent text-gray-600 hover:text-gray-900"
-                              }`}
                             >
-                              <TerminalIcon className="h-3 w-3 mr-1 inline" />
+                              <TerminalIcon className="size-3" />
                               Terminal
-                              {terminal.error && (
-                                <span className="ml-1 text-red-500 text-xs">
-                                  !
-                                </span>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setActiveBottomPanel("output");
-                              }}
-                              className={`px-3 py-1 text-xs rounded-t border-b-2 transition-colors ${
-                                activeBottomPanel === "output"
-                                  ? "bg-white border-blue-500 text-gray-900"
-                                  : "bg-gray-100 border-transparent text-gray-600 hover:text-gray-900"
-                              }`}
+                            </PanelTab>
+                            <PanelTab
+                              active={activeBottomPanel === "output"}
+                              onClick={() => setActiveBottomPanel("output")}
                             >
-                              <Play className="h-3 w-3 mr-1 inline" />
+                              <Play className="size-3" />
                               Output
-                            </button>
+                            </PanelTab>
                           </div>
 
                           {/* Terminal-specific controls */}
@@ -873,7 +901,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={clearTerminal}
-                                className="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                                className="text-ink-subtle hover:text-ink"
                                 title="Clear Terminal"
                               >
                                 <RotateCcw className="h-3 w-3" />
@@ -882,7 +910,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={resetTerminal}
-                                className="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                                className="text-ink-subtle hover:text-ink"
                                 title="Reset Terminal"
                               >
                                 <RotateCcw className="h-3 w-3" />
@@ -894,7 +922,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                                   const term = prompt("Search in terminal:");
                                   if (term) searchInTerminal(term);
                                 }}
-                                className="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                                className="text-ink-subtle hover:text-ink"
                                 title="Search in Terminal (Ctrl+Shift+F)"
                               >
                                 <Search className="h-3 w-3" />
@@ -909,7 +937,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                               onClick={() =>
                                 setIsTerminalMaximized(!isTerminalMaximized)
                               }
-                              className="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                              className="text-ink-subtle hover:text-ink"
                               title={
                                 isTerminalMaximized ? "Restore" : "Maximize"
                               }
@@ -930,7 +958,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                                   setActiveBottomPanel(null);
                                 }
                               }}
-                              className="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                              className="text-ink-subtle hover:text-ink"
                             >
                               <X className="h-3 w-3" />
                             </Button>
@@ -985,6 +1013,46 @@ const Sandbox: React.FC<SandboxProps> = ({
           </ResizablePanelGroup>
         )}
       </div>
+
+      <StatusBar>
+        <StatusItem
+          tone={isConnected ? "ok" : "off"}
+          value={isConnected ? "connected" : "offline"}
+          title={`Workspace socket: ${isConnected ? "connected" : "disconnected"}`}
+        />
+        <StatusItem
+          tone={
+            terminal.status === "connected"
+              ? "ok"
+              : terminal.status === "connecting"
+                ? "busy"
+                : "off"
+          }
+          label="term"
+          value={terminal.status}
+          title={terminal.error ?? `Terminal: ${terminal.status}`}
+        />
+
+        {fileTree.filePath && (
+          <span className="min-w-0 flex-1 truncate text-ink-subtle">
+            {fileTree.filePath}
+          </span>
+        )}
+
+        <span className="ml-auto flex items-center gap-4">
+          {fileTree.filePath && (
+            <StatusItem value={editor.fileType || "txt"} />
+          )}
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="text-ink-subtle transition-colors duration-[--duration-fast] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+          >
+            shift+/ for shortcuts
+          </button>
+        </span>
+      </StatusBar>
+
       {showHelp && <ShortcutKeysPopup onClose={() => setShowHelp(false)} />}
     </div>
   );

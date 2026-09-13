@@ -9,11 +9,41 @@ import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "./input";
+import { useModifierKey } from "@/hooks/use-modifier-key";
 
-// Utility function to detect OS and return appropriate modifier key
-const getModifierKey = () => {
-  return { key: "cmd", symbol: "⌘" };
-};
+/**
+ * Render a shortcut token.
+ *
+ * This used to be `getModifierKey()`, which claimed to "detect OS" and then
+ * unconditionally returned `⌘` — so every key cap in the palette told Linux
+ * and Windows users to press a key their keyboard does not have, while the
+ * handlers behind them all accept `metaKey || ctrlKey`.
+ */
+function ShortcutKey({ token }: { token: string }) {
+  const modifier = useModifierKey();
+  const apple = modifier === "⌘";
+
+  const label =
+    token === "cmd" || token === "⌘"
+      ? modifier
+      : token === "shift"
+        ? "⇧"
+        : token === "alt"
+          ? apple
+            ? "⌥"
+            : "Alt"
+          : token === "ctrl"
+            ? apple
+              ? "⌃"
+              : "Ctrl"
+            : token;
+
+  return (
+    <kbd className="pointer-events-none flex h-5 select-none items-center rounded border border-edge bg-raised px-1.5 font-mono text-[10px] text-ink-subtle">
+      {label}
+    </kbd>
+  );
+}
 
 // Context for sharing state between components
 interface CommandMenuContextType {
@@ -141,24 +171,9 @@ const CommandMenuContent = React.forwardRef<
     const [value, setValue] = React.useState("");
     const [selectedIndex, setSelectedIndex] = React.useState(0);
 
-    // Keyboard navigation
-    React.useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          // Logic will be handled by CommandMenuList
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          // Logic will be handled by CommandMenuList
-        } else if (e.key === "Enter") {
-          // e.preventDefault();
-          // Logic will be handled by CommandMenuItem
-        }
-      };
-
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
-    }, []);
+    // There was a second document-level keydown listener here whose whole body
+    // was `e.preventDefault()` under comments reading "Logic will be handled by
+    // CommandMenuList". It handled nothing and swallowed the arrow keys twice.
 
     return (
       <CommandMenuPortal>
@@ -197,13 +212,9 @@ const CommandMenuContent = React.forwardRef<
               </CommandMenuClose>
 
               {showShortcut && (
-                <div className="absolute end-12 top-3 flex items-center justify-center gap-1 text-sm text-muted-foreground">
-                  <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-jetbrains-mono font-medium opacity-100 ml-auto flex">
-                    {getModifierKey().symbol}
-                  </kbd>
-                  <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-jetbrains-mono font-medium opacity-100 ml-auto flex">
-                    K
-                  </kbd>
+                <div className="absolute end-12 top-3 flex items-center gap-1">
+                  <ShortcutKey token="cmd" />
+                  <ShortcutKey token="K" />
                 </div>
               )}
             </CommandMenuProvider>
@@ -254,7 +265,7 @@ const CommandMenuList = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & {
     maxHeight?: string;
   }
->(({ className, children, maxHeight = "300px", ...props }, ref) => {
+>(({ className, children, maxHeight = "300px", ...props }, _ref) => {
   const {
     selectedIndex,
     setSelectedIndex,
@@ -262,39 +273,34 @@ const CommandMenuList = React.forwardRef<
     scrollHideDelay = 600,
   } = useCommandMenu();
 
-  // Handle keyboard navigation
+  const hostRef = React.useRef<HTMLDivElement>(null);
+
+  // Keyboard navigation.
+  //
+  // Scoped to this list rather than `document.querySelectorAll`, which would
+  // pick up the items of any other palette mounted at the same time — the app
+  // has two (this one and the sandbox file finder).
+  //
+  // `behavior: "smooth"` is gone: on held arrow keys it queues an animation per
+  // press and the highlight visibly lags behind the keyboard.
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const items = document.querySelectorAll("[data-command-item]");
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+
+      const items = hostRef.current?.querySelectorAll("[data-command-item]");
+      if (!items || items.length === 0) return;
+
+      e.preventDefault();
       const maxIndex = items.length - 1;
+      const newIndex =
+        e.key === "ArrowDown"
+          ? Math.min(selectedIndex + 1, maxIndex)
+          : Math.max(selectedIndex - 1, 0);
 
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        const newIndex = Math.min(selectedIndex + 1, maxIndex);
-        setSelectedIndex(newIndex);
-
-        // Scroll selected item into view
-        const selectedItem = items[newIndex] as HTMLElement;
-        if (selectedItem) {
-          selectedItem.scrollIntoView({
-            block: "nearest",
-            behavior: "smooth",
-          });
-        }
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        const newIndex = Math.max(selectedIndex - 1, 0);
-        setSelectedIndex(newIndex);
-
-        // Scroll selected item into view
-        const selectedItem = items[newIndex] as HTMLElement;
-        if (selectedItem) {
-          selectedItem.scrollIntoView({
-            block: "nearest",
-            behavior: "smooth",
-          });
-        }
-      }
+      setSelectedIndex(newIndex);
+      (items[newIndex] as HTMLElement | undefined)?.scrollIntoView({
+        block: "nearest",
+      });
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -302,14 +308,16 @@ const CommandMenuList = React.forwardRef<
   }, [selectedIndex, setSelectedIndex]);
 
   return (
-    <div ref={ref} className="p-1" {...props}>
+    <div ref={hostRef} className="p-1" {...props}>
       <ScrollArea
         className={cn("w-full", className)}
-        style={{ height: maxHeight }}
+        // A *max* height, not a fixed one. It was `height`, so a palette with
+        // three results still reserved 400px and sat there mostly empty.
+        style={{ maxHeight }}
         type={scrollType}
         scrollHideDelay={scrollHideDelay}
       >
-        <div className="flex flex-col gap-1 p-1">{children}</div>
+        <div className="flex flex-col gap-0.5 p-1">{children}</div>
       </ScrollArea>
     </div>
   );
@@ -325,9 +333,7 @@ const CommandMenuGroup = React.forwardRef<
 >(({ className, children, heading, ...props }, ref) => (
   <div ref={ref} className={cn("", className)} {...props}>
     {heading && (
-      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-        {heading}
-      </div>
+      <div className="label px-2.5 pb-1.5 pt-3 text-ink-subtle">{heading}</div>
     )}
     {children}
   </div>
@@ -368,12 +374,16 @@ const CommandMenuItem = React.forwardRef<
       }
     }, [disabled, onSelect]);
 
+    // Only the selected row listens. Every row used to register its own
+    // document-level handler and then check `isSelected` inside it, so a
+    // twenty-item palette installed twenty global listeners to serve one.
     React.useEffect(() => {
+      if (!isSelected) return;
+
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Enter" && isSelected) {
-          e.preventDefault();
-          handleSelect();
-        }
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        handleSelect();
       };
 
       document.addEventListener("keydown", handleKeyDown);
@@ -385,9 +395,10 @@ const CommandMenuItem = React.forwardRef<
         ref={ref}
         data-command-item
         className={cn(
-          "relative flex cursor-default select-none items-center rounded-xl px-2 py-2 text-sm outline-none transition-colors gap-2",
-          "hover:bg-accent hover:text-accent-foreground",
-          isSelected && "bg-accent text-accent-foreground",
+          "relative flex cursor-default select-none items-center gap-2.5 rounded-md px-2.5 py-2",
+          "text-sm text-ink-muted outline-none",
+          "transition-colors duration-[--duration-fast]",
+          isSelected && "bg-raised text-ink",
           disabled && "pointer-events-none opacity-50",
           className,
         )}
@@ -396,33 +407,23 @@ const CommandMenuItem = React.forwardRef<
         {...props}
       >
         {icon && (
-          <div className="h-4 w-4 flex items-center justify-center">{icon}</div>
+          <span
+            className={cn(
+              "flex size-4 shrink-0 items-center justify-center transition-colors duration-[--duration-fast]",
+              // The accent marks the row you are on, and only that row.
+              isSelected ? "text-brand" : "text-ink-subtle",
+            )}
+          >
+            {icon}
+          </span>
         )}
 
-        <div className="flex-1">{children}</div>
+        <div className="min-w-0 flex-1">{children}</div>
 
         {shortcut && (
-          <div className="ms-auto flex items-center gap-1">
-            {shortcut.split("+").map((key, i) => (
-              <React.Fragment key={key}>
-                {i > 0 && (
-                  <span className="text-muted-foreground text-xs">+</span>
-                )}
-
-                <kbd className="pointer-events-none h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-jetbrains-mono font-medium opacity-100 ml-auto flex text-sm text-muted-foreground">
-                  {key === "cmd" || key === "⌘"
-                    ? getModifierKey().symbol
-                    : key === "shift"
-                      ? "⇧"
-                      : key === "alt"
-                        ? "⌥"
-                        : key === "ctrl"
-                          ? getModifierKey().key === "cmd"
-                            ? "⌃"
-                            : "Ctrl"
-                          : key}
-                </kbd>
-              </React.Fragment>
+          <div className="ms-auto flex shrink-0 items-center gap-1">
+            {shortcut.split("+").map((key) => (
+              <ShortcutKey key={key} token={key} />
             ))}
           </div>
         )}

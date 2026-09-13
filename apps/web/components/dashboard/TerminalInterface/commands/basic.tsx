@@ -232,7 +232,7 @@ export const lsCommand: Command = {
           const isActive = repl.isActive;
           const statusIcon = isActive ? "🟢" : "⚪";
           const link = isActive
-            ? ` - <a href="/repl/${repl.id}" class="text-blue-400 underline">Open</a>`
+            ? ` - <a href="/repl/${repl.id}" class="text-info underline">Open</a>`
             : "";
           return `${i + 1}. ${statusIcon} 📁 ${repl.name} (${repl.id})${link}`;
         })

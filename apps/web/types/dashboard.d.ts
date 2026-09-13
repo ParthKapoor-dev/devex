@@ -9,8 +9,17 @@ export interface StoredRepl {
   id: string;
   name: string;
   user: string;
-  isActive: bool;
-  templateKey?: string;
+  /** Was `bool`, which is not a TypeScript type. */
+  isActive: boolean;
+  /**
+   * The template the workspace was created from, and the S3 prefix its files
+   * were copied out of. Matches `Template` on `apps/core/models/repl.go`.
+   *
+   * This was declared as `templateKey`, a name the server has never sent, so
+   * it was `undefined` on every REPL — which is why the dashboard fell back to
+   * guessing the template from the workspace's name.
+   */
+  template: string;
 }
 
 export interface HistoryEntry {
