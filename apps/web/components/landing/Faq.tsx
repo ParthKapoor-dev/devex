@@ -20,10 +20,11 @@ import { Section } from "./section";
  * whether or not the reader opens it, which is also what makes it readable to
  * anything that does not run JavaScript.
  */
-export default function Faq() {
+export default function Faq({ n }: { n?: string } = {}) {
   return (
     <Section
       id="faq"
+      n={n}
       eyebrow="Questions"
       title={
         <>

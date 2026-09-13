@@ -31,7 +31,7 @@ import { Section, HairlineGrid } from "./section";
  * what the limits genuinely are.
  */
 
-export default function Pricing() {
+export default function Pricing({ n }: { n?: string } = {}) {
   const [annual, setAnnual] = useState(false);
   const reducedMotion = useReducedMotion();
 
@@ -70,6 +70,7 @@ export default function Pricing() {
   return (
     <Section
       id="pricing"
+      n={n}
       eyebrow="Pricing"
       title={
         <>

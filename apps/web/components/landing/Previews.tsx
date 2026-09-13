@@ -92,7 +92,7 @@ const FILES: DemoFile[] = [
     output: [
       { text: "▲ ready in 412ms", accent: "brand" },
       { text: "➜ local   http://localhost:3000" },
-      { text: "➜ public  https://a7f2.repl.devx.parthkapoor.me" },
+      { text: "➜ public  https://…/a7f2/user-app/3000/" },
     ],
   },
   {
@@ -223,7 +223,7 @@ const FILES: DemoFile[] = [
 ];
 
 const PORTS = [
-  { port: "3000", process: "node", url: "a7f2.repl.devx.parthkapoor.me" },
+  { port: "3000", process: "node", url: "…/a7f2/user-app/3000/" },
   { port: "5432", process: "postgres", url: "private" },
 ];
 

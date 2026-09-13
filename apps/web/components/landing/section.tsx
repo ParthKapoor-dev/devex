@@ -15,8 +15,36 @@ import { cn } from "@/lib/utils";
  *
  * A server component. Nothing in the frame is interactive.
  */
+/**
+ * The section eyebrow: an amber index chip and an uppercase mono label.
+ *
+ * The index is the section's position on the landing page, so it only means
+ * something there — pages that reuse a section (e.g. /pricing) omit `n`.
+ */
+export function Eyebrow({
+  n,
+  children,
+  className,
+}: {
+  n?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p className={cn("label flex items-center gap-3 text-ink-subtle", className)}>
+      {n ? (
+        <span className="inline-grid h-5 min-w-5 place-items-center rounded-[3px] bg-brand px-1 font-mono text-[10px] text-brand-fg">
+          {n}
+        </span>
+      ) : null}
+      {children}
+    </p>
+  );
+}
+
 export function Section({
   id,
+  n,
   eyebrow,
   title,
   lead,
@@ -25,6 +53,8 @@ export function Section({
   contentClassName,
 }: {
   id?: string;
+  /** Position on the landing page; see `Eyebrow`. */
+  n?: string;
   eyebrow: string;
   title: React.ReactNode;
   lead?: React.ReactNode;
@@ -40,7 +70,9 @@ export function Section({
       <div className="mx-auto max-w-5xl border-t border-edge py-20 text-left sm:py-24">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <p className="label mb-3 text-ink-subtle">{eyebrow}</p>
+            <Eyebrow n={n} className="mb-4">
+              {eyebrow}
+            </Eyebrow>
             <h2 className="text-balance font-display text-3xl font-medium leading-[1.1] tracking-[-0.03em] text-ink sm:text-4xl">
               {title}
             </h2>

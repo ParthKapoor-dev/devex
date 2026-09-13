@@ -1,0 +1,231 @@
+/* Landing-page choreography that has no Tailwind token.
+
+   Every entrance here is load-once with a `both` fill, and the global
+   reduced-motion block in globals.css zeroes durations *and* delays — so under
+   reduced motion each element lands on its finished frame, never a blank one.
+   The only infinite animations are the marquee and the CRT roll bar. Both
+   are paused off-screen (`.paused`) and switched off under reduced motion. */
+
+/* ---- Phosphor glow ------------------------------------------------------ */
+
+.glow {
+  text-shadow:
+    0 0 1px color-mix(in oklab, var(--color-brand) 70%, transparent),
+    0 0 18px color-mix(in oklab, var(--color-brand) 45%, transparent),
+    0 0 42px color-mix(in oklab, var(--color-brand-600) 25%, transparent);
+}
+
+/* ---- CRT overlays ------------------------------------------------------- */
+
+.scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.28) 0px,
+    rgb(0 0 0 / 0.28) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* The slow bright band a real tube rolls down the glass. Transform only. */
+.rollbar {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 22%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklab, var(--color-brand) 5%, transparent) 50%,
+    transparent
+  );
+  animation: roll 7s linear infinite;
+}
+
+@keyframes roll {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(560%);
+  }
+}
+
+/* ---- Boot log ----------------------------------------------------------- */
+
+/* Typed command: width grows in whole characters. `--n` is the length. */
+.typed {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  width: calc(var(--n) * 1ch);
+  animation: type calc(var(--n) * 28ms) steps(var(--n), end) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes type {
+  from {
+    width: 0;
+  }
+}
+
+/* A line written to the tty. Linear on purpose: `visibility` is visible for
+   any progress above zero, and a steps() easing can stop at 0.9999. */
+.appear {
+  animation: appear 1ms linear both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes appear {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+
+/* `[ .. ]` → `[ ok ]`. Both badges share one grid cell. */
+.swap {
+  display: inline-grid;
+}
+.swap > * {
+  grid-area: 1 / 1;
+}
+.pending {
+  animation: vanish var(--t, 200ms) linear both;
+  animation-delay: var(--d, 0ms);
+}
+.done {
+  animation: reveal var(--t, 200ms) linear both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes vanish {
+  0%,
+  99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes reveal {
+  0%,
+  99% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.spin::before {
+  content: "..";
+  /* Finite: the longest line is pending until ~2.3s after load. An infinite
+     `content` animation would restyle the log forever, invisibly. */
+  animation: spinner 320ms steps(1, end) 8;
+}
+@keyframes spinner {
+  0% {
+    content: "..";
+  }
+  25% {
+    content: "o.";
+  }
+  50% {
+    content: "oo";
+  }
+  75% {
+    content: ".o";
+  }
+}
+
+/* ---- Headline burn-in --------------------------------------------------- */
+
+.burn {
+  animation: burn 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes burn {
+  0% {
+    opacity: 0;
+    filter: blur(10px) brightness(2.6);
+    transform: scaleY(0.06);
+  }
+  18% {
+    opacity: 1;
+    filter: blur(4px) brightness(2.2);
+    transform: scaleY(1.02);
+  }
+  45% {
+    opacity: 0.82;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* ---- Marquee ------------------------------------------------------------ */
+
+.marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 48s linear infinite;
+}
+
+.marqueeHost:hover .marquee {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ---- Demo poster --------------------------------------------------------- */
+
+/* The recorded demo predates the amber brand; warm its poster frame. */
+.poster {
+  filter: grayscale(1) sepia(1) saturate(2.6) hue-rotate(-12deg) brightness(0.7)
+    contrast(1.1);
+}
+
+/* Set by <PauseOffscreen> and the hero while out of view. */
+.paused,
+.paused *,
+.paused *::before,
+.paused *::after {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rollbar {
+    display: none;
+  }
+  .marquee,
+  .spin::before {
+    animation: none;
+  }
+}
