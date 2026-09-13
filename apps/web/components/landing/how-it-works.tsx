@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import { VideoReveal } from "./video-reveal";
 import { Eyebrow } from "./section";
 import { cn } from "@/lib/utils";
-import s from "./landing.module.css";
 
 /**
  * What happens between the click and the prompt — and the demo, kept small.
@@ -66,7 +65,7 @@ export default function HowItWorks() {
               <li
                 key={step.title}
                 className={cn(
-                  "group grid grid-cols-[4.5rem_1fr] gap-4 py-5",
+                  "group grid gap-1.5 py-5 sm:grid-cols-[4.5rem_1fr] sm:gap-4",
                   i > 0 && "border-t border-edge",
                 )}
               >
@@ -95,21 +94,18 @@ export default function HowItWorks() {
                 label="Play the DevEx demo"
                 className="aspect-video w-full rounded-xl border border-edge-strong bg-surface"
               >
+                {/* The video's own poster frame, untouched. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://i.ytimg.com/vi/Tlck20bJeFE/mqdefault.jpg"
+                  src="https://i.ytimg.com/vi/Tlck20bJeFE/maxresdefault.jpg"
                   alt=""
                   loading="lazy"
                   decoding="async"
-                  className={cn(
-                    s.poster,
-                    "size-full object-cover transition-[transform,filter] duration-700 ease-[--ease-out-expo] group-hover:scale-[1.04] group-hover:filter-none",
-                  )}
+                  className="size-full object-cover transition-transform duration-700 ease-[--ease-out-expo] group-hover:scale-[1.03]"
                 />
-                <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/10 to-transparent" />
-                <span className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-3">
-                  <span className="grid size-9 place-items-center rounded-md bg-brand text-brand-fg shadow-[0_8px_30px_-6px_var(--color-brand-600)] transition-transform duration-300 group-hover:scale-110">
-                    <svg viewBox="0 0 16 16" className="ml-0.5 size-3.5 fill-current" aria-hidden="true">
+                <span className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2.5 rounded-md bg-canvas/85 py-1 pl-1 pr-3 backdrop-blur-sm">
+                  <span className="grid size-7 place-items-center rounded-[5px] bg-brand text-brand-fg transition-transform duration-300 group-hover:scale-110">
+                    <svg viewBox="0 0 16 16" className="ml-0.5 size-3 fill-current" aria-hidden="true">
                       <path d="M4 2.5v11l9.5-5.5z" />
                     </svg>
                   </span>

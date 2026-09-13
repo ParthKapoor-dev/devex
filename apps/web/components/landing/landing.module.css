@@ -204,14 +204,6 @@
   }
 }
 
-/* ---- Demo poster --------------------------------------------------------- */
-
-/* The recorded demo predates the amber brand; warm its poster frame. */
-.poster {
-  filter: grayscale(1) sepia(1) saturate(2.6) hue-rotate(-12deg) brightness(0.7)
-    contrast(1.1);
-}
-
 /* Set by <PauseOffscreen> and the hero while out of view. */
 .paused,
 .paused *,
