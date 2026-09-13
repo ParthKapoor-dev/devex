@@ -26,22 +26,24 @@ import { Eyebrow } from "./section";
  * on purpose, because a workspace runs on Kubernetes but cannot run either.
  */
 
+// Brand colours, lifted where the official mark is too dark for this page
+// (Rust and Django are near-black; Next.js is black-on-white).
 const STACK = [
-  { icon: SiNodedotjs, name: "Node.js" },
-  { icon: SiTypescript, name: "TypeScript" },
-  { icon: SiNextdotjs, name: "Next.js" },
-  { icon: SiBun, name: "Bun" },
-  { icon: SiGo, name: "Go" },
-  { icon: SiRust, name: "Rust" },
-  { icon: SiPython, name: "Python" },
-  { icon: SiFastapi, name: "FastAPI" },
-  { icon: SiDjango, name: "Django" },
-  { icon: SiPostgresql, name: "PostgreSQL" },
+  { icon: SiNodedotjs, name: "Node.js", color: "#5FA04E" },
+  { icon: SiTypescript, name: "TypeScript", color: "#3178C6" },
+  { icon: SiNextdotjs, name: "Next.js", color: "#F5F5F5" },
+  { icon: SiBun, name: "Bun", color: "#FBF0DF" },
+  { icon: SiGo, name: "Go", color: "#00ADD8" },
+  { icon: SiRust, name: "Rust", color: "#F74C00" },
+  { icon: SiPython, name: "Python", color: "#FFD43B" },
+  { icon: SiFastapi, name: "FastAPI", color: "#009688" },
+  { icon: SiDjango, name: "Django", color: "#44B78B" },
+  { icon: SiPostgresql, name: "PostgreSQL", color: "#699ECA" },
 ];
 
 export default function Stack() {
   return (
-    <section aria-labelledby="stack-title" className="-mb-[22vh] -mt-[18vh]">
+    <section aria-labelledby="stack-title" className="-mb-[18vh] -mt-[18vh]">
       <AssembleIcons
         icons={STACK}
         before={

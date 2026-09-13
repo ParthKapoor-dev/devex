@@ -128,7 +128,7 @@ export function AssembleIcons({
   before,
   after,
 }: {
-  icons: { icon: IconType; name: string }[];
+  icons: { icon: IconType; name: string; color?: string }[];
   className?: string;
   before?: React.ReactNode;
   after?: React.ReactNode;
@@ -138,7 +138,7 @@ export function AssembleIcons({
   const center = (icons.length - 1) / 2;
 
   return (
-    <div ref={ref} className={cn("pointer-events-none relative h-[190vh]", className)}>
+    <div ref={ref} className={cn("pointer-events-none relative h-[150vh]", className)}>
       <div className="sticky top-0 flex h-dvh flex-col items-center justify-center gap-10 overflow-hidden px-4 sm:gap-12">
         {before}
         <ul className="grid grid-cols-5 gap-3 sm:gap-4 lg:grid-cols-10">
@@ -155,12 +155,14 @@ export function AssembleIcons({
 function Icon({
   icon: Glyph,
   name,
+  color,
   d,
   progress,
   reduced,
 }: {
   icon: IconType;
   name: string;
+  color?: string;
   d: number;
   progress: MotionValue<number>;
   reduced: boolean;
@@ -176,7 +178,7 @@ function Icon({
       data-moving={reduced ? undefined : ""}
       className="group pointer-events-auto grid size-14 data-moving:will-change-transform place-items-center rounded-2xl border border-edge bg-surface text-ink-muted shadow-[0_10px_30px_-10px_rgb(0_0_0/0.8)] transition-colors duration-[--duration-normal] hover:border-brand/60 hover:text-ink sm:size-20"
     >
-      <Glyph className="size-6 sm:size-8" aria-hidden="true" />
+      <Glyph className="size-6 sm:size-8" style={color ? { color } : undefined} aria-hidden="true" />
       <span className="sr-only">{name}</span>
     </motion.li>
   );
