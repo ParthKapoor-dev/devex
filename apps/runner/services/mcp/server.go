@@ -11,6 +11,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+// workspaceRoot is the directory FetchContent paths are resolved against. It
+// is a variable only so tests can point it at a temp dir.
+var workspaceRoot = "/workspaces"
+
 type grpcServer struct {
 	pb.UnimplementedReplServiceServer
 }
@@ -25,7 +29,7 @@ func NewGrpcServer(lis net.Listener) error {
 
 func (s *grpcServer) FetchContent(ctx context.Context, in *pb.FetchContentRequest) (*pb.FetchContentResponse, error) {
 
-	fullPath := fmt.Sprintf("/workspaces/%s", in.Path)
+	fullPath := fmt.Sprintf("%s/%s", workspaceRoot, in.Path)
 	data, err := fs.FetchFileContent(fullPath)
 	if err != nil {
 		log.Error("Fetch file content failed", "path", in.Path, "full_path", fullPath, "error", err)

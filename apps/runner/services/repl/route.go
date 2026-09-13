@@ -19,6 +19,10 @@ import (
 var (
 	ptyManager *pty.PTYManager
 	once       sync.Once
+
+	// workspaceRoot is the directory every file tree action is resolved
+	// against. It is a variable only so tests can point it at a temp dir.
+	workspaceRoot = "/workspaces"
 )
 
 // Existing request structures (assumed)
@@ -56,7 +60,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	}
 
 	ws.On("Connection", func(data any) {
-		rootContents, err := fs.FetchDir("/workspaces", "")
+		rootContents, err := fs.FetchDir(workspaceRoot, "")
 		if err != nil {
 			ws.Emit("error", map[string]any{"message": "Failed to load directory"})
 			return
@@ -68,7 +72,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 
 	// File Tree Actions
 	OnTyped(ws, "fetchDir", func(req FetchDirRequest) {
-		contents, err := fs.FetchDir("/workspaces", req.Dir)
+		contents, err := fs.FetchDir(workspaceRoot, req.Dir)
 		if err != nil {
 			log.Error("Fetch directory failed", "path", req.Dir, "error", err)
 			ws.Emit("fetchDirResponse", map[string]any{"error": err.Error()})
@@ -78,7 +82,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "fetchContent", func(req FetchContentRequest) {
-		fullPath := fmt.Sprintf("/workspaces/%s", req.Path)
+		fullPath := fmt.Sprintf("%s/%s", workspaceRoot, req.Path)
 		data, err := fs.FetchFileContent(fullPath)
 		if err != nil {
 			log.Error("Fetch file content failed", "path", req.Path, "full_path", fullPath, "error", err)
@@ -89,7 +93,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "updateContent", func(req UpdateContentRequest) {
-		fullPath := fmt.Sprintf("/workspaces/%s", req.Path)
+		fullPath := fmt.Sprintf("%s/%s", workspaceRoot, req.Path)
 		err := fs.SaveFileDiffs(fullPath, req.Patch)
 		if err != nil {
 			log.Error("Save file failed", "path", req.Path, "full_path", fullPath, "error", err)
@@ -100,7 +104,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "createFile", func(req CreateFileRequest) {
-		fullPath := filepath.Join("/workspaces", req.Path)
+		fullPath := filepath.Join(workspaceRoot, req.Path)
 		err := fs.CreateFile(fullPath)
 		if err != nil {
 			log.Error("Create file failed", "path", req.Path, "full_path", fullPath, "error", err)
@@ -111,7 +115,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "createFolder", func(req CreateFolderRequest) {
-		fullPath := filepath.Join("/workspaces", req.Path)
+		fullPath := filepath.Join(workspaceRoot, req.Path)
 		err := fs.CreateFolder(fullPath)
 		if err != nil {
 			log.Error("Create folder failed", "path", req.Path, "full_path", fullPath, "error", err)
@@ -122,7 +126,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "delete", func(req DeleteRequest) {
-		fullPath := filepath.Join("/workspaces", req.Path)
+		fullPath := filepath.Join(workspaceRoot, req.Path)
 		err := fs.Delete(fullPath)
 		if err != nil {
 			log.Error("Delete failed", "path", req.Path, "full_path", fullPath, "error", err)
@@ -133,8 +137,8 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "rename", func(req RenameRequest) {
-		oldFullPath := filepath.Join("/workspaces", req.OldPath)
-		newFullPath := filepath.Join("/workspaces", req.NewPath)
+		oldFullPath := filepath.Join(workspaceRoot, req.OldPath)
+		newFullPath := filepath.Join(workspaceRoot, req.NewPath)
 		err := fs.Rename(oldFullPath, newFullPath)
 		if err != nil {
 			log.Error("Rename failed", "old_path", req.OldPath, "new_path", req.NewPath, "error", err)
@@ -149,8 +153,8 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "copy", func(req CopyRequest) {
-		sourceFullPath := filepath.Join("/workspaces", req.SourcePath)
-		targetFullPath := filepath.Join("/workspaces", req.TargetPath)
+		sourceFullPath := filepath.Join(workspaceRoot, req.SourcePath)
+		targetFullPath := filepath.Join(workspaceRoot, req.TargetPath)
 		err := fs.Copy(sourceFullPath, targetFullPath)
 		if err != nil {
 			log.Error("Copy failed", "source_path", req.SourcePath, "target_path", req.TargetPath, "error", err)
@@ -165,7 +169,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "cut", func(req CutRequest) {
-		sourceFullPath := filepath.Join("/workspaces", req.SourcePath)
+		sourceFullPath := filepath.Join(workspaceRoot, req.SourcePath)
 		err := fs.Cut(sourceFullPath)
 		if err != nil {
 			log.Error("Cut failed", "source_path", req.SourcePath, "error", err)
@@ -179,7 +183,7 @@ func handleWs(w http.ResponseWriter, r *http.Request, ws *ws.WSHandler, ptyManag
 	})
 
 	OnTyped(ws, "paste", func(req PasteRequest) {
-		targetFullPath := filepath.Join("/workspaces", req.TargetPath)
+		targetFullPath := filepath.Join(workspaceRoot, req.TargetPath)
 		err := fs.Paste(targetFullPath)
 		if err != nil {
 			log.Error("Paste failed", "target_path", req.TargetPath, "error", err)
