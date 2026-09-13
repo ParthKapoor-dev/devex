@@ -155,6 +155,16 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: image sizes
+        run: |
+          {
+            echo "### Image sizes (uncompressed, as stored on a node)"
+            echo
+            echo "| image | size |"
+            echo "|---|---|"
+            docker image ls --format '| {{.Repository}}:{{.Tag}} | {{.Size}} |' | grep ':ci |'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: language images contain this commit's runner
         run: |
           set -euo pipefail
