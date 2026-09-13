@@ -4,16 +4,18 @@ FROM golang:1.24-alpine AS builder
 # Install protoc and dependencies
 RUN apk add --no-cache bash curl git build-base protobuf
 
-# Install protoc-gen-go and protoc-gen-go-grpc
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+# Install protoc-gen-go and protoc-gen-go-grpc.
+# Keep these versions in step with PROTOC_GEN_GO_*_VERSION in the root makefile.
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.6 && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
 
 # Set the working directory for the entire repository
 WORKDIR /devex
 
-# Copy the go.mod and go.sum files specific to the mcp application first.
-# This allows Docker to cache the 'go mod tidy' step. If only your source code
-# changes (but not the dependencies), this layer will be reused, speeding up builds.
+# Copy the go.mod and go.sum files first so the download layer below is cached
+# until dependencies change. The shared `packages` module is included because
+# mcp's go.mod points at it with a replace directive.
+COPY packages/go.mod packages/go.sum ./packages/
 COPY apps/mcp/go.mod apps/mcp/go.sum ./apps/mcp/
 
 # Set working directory for Go module to download modules
