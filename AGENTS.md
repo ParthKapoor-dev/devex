@@ -1,74 +1,186 @@
-# Devex Agent Guide
+# DevEx — guide for AI agents
 
-**Summary**
-Devex is a cloud development IDE with sandboxed “repl” sessions. The system is split into services. The core service handles auth and session orchestration, while the runner provides the interactive sandbox (WebSocket + PTY). Session data is persisted to S3-compatible storage when a repl is deactivated.
+DevEx is an open-source cloud IDE: every workspace is a Linux container on
+Kubernetes with an editor, a real terminal and a public preview URL. This is a
+solo maintainer's project (Parth Kapoor), and **the maintainer is using the
+backend and infrastructure to learn**. Read "How we work" before touching
+anything.
 
-**Architecture (High Level)**
-- Core service (`apps/core`) is deployed to a VPS via Docker Swarm and is the control plane.
-- Runner service (`apps/runner`) is the data plane sandbox image. Each repl is a Kubernetes Deployment with a single pod.
-- Pod layout:
-  - `initContainer` pulls workspace files from S3.
-  - `runnerContainer` is the interactive sandbox (WebSocket + PTY).
-- Deactivation flow:
-  - Core injects an ephemeral container into the pod to upload workspace data to S3.
-  - Core then deletes Deployment/Service/Ingress/Middleware.
-- Routing:
-  - Base host: `repl.parthkapoor.me`
-  - Route pattern: `repl.parthkapoor.me/<repl-id>/<route>`
-  - Uses `hostNetwork: true` to avoid a load balancer and save cost.
+## How we work
 
-**Key Entry Points**
-- Core API: `apps/core/cmd/main.go`
-- Runner API: `apps/runner/cmd/main.go`
-- MCP service: `apps/mcp/cmd/main.go`
+### Who does what
 
-**Repo Layout**
-- `apps/core/`: Control-plane service (auth + session orchestration + k8s + s3 + redis).
-- `apps/runner/`: Sandbox service (WebSocket, PTY, file operations, shutdown manager).
-- `apps/mcp/`: MCP server.
-- `apps/web/`: Frontend web app.
-- `apps/agent/`: Agent-related app (check README inside).
-- `packages/`: Shared Go packages and generated protobufs.
-  - `packages/logging`: Shared logger wrapper.
-  - `packages/proto` + `packages/pb`: Proto sources and generated code.
-- `infra/`: Deployment and infrastructure.
-  - `infra/core/`: Swarm dockerfile + stack config.
-  - `infra/runner/`: Runner dockerfiles (base + language variants).
-  - `infra/mcp/`: MCP dockerfile.
-  - `infra/k8s/`: K8s manifests, cert-manager, ingress, traefik.
-- `templates/`: Repl templates synced to object storage.
+| Area | Paths | Agent's role |
+|---|---|---|
+| **Frontend** | `apps/web/**` | **Build it.** Implement, test and commit frontend changes. Read [`apps/web/AGENTS.md`](./apps/web/AGENTS.md) first. |
+| **Backend** | `apps/core`, `apps/runner`, `apps/mcp`, `packages` | **Advise, don't change.** Investigate, file issues or advisories, review the maintainer's pull requests, explain concepts. |
+| **Infrastructure & delivery** | `infra/**`, `templates/**`, `.github/workflows/**`, `makefile`, `go.work` | Same as backend. |
+| **Repository docs** | `AGENTS.md`, `CONTRIBUTING.md`, `.github/*.md` | Edit when the process changes. |
 
-**Data Stores**
-- Redis: repl/session state.
-- S3-compatible storage: workspace persistence on session end.
+The maintainer fixes backend and infra issues **themselves** so they learn by
+doing. Don't write backend or infra code unless the maintainer explicitly asks
+for it in the current request (e.g. "just do this one"); a request to *review*
+or *help* means explain and point, not commit. When asked for help, prefer
+guiding questions, pointers to the exact lines, and a sketch over a finished
+patch. Always explain the *why* and name the concept (with a link to official
+docs) so it can be looked up later.
 
-**Build and Test (Local)**
-- Core build:
-  - `cd apps/core`
-  - `go build -o /tmp/core ./cmd/main.go`
-- Runner build:
-  - `cd apps/runner`
-  - `go build -o /tmp/runner ./cmd/main.go`
-- Docker images:
-  - `docker build -f infra/core/dockerfile -t devex/core:local .`
-  - `docker build -f infra/runner/dockerfile -t devex/runner:local .`
+### Branches
 
-**CI/CD**
-- Workflows live in `.github/workflows/`.
-- Core pipeline builds/pushes and deploys via Docker Swarm.
-- Runner pipeline builds runner + env images.
-- Templates pipeline syncs `templates/` to DigitalOcean Spaces.
+| Branch | Purpose | Rules |
+|---|---|---|
+| `main` | Production. Vercel deploys the web app from it; pushes that touch `apps/core`, `apps/runner`, `apps/mcp` or `infra/runner` build images and deploy the API. | Never push or merge to `main` unless the maintainer says so in that request. A maintainer-requested **hotfix** may go straight to `main`; afterwards merge `main` back into `develop`. |
+| `develop` | Integration branch, always the latest. Checked out as a worktree at `~/code/dev/golang/devex-develop`. | Agents commit and push frontend work here. |
+| `fix/…`, `feat/…` | One branch per issue, opened as a PR into `develop`. | The maintainer's backend branches. |
+| `legacy-v1` | Archive of the pre-redesign app. | Don't touch. |
 
-**Where to Look First**
-- Auth/session logic: `apps/core/services/auth/`
-- Repl lifecycle: `apps/core/services/repl/` and `apps/core/internal/k8s/`
-- Runner WS/PTY: `apps/runner/pkg/ws/`, `apps/runner/pkg/pty/`
-- Shared logging: `packages/logging/`
+Pushing `develop` must not deploy anything. The one exception to watch:
+`templates-pipeline.yaml` syncs `templates/**` to the production bucket from
+**any** branch (issue #20) — don't push template changes until that is fixed.
 
-**Notes for Agents**
-- The system relies on `hostNetwork: true` for simplicity and cost.
-- The core service is the orchestrator; runner instances are ephemeral and created per repl session.
-- If you change protobufs in `packages/proto/`, regenerate via `make generate-proto`.
+### Finding problems: issues vs private advisories
+
+The repository is **public** and the service is **live**.
+
+- **Exploitable security holes** (auth bypass, secret exposure, isolation
+  breaks — anything a stranger could use against current users) go to a
+  **private draft security advisory**, never a public issue:
+  `gh api -X POST repos/ParthKapoor-dev/devex/security-advisories` or
+  *Security → Advisories → New draft*. Don't mention exploit details in
+  commits, public issues or PR titles either.
+- **Everything else** is a GitHub issue. Structure every issue the same way:
+  *What's wrong* (with permalinks to exact lines at a fixed commit SHA,
+  `blob/<sha>/path#L10-L20`), *Impact*, *Suggested fix*, *How to verify*,
+  *Background reading* (official docs). Verify claims before filing: run the
+  code, the test or the command, and say what was verified.
+- Labels in use: `bug`, `reliability`, `security-hardening`, `dependencies`,
+  `core`, `runner`, `k8s`, `auth`, `infra`, `build`, `ci`, `frontend`,
+  `github-settings`, `tech-debt`, `documentation`, `fixed-on-develop`.
+- The pinned **roadmap issue (#33)** orders the work. Add new issues to it.
+
+### Reviewing the maintainer's pull requests
+
+When asked to review PR #N:
+
+1. `gh pr view N` and `gh pr diff N`; read the linked issue or advisory first
+   so you judge the change against what it set out to fix.
+2. Check out and run it: `gh pr checkout N && make ci`. Look at the CI run on
+   the PR (`gh pr checks N`).
+3. Review for: does it fix the root cause (not just the symptom); new bugs,
+   races, error paths that don't `return`; security (secrets, auth checks,
+   input validation); tests that would fail without the fix; behaviour or
+   config changes that need a deploy step (new env var, Docker secret,
+   `kubectl apply`); scope creep; commit messages.
+4. Post the review on GitHub with `gh pr review N --comment -b "…"` (or
+   `--request-changes` / `--approve`), with line-level suggestions where they
+   help. Mark each point as *must fix*, *should fix* or *nit*.
+5. Teach: for every *must fix*, explain why and link the concept.
+
+Never merge a maintainer's PR unless asked.
+
+### Commits
+
+- Granular, one logical change each; conventional prefixes (`fix(core):`,
+  `feat(web):`, `test(runner):`, `ci:`, `docs:`).
+- The message body says what changed, why, and why behaviour is (or isn't)
+  unchanged.
+- End with the attribution trailer your harness provides.
+
+## Safety rules (always)
+
+- **Never read or print `apps/*/.env`** or any secret file. They hold
+  production credentials.
+- **The local backend talks to live production infrastructure** (real
+  Kubernetes, bucket, Redis, Resend). Never create or start workspaces, send
+  magic-link emails, or run mutating `kubectl`/`docker stack` commands.
+- Tests must be offline (fakes, `httptest`, `miniredis`, client-go fakes,
+  temp dirs).
+- Don't run `npm run build` while `npm run dev` is running (see Frontend).
+
+## Architecture
+
+```
+Browser ──► apps/web (Next.js, Vercel)
+   │
+   ├─ REST + session cookie ──► Traefik ─► apps/core  (Go, Docker Swarm on a VPS)
+   │                                        ├─ Redis: repl:{id} hash, user:{name} set
+   │                                        ├─ S3-compatible bucket: templates/{key}/, repl/{user}/{id}/
+   │                                        ├─ GitHub OAuth, Resend (magic-link email)
+   │                                        └─ Kubernetes API: per-workspace Deployment,
+   │                                           Service, Traefik Middleware, Ingress
+   │
+   └─ WebSocket + preview ──► Traefik (hostNetwork) ─► workspace pod
+                                                        ├─ init: download files from the bucket
+                                                        ├─ runner  :8081 HTTP/WS, :50051 gRPC
+                                                        └─ mcp     :8080 (optional sidecar)
+```
+
+- Routing: `https://repl.parthkapoor.me/{replId}/…` → that pod; the
+  Middleware strips `/{replId}`. Preview: `/{replId}/user-app/{port}/…`.
+- Stopping: the runner's 4-minute idle timer calls
+  `DELETE /api/runner/{id}` on core; core injects an ephemeral uploader
+  container to copy `/workspaces` back to the bucket, then deletes the four
+  objects.
+- An explainer with diagrams (ERD, sequence diagrams, image sizes) was written
+  on 2026-09-13; issues #9–#33 and the private advisories describe the known
+  problems.
+
+### Repository layout
+
+| Path | What |
+|---|---|
+| `apps/core` | Control-plane API. Entry `cmd/main.go`; routes `cmd/api/api.go`; auth `services/auth`; workspaces `services/repl`; runner callback `services/runner`; Kubernetes `internal/k8s`; stores `internal/redis`, `internal/s3`; sessions `internal/session`; email `internal/email`. |
+| `apps/runner` | In-pod service: WebSocket events `services/repl` + `pkg/ws`, files `pkg/fs`, terminals `pkg/pty`, idle shutdown `pkg/shutdown`, preview proxy `cmd/proxy`, gRPC `services/mcp`. |
+| `apps/mcp` | MCP server calling runner over gRPC. |
+| `apps/web` | Frontend. |
+| `packages` | Shared Go module: `logging`, `utils/json`, `proto` (source). `packages/pb` is **generated and git-ignored** — run `make proto`. |
+| `infra/core` | Core Dockerfile, Swarm stack, deployment notes. |
+| `infra/runner` | `dockerfile` (runner binary) and `<runtime>.dockerfile` language images. |
+| `infra/mcp` | MCP Dockerfile. |
+| `infra/k8s` | Traefik values, cert-manager issuers, smoke test, setup guide. |
+| `templates/<key>` | Starter files copied into new workspaces. |
+
+A stack needs four things to agree: `templates/<key>/`,
+`infra/runner/<key>.dockerfile`, `apps/core/models/templates.go` and
+`apps/web/lib/templates.tsx` (issue #19). The cluster is small and paid for
+personally: keep images and per-workspace resources minimal.
+
+## Build and test
+
+Go is four modules tied together by `go.work`. The makefile runs every Go
+target per module with `GOWORK=off`, which is how Docker and CI see them.
+
+```sh
+make help         # list targets
+make proto-tools  # pinned protoc-gen-go / protoc-gen-go-grpc (protoc from your OS)
+make proto        # generate packages/pb (needed once after cloning)
+make build vet test test-race tidy-check
+make web-check    # lint + typecheck + vitest for apps/web
+make ci           # everything CI runs
+```
+
+- Go tests: stdlib `testing`, offline. PTY tests skip under `-race` until the
+  race in `pkg/pty` is fixed (#23); CI runs tests with and without `-race`.
+- Web tests: Vitest in `apps/web/tests/` (`npm run test`).
+
+## CI/CD
+
+| Workflow | Trigger | Does |
+|---|---|---|
+| `ci.yaml` | PRs; pushes to `develop`, `main` | Go tidy/build/vet/test, web lint/typecheck/test/build, build all images (no push), check language images carry the same-commit runner, image size table. Never deploys. |
+| `core-pipleline.yaml` (sic, #30) | push to `main` touching `apps/core/**` | Build + push `core-service`, deploy the Swarm stack over SSH. |
+| `runner-pipeline.yaml` | push to `main` touching `apps/runner/**`, `infra/runner/**` | Build + push `runner-service:<sha>`, then each language image with `RUNNER_IMAGE_TAG=<sha>`. |
+| `mcp-pipeline.yaml` | push to `main` touching `apps/mcp/**` | Build + push `mcp`. |
+| `templates-pipeline.yaml` | push to **any branch** touching `templates/**` (#20) | Sync templates to the bucket. |
+| `cluster-availability-check.yaml` | every 12 h | Probe `repl.parthkapoor.me` DNS/TLS/routing. |
+
+## Sharp edges
+
+- `apps/web/lib/docs/source.ts` contains a literal NUL byte, so git and grep
+  treat it as binary.
+- Runner and mcp don't compile until `make proto` has generated `packages/pb`.
+- Core reads configuration in package-level `var` initialisers; tests that
+  need env must set it before the package loads.
 
 ---
 
@@ -118,6 +230,8 @@ Things that bite immediately:
   that need backend work instead.
 
 ## Transactional email (`apps/core/internal/email`)
+
+Reference for reviewing backend PRs that touch the magic-link email.
 
 The magic-link email is a table-based HTML template in
 `internal/email/templates/`, rendered by `render.go`.

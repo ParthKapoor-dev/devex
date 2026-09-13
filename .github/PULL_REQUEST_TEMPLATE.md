@@ -1,42 +1,35 @@
-## 📦 What does this PR do?
+## What and why
 
-Please provide a short summary of the changes in this pull request.
+<!-- One or two sentences: what this PR changes and the problem it solves. -->
 
-> Example:
-> Adds a new Node.js starter template with `nodemon`, `ts-node`, and a basic `index.js`.
+## Issue
 
----
+<!--
+PRs into `develop`: write "Part of #123". Closing keywords are ignored on
+branches other than `main`, so the issue closes in the release PR instead.
+Release PRs (develop → main): list every issue it ships, "Closes #123, closes #124".
+Security fixes go through the advisory's temporary private fork, not a public PR.
+-->
 
-## ✅ Checklist
+Part of #
 
-- [ ] I have read the `CONTRIBUTING.md` file.
-- [ ] I am merging into the correct base branch (`main`).
-- [ ] My branch name follows convention (`feat/`, `fix/`, etc.).
-- [ ] I tested my changes locally.
-- [ ] My Dockerfile (if added) builds and runs correctly.
-- [ ] My template is under 8MB (if applicable).
-- [ ] I updated the relevant `README.md` files if needed.
+## How I tested it
 
----
+<!-- Commands you ran and what you checked by hand. -->
 
-## 🧪 How to Test
+- [ ] `make ci` passes locally
+- [ ] New or changed behaviour has a test that fails without this change
 
-Explain how a maintainer can test your changes locally or with sample commands.
+## Deploy notes
 
----
+<!-- Anything needed besides merging: new env var or Docker secret, `kubectl apply`, data migration, bucket change. Write "None" if nothing. -->
 
-## 🔗 Related Issue or Discussion
+None
 
-Closes #<issue_number> (if applicable)
+## Checklist
 
----
-
-## 🖼️ Screenshots / Demo (if UI-related)
-
-Add screenshots or a short screen recording if the changes affect the frontend.
-
----
-
-## 💬 Additional Notes
-
-Any extra info the reviewer should know (edge cases, performance notes, etc.)
+- [ ] Base branch is `develop` (or `main` for a release/hotfix)
+- [ ] Branch name is `fix/<issue>-<short-name>` or `feat/<issue>-<short-name>`
+- [ ] No secrets, `.env` files or kubeconfigs in the diff
+- [ ] Docs updated if behaviour or setup changed (`AGENTS.md`, `infra/*/`, `apps/web/content/docs/`)
+- [ ] Screenshots attached if the UI changed
