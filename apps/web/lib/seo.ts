@@ -115,7 +115,7 @@ const ID = {
   faq: absoluteUrl("/#faq"),
 } as const;
 
-export function organizationJsonLd() {
+function organizationJsonLd() {
   return {
     "@type": "Organization",
     "@id": ID.organization,
@@ -163,7 +163,7 @@ export function organizationJsonLd() {
   };
 }
 
-export function webSiteJsonLd() {
+function webSiteJsonLd() {
   return {
     "@type": "WebSite",
     "@id": ID.website,
@@ -184,7 +184,7 @@ export function webSiteJsonLd() {
   };
 }
 
-export function softwareApplicationJsonLd() {
+function softwareApplicationJsonLd() {
   return {
     "@type": "SoftwareApplication",
     "@id": ID.software,
@@ -235,7 +235,7 @@ export function softwareApplicationJsonLd() {
   };
 }
 
-export function softwareSourceCodeJsonLd() {
+function softwareSourceCodeJsonLd() {
   return {
     "@type": "SoftwareSourceCode",
     "@id": `${siteConfig.repo}#source`,
@@ -251,7 +251,7 @@ export function softwareSourceCodeJsonLd() {
   };
 }
 
-export function faqJsonLd() {
+function faqJsonLd() {
   return {
     "@type": "FAQPage",
     "@id": ID.faq,
@@ -292,7 +292,7 @@ export function homeJsonLd() {
   };
 }
 
-export function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
+function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
   return {
     "@type": "BreadcrumbList",
     itemListElement: trail.map((crumb, index) => ({
