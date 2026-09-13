@@ -8,8 +8,6 @@ import (
 
 	"core/cmd/middleware"
 	"core/internal/k8s"
-	"core/internal/redis"
-	"core/internal/s3"
 	"core/models"
 	"core/pkg/dotenv"
 	"packages/utils/json"
@@ -17,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func NewHandler(s3Client *s3.S3Client, rds *redis.Redis) http.Handler {
+func NewHandler(s3Client replStorage, rds replStore) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /test", func(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +42,7 @@ func NewHandler(s3Client *s3.S3Client, rds *redis.Redis) http.Handler {
 	return mux
 }
 
-func newRepl(w http.ResponseWriter, r *http.Request, s3Client *s3.S3Client, rds *redis.Redis) {
+func newRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rds replStore) {
 
 	var repl *newReplRequest
 	if err := json.ReadJSON(r, &repl); err != nil {
@@ -85,7 +83,7 @@ func newRepl(w http.ResponseWriter, r *http.Request, s3Client *s3.S3Client, rds 
 	json.WriteJSON(w, http.StatusOK, "Success")
 }
 
-func deleteRepl(w http.ResponseWriter, r *http.Request, s3Client *s3.S3Client, rds *redis.Redis) {
+func deleteRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rds replStore) {
 
 	user, _ := middleware.GetUserFromContext(r.Context())
 	userName := strings.ToLower(user.Login)
@@ -126,7 +124,7 @@ func deleteRepl(w http.ResponseWriter, r *http.Request, s3Client *s3.S3Client, r
 	json.WriteJSON(w, http.StatusOK, "Success")
 }
 
-func getUserRepls(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
+func getUserRepls(w http.ResponseWriter, r *http.Request, rds replStore) {
 
 	user, _ := middleware.GetUserFromContext(r.Context())
 	userName := strings.ToLower(user.Login)
@@ -150,7 +148,7 @@ func getUserRepls(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
 	json.WriteJSON(w, http.StatusOK, repls)
 }
 
-func activateRepl(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
+func activateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 
 	user, _ := middleware.GetUserFromContext(r.Context())
 	userName := strings.ToLower(user.Login)
@@ -191,7 +189,7 @@ func activateRepl(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
 	})
 }
 
-func deactivateRepl(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
+func deactivateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 
 	user, _ := middleware.GetUserFromContext(r.Context())
 	userName := strings.ToLower(user.Login)
