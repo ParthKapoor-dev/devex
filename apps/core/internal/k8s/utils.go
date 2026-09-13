@@ -19,6 +19,12 @@ import (
 
 var KUBE_CONFIG_PATH = dotenv.EnvString("KUBE_CONFIG_PATH", filepath.Join(homedir.HomeDir(), ".kube", "config"))
 
+// Client constructors used by create and delete; tests replace them with fakes.
+var (
+	newClientSet     = func() (kubernetes.Interface, error) { return getClientSet() }
+	newDynamicClient = getDynamicClient
+)
+
 // Initializes the K8s dynamic client
 func getDynamicClient() (dynamic.Interface, error) {
 	kubeconfig := KUBE_CONFIG_PATH

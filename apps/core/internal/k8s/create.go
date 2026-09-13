@@ -20,8 +20,8 @@ var RUNNER_CLUSTER_IP = dotenv.EnvString("RUNNER_CLUSTER_IP", "localhost")
 var ENABLE_MCP_SIDECAR = dotenv.EnvString("ENABLE_MCP_SIDECAR", "false") == "true"
 
 func CreateReplDeploymentAndService(userName, replId, template string) error {
-	clientset, _ := getClientSet()
-	dynamicClient, _ := getDynamicClient()
+	clientset, _ := newClientSet()
+	dynamicClient, _ := newDynamicClient()
 	ctx := context.Background()
 
 	config, exists := models.TemplateConfigs[template]
@@ -39,7 +39,45 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 	}
 
 	// 1. Deployment
-	deployment := &appsv1.Deployment{
+	deployment := buildDeployment(userName, replId, template, labels, config.Port, bucket, endpoint, region)
+
+	_, err := clientset.AppsV1().Deployments("default").Create(ctx, deployment, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create deployment: %w", err)
+	}
+
+	// 2. Service
+	service := buildService(replId, labels, config.Port)
+
+	_, err = clientset.CoreV1().Services("default").Create(ctx, service, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create service: %w", err)
+	}
+
+	// 3. Ingress Middleware (Traefik)
+	middlewareRes := schema.GroupVersionResource{Group: "traefik.io", Version: "v1alpha1", Resource: "middlewares"}
+
+	middleware := buildMiddleware(replId)
+
+	_, err = dynamicClient.Resource(middlewareRes).Namespace("default").Create(ctx, middleware, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create middleware: %w", err)
+	}
+
+	// 4. Ingress
+	ingress := buildIngress(replId, config.Port)
+
+	_, err = clientset.NetworkingV1().Ingresses("default").Create(ctx, ingress, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create ingress: %w", err)
+	}
+
+	log.Info("Deployment and service created", "repl_id", replId, "template", template, "mcp_sidecar", ENABLE_MCP_SIDECAR)
+	return nil
+}
+
+func buildDeployment(userName, replId, template string, labels map[string]string, port int32, bucket, endpoint, region string) *appsv1.Deployment {
+	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: replId,
 		},
@@ -103,7 +141,7 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 								Ports: []corev1.ContainerPort{
 									{
 										Name:          "http",
-										ContainerPort: config.Port,
+										ContainerPort: port,
 									},
 									{
 										Name:          "grpc",
@@ -150,14 +188,10 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 			},
 		},
 	}
+}
 
-	_, err := clientset.AppsV1().Deployments("default").Create(ctx, deployment, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create deployment: %w", err)
-	}
-
-	// 2. Service
-	service := &corev1.Service{
+func buildService(replId string, labels map[string]string, port int32) *corev1.Service {
+	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: replId,
 		},
@@ -167,8 +201,8 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 				ports := []corev1.ServicePort{
 					{
 						Name:       "http",
-						Port:       config.Port,
-						TargetPort: intstr.FromInt(int(config.Port)),
+						Port:       port,
+						TargetPort: intstr.FromInt(int(port)),
 					},
 					{
 						Name:       "grpc",
@@ -190,16 +224,10 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 			Type: corev1.ServiceTypeClusterIP,
 		},
 	}
+}
 
-	_, err = clientset.CoreV1().Services("default").Create(ctx, service, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
-	}
-
-	// 3. Ingress Middleware (Traefik)
-	middlewareRes := schema.GroupVersionResource{Group: "traefik.io", Version: "v1alpha1", Resource: "middlewares"}
-
-	middleware := &unstructured.Unstructured{
+func buildMiddleware(replId string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "traefik.io/v1alpha1",
 			"kind":       "Middleware",
@@ -221,14 +249,10 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 			},
 		},
 	}
+}
 
-	_, err = dynamicClient.Resource(middlewareRes).Namespace("default").Create(ctx, middleware, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create middleware: %w", err)
-	}
-
-	// 4. Ingress
-	ingress := &networkingv1.Ingress{
+func buildIngress(replId string, port int32) *networkingv1.Ingress {
+	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: replId + "-ingress",
 			Annotations: map[string]string{
@@ -258,7 +282,7 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 											Service: &networkingv1.IngressServiceBackend{
 												Name: replId,
 												Port: networkingv1.ServiceBackendPort{
-													Number: config.Port,
+													Number: port,
 												},
 											},
 										},
@@ -287,12 +311,4 @@ func CreateReplDeploymentAndService(userName, replId, template string) error {
 			},
 		},
 	}
-
-	_, err = clientset.NetworkingV1().Ingresses("default").Create(ctx, ingress, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create ingress: %w", err)
-	}
-
-	log.Info("Deployment and service created", "repl_id", replId, "template", template, "mcp_sidecar", ENABLE_MCP_SIDECAR)
-	return nil
 }

@@ -15,8 +15,8 @@ import (
 )
 
 func DeleteReplDeploymentAndService(userName, replId string) error {
-	clientset, _ := getClientSet()
-	dynamicClient, _ := getDynamicClient()
+	clientset, _ := newClientSet()
+	dynamicClient, _ := newDynamicClient()
 	ctx := context.Background()
 
 	bucket := dotenv.EnvString("S3_BUCKET", "devex")
@@ -75,7 +75,7 @@ func DeleteReplDeploymentAndService(userName, replId string) error {
 }
 
 // InjectEphemeralUploader injects an ephemeral container into the running REPL pod to upload files
-func InjectEphemeralUploader(clientset *kubernetes.Clientset, ctx context.Context, replId, userName, endpoint, bucket, region string) error {
+func InjectEphemeralUploader(clientset kubernetes.Interface, ctx context.Context, replId, userName, endpoint, bucket, region string) error {
 	const namespace = "default"
 
 	// Fetch the target pod
@@ -122,7 +122,7 @@ func InjectEphemeralUploader(clientset *kubernetes.Clientset, ctx context.Contex
 	return nil
 }
 
-func waitForEphemeralUpload(clientset *kubernetes.Clientset, podName string) error {
+func waitForEphemeralUpload(clientset kubernetes.Interface, podName string) error {
 	const (
 		namespace = "default"
 		timeout   = 2 * time.Minute
