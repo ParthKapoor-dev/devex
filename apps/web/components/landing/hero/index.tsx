@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import GitHubStarBadge from "@/components/ui/github-star";
 import ProductHuntBadge from "@/components/ui/product-hunt-badge";
-import { useActiveInView } from "@/hooks/use-active-in-view";
 import { cn } from "@/lib/utils";
+import { useOffscreen } from "../pause-offscreen";
 import { CrtBackdrop } from "./crt-backdrop";
 import s from "../landing.module.css";
 
@@ -30,15 +30,21 @@ import s from "../landing.module.css";
 
 const COMMAND = "devex start --template node api";
 
-/** `d` is ms after load; `t` is how long the line sits at `[ .. ]`. */
+/**
+ * `d` is ms after load; `t` is how long the line sits at `[ .. ]`.
+ *
+ * The whole sequence lands in ~1.2s. The trick that keeps it smooth at that
+ * speed is overlap: the headline starts burning in while the last two log
+ * lines are still resolving, so nothing waits for anything else.
+ */
 const LOG = [
-  { d: 900, t: 240, text: "template copied", meta: "s3://…/you/api/", took: "0.4s" },
-  { d: 1140, t: 300, text: "deployment · service · ingress", meta: "applied", took: "0.2s" },
-  { d: 1440, t: 420, text: "pod running", meta: "files restored", took: "12.8s" },
-  { d: 1860, t: 180, text: "pty attached", meta: "websocket", took: "0.6s" },
+  { d: 400, t: 110, text: "template copied", meta: "s3://…/you/api/", took: "0.4s" },
+  { d: 520, t: 130, text: "deployment · service · ingress", meta: "applied", took: "0.2s" },
+  { d: 650, t: 160, text: "pod running", meta: "files restored", took: "12.8s" },
+  { d: 800, t: 90, text: "pty attached", meta: "websocket", took: "0.6s" },
 ] as const;
 
-const BEAT = { ready: 2080, h1: 2220, h2: 2400, lead: 2640, cta: 2800, bar: 2940 };
+const BEAT = { command: 60, ready: 900, h1: 640, h2: 740, lead: 880, cta: 980, bar: 1080 };
 
 const d = (ms: number) => ({ "--d": `${ms}ms` }) as React.CSSProperties;
 const dt = (ms: number, t: number) =>
@@ -47,7 +53,7 @@ const dt = (ms: number, t: number) =>
 export default function Hero() {
   const router = useRouter();
   const sectionRef = useRef<HTMLElement>(null);
-  const inView = useActiveInView(sectionRef, { rootMargin: "0px" });
+  const offscreen = useOffscreen(sectionRef);
 
   // Enter with nothing focused starts a workspace — the prompt on the button
   // is a promise, so keep it.
@@ -64,7 +70,7 @@ export default function Hero() {
   return (
     <section
       ref={sectionRef}
-      className={cn("relative isolate flex min-h-[100svh] flex-col overflow-hidden", !inView && s.paused)}
+      className={cn("relative isolate flex min-h-[100svh] flex-col overflow-hidden", offscreen && s.paused)}
     >
       <CrtBackdrop className="absolute inset-0 -z-10" brightness={0.5}>
         {/* Dark where the type sits; the shader breathes on the right. */}
@@ -102,7 +108,7 @@ export default function Hero() {
             <span className="text-brand">$ </span>
             <span
               className={cn(s.typed, "text-ink")}
-              style={{ ...d(250), "--n": COMMAND.length } as React.CSSProperties}
+              style={{ ...d(BEAT.command), "--n": COMMAND.length } as React.CSSProperties}
             >
               {COMMAND}
             </span>
