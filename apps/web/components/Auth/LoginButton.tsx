@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Github, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -9,7 +9,19 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export function LoginButton() {
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
+  // Its own flag, not the context's `isLoading`: that one means "the session
+  // check is still in flight", and tying the button to it made "Continue with
+  // GitHub" read "Connecting…" before anyone had clicked anything.
+  const [githubLoading, setGithubLoading] = useState(false);
+
+  // Coming back from GitHub restores this page from the bfcache with the
+  // spinner still showing; clear it.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => e.persisted && setGithubLoading(false);
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
   const inputRef: Ref<HTMLInputElement> | undefined = useRef(null);
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicLinkConsent, setMagicLinkConsent] = useState(false);
@@ -43,7 +55,7 @@ export function LoginButton() {
   };
 
   const magicLinkDisabled =
-    isLoading || !email || !magicLinkConsent || magicLoading;
+    !email || !magicLinkConsent || magicLoading;
 
   return (
     <div className="flex w-full flex-col gap-5">
@@ -51,8 +63,19 @@ export function LoginButton() {
       <div className="flex flex-col gap-2">
         <button
           type="button"
-          onClick={() => login("github", handleLoginError, () => {})}
-          disabled={isLoading}
+          onClick={() => {
+            setGithubLoading(true);
+            // On success the browser navigates away, so only an error resets it.
+            login(
+              "github",
+              (err) => {
+                setGithubLoading(false);
+                handleLoginError(err);
+              },
+              () => {},
+            );
+          }}
+          disabled={githubLoading}
           className={cn(
             "inline-flex w-full items-center justify-center gap-2.5 rounded-md px-4 py-2.5",
             "bg-brand text-sm font-medium text-brand-fg",
@@ -61,12 +84,12 @@ export function LoginButton() {
             "disabled:pointer-events-none disabled:opacity-60",
           )}
         >
-          {isLoading ? (
+          {githubLoading ? (
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           ) : (
             <Github className="size-4" aria-hidden="true" />
           )}
-          {isLoading ? "Connecting…" : "Continue with GitHub"}
+          {githubLoading ? "Connecting…" : "Continue with GitHub"}
         </button>
         <p className="text-center text-xs text-ink-subtle">
           Required for repository access and CI features.
