@@ -1,74 +1,71 @@
 import Link from "next/link";
-import { ArrowRight, Github } from "lucide-react";
+import { Github } from "lucide-react";
 import { siteConfig } from "@/lib/site";
+import { cn } from "@/lib/utils";
+import s from "./landing.module.css";
 
 /**
- * The last thing on the page.
+ * The last ask, set as the prompt the hero promised.
  *
- * Pricing ran straight into the footer, so the only call to action a reader
- * who scrolled the whole way had was whichever plan button they had already
- * scrolled past. This is the second ask, and it offers both of the things
- * somebody at the bottom of this particular page might want: start one, or go
- * read how it works.
+ * The hero boots a machine; this is the same machine waiting for input. One
+ * primary action, and the two things somebody who scrolled this far might
+ * want instead — the docs, or the source.
  *
- * A server component. It sits above the footer card, which is unchanged.
+ * A server component. The glow and scanlines are CSS; the caret is the global
+ * `terminal-caret` blink.
  */
 export default function Closing() {
   return (
-    <section className="px-6">
-      <div className="mx-auto max-w-5xl border-t border-edge py-20 sm:py-24">
-        <div className="relative overflow-hidden rounded-lg border border-edge bg-surface px-6 py-14 text-center sm:px-12">
-          {/* One soft brand wash, the only place on the page it appears as a
-              field rather than a mark. It reads as the end of the page. */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 -top-24 h-48 bg-[radial-gradient(ellipse_at_center,var(--color-brand-950)_0%,transparent_70%)] opacity-60"
-          />
+    <section aria-labelledby="closing-title" className="px-4 sm:px-6">
+      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-2xl border border-brand/20 bg-term-bg px-6 py-20 sm:px-12 sm:py-28">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_50%_110%,color-mix(in_oklab,var(--color-brand)_18%,transparent),transparent_70%)]"
+        />
+        <div aria-hidden="true" className={cn(s.scanlines, "pointer-events-none absolute inset-0 opacity-50")} />
 
-          <div className="relative">
-            <p className="label mb-4 text-ink-subtle">
-              Free tier, no card
-            </p>
+        <div className="relative text-center">
+          <p className="font-mono text-xs text-ink-subtle sm:text-sm">
+            <span className="text-brand/70">{"// "}</span>free plan · no card · two workspaces
+          </p>
+          <h2
+            id="closing-title"
+            className="mt-5 font-mono text-[clamp(1.75rem,7.5vw,5rem)] font-medium leading-none tracking-[-0.03em] text-ink"
+          >
+            <span className="text-ink-subtle">~ </span>
+            <span className={cn(s.glow, "text-brand")}>$</span> devex start
+            <span
+              aria-hidden="true"
+              className="terminal-caret ml-[0.1em] inline-block h-[0.85em] w-[0.5em] translate-y-[0.1em] bg-brand shadow-[0_0_24px_var(--color-brand)]"
+            />
+          </h2>
+          <p className="mx-auto mt-6 max-w-md text-pretty leading-relaxed text-ink-muted">
+            Sign in with GitHub, pick a template, and you have a container with
+            your name on it. Nothing runs while you are away.
+          </p>
 
-            <h2 className="mx-auto max-w-2xl text-balance font-display text-3xl font-medium leading-[1.1] tracking-[-0.03em] text-ink sm:text-4xl">
-              The shell is about ten seconds away.
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-lg text-balance leading-relaxed text-ink-muted">
-              Sign in with GitHub, pick a template, and you have a container
-              with your name on it. Delete it whenever — nothing is running
-              while you are not.
-            </p>
-
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                href="/login"
-                className="group inline-flex h-11 items-center gap-2 rounded-md bg-brand px-5 text-sm font-medium text-brand-fg transition-colors duration-[--duration-fast] hover:bg-brand-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                Start a workspace
-                <ArrowRight
-                  className="size-4 transition-transform duration-[--duration-fast] group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </Link>
-
-              <Link
-                href="/docs"
-                className="inline-flex h-11 items-center gap-2 rounded-md border border-edge px-5 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-edge-strong hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                Read the docs
-              </Link>
-
-              <a
-                href={siteConfig.repo}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-11 items-center gap-2 rounded-md border border-edge px-5 text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-edge-strong hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                <Github className="size-4" aria-hidden="true" />
-                Star on GitHub
-              </a>
-            </div>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/login"
+              className="inline-flex h-12 items-center gap-3 rounded-sm bg-brand px-5 font-mono text-sm font-medium text-brand-fg shadow-[0_10px_40px_-10px_var(--color-brand)] transition-colors duration-[--duration-fast] hover:bg-brand-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+            >
+              <span aria-hidden="true">↵</span> start a workspace
+            </Link>
+            <Link
+              href="/docs"
+              className="inline-flex h-12 items-center rounded-sm border border-edge-strong px-5 font-mono text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-brand/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+            >
+              man devex<span className="sr-only"> — read the docs</span>
+            </Link>
+            <a
+              href={siteConfig.repo}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-12 items-center gap-2 rounded-sm border border-edge-strong px-5 font-mono text-sm text-ink-muted transition-colors duration-[--duration-fast] hover:border-brand/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+            >
+              <Github className="size-4" aria-hidden="true" />
+              star on github
+            </a>
           </div>
         </div>
       </div>
