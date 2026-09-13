@@ -615,16 +615,20 @@ const Sandbox: React.FC<SandboxProps> = ({
           <div className="flex-1 flex flex-col">
             {/* Mobile sidebar overlay */}
             {!sidebarCollapsed && (
+              // Starts below the 40px mobile header (z-50). It used to start at
+              // the top, so the header covered this panel's own Explorer bar —
+              // its only close button — and a `pt-12` spacer pushed the tree's
+              // bottom rows off the screen.
               <div
-                className="fixed inset-0 z-40 bg-canvas/60"
+                className="fixed inset-x-0 bottom-0 top-10 z-40 bg-canvas/60"
                 onClick={() => setSidebarCollapsed(true)}
               >
                 <div
                   className="absolute inset-y-0 left-0 w-full border-r border-edge bg-surface"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="h-full">
-                    <div className="flex h-10 items-center justify-between border-b border-edge bg-raised px-3">
+                  <div className="flex h-full flex-col">
+                    <div className="flex h-10 shrink-0 items-center justify-between border-b border-edge bg-raised px-3">
                       <span className="label text-ink-muted">Explorer</span>
                       <IconButton
                         label="Close explorer"
@@ -633,7 +637,7 @@ const Sandbox: React.FC<SandboxProps> = ({
                         <X className="size-4" />
                       </IconButton>
                     </div>
-                    <div className="h-full pt-12">
+                    <div className="min-h-0 flex-1">
                       <FileTree
                         tree={fileTree.tree}
                         fetchDir={fileTree.fetchDir}
