@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "audit:agents": "npx --yes ax audit devx.parthkapoor.me",
     "audit:agents:force": "npx --yes ax audit devx.parthkapoor.me --force"
   },
@@ -69,6 +71,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.25",
     "tailwindcss": "^4.1.10",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }
