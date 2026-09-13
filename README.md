@@ -1,248 +1,120 @@
-<h1 align="center">⚡ DevEx – The Open Cloud IDE Platform</h1>
-
 <p align="center">
-  <b>Run full-featured, containerized dev environments in the cloud — with AI assistance and secure sandboxing.</b><br/>
-  Scalable REPL sessions powered by Kubernetes, WebSockets, and GoLang.
-</p>
-
-<p align="center">
-  <a href="https://github.com/ParthKapoor-dev/devex/stargazers">
-    <img src="https://img.shields.io/github/stars/ParthKapoor-dev/devex?style=for-the-badge" />
-  </a>
-  <a href="https://github.com/ParthKapoor-dev/devex/issues">
-    <img src="https://img.shields.io/github/issues/ParthKapoor-dev/devex?style=for-the-badge" />
-  </a>
-  <a href="https://github.com/ParthKapoor-dev/devex/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/ParthKapoor-dev/devex?style=for-the-badge" />
+  <a href="https://devx.parthkapoor.me">
+    <img src="./assets/devx.webp" alt="The DevEx landing page and a running workspace: file explorer, editor, and a terminal serving an app on a public URL" width="100%" />
   </a>
 </p>
 
+<h1 align="center">DevEx</h1>
+
 <p align="center">
-  <img src="https://raw.githubusercontent.com/parthkapoor-dev/devex/main/assets/devx.png" alt="Cloud Dev IDE Banner" />
+  <b>A real machine, one tab away.</b><br />
+  An open-source cloud IDE. Every workspace is its own Linux container on Kubernetes,<br />
+  with a code editor, a real terminal and a public URL — and files that are still there tomorrow.
+</p>
+
+<p align="center">
+  <a href="https://devx.parthkapoor.me">Live</a>
+  &nbsp;·&nbsp;
+  <a href="https://devx.parthkapoor.me/docs">Docs</a>
+  &nbsp;·&nbsp;
+  <a href="https://www.youtube.com/watch?v=Tlck20bJeFE">Demo video</a>
+  &nbsp;·&nbsp;
+  <a href="https://www.producthunt.com/products/devex">Product Hunt</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ParthKapoor-dev/devex/actions/workflows/ci.yaml"><img alt="CI" src="https://github.com/ParthKapoor-dev/devex/actions/workflows/ci.yaml/badge.svg?branch=develop" /></a>
+  <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/ParthKapoor-dev/devex?color=f59e0b" /></a>
+  <a href="https://github.com/ParthKapoor-dev/devex/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/ParthKapoor-dev/devex?color=f59e0b" /></a>
 </p>
 
 ---
 
-DevEx is an open-source platform to spin up cloud-based development environments (REPLs) that work like your local setup — but in the browser, anywhere, anytime.
+## What you get
 
-Built for flexibility, you can code in your preferred stack, connect over SSH, or run sessions with AI agents via our MCP server. We also support sandboxing AI-generated code securely, letting you test real changes in isolated environments.
+Pick a template, give it a name, and open it. Once its pod is up you're in a browser IDE attached to a container that is yours alone:
 
-Unlike Gitpod or E2B, DevEx is lightweight, self-hostable, and production-grade out of the box — with a developer-first CLI, seamless AI integration, and Kubernetes-native design for infinite scale.
+- **An editor** — Monaco, the engine behind VS Code, with a file explorer that creates, renames, moves and deletes on the real filesystem.
+- **A terminal** — an actual PTY running `bash` inside the container, not an emulated shell. Install packages, run servers, use git.
+- **A public URL for anything you start.** Run a dev server on port 3000 and it's reachable at `…/<workspace>/user-app/3000/`.
+- **Files that persist.** Close the tab and the workspace sleeps; your files are saved to object storage and restored the next time you open it.
 
-> 📣 Want to add your own REPL template? It's easy!
-> 👉 [Read the Contributing Guide](./CONTRIBUTING.md) to get started.
+Node.js and Python templates are available today.
 
----
+## How a workspace comes to life
 
-<p align="center">
-  <a href="https://glama.ai/mcp/servers/@ParthKapoor-dev/devex">
-    <img width="380" height="200" src="https://glama.ai/mcp/servers/@ParthKapoor-dev/devex/badge" />
-  </a>
-</p>
+```text
+ you ── "create" ──►  core API (Go) ── copies templates/<stack>/ → your folder in the bucket
 
-<p align="center"><b>🚀 MCP Server is now live at <a href="https://glama.ai">glama.ai</a> – enabling AI agents to interact directly with your REPLs!</b></p>
-
-
-## ✨ Features
-
-- 🔐 **GitHub OAuth** authentication
-- 🪄 **Create, Start, Stop, Delete REPLs** via Core API
-- 💾 **S3-backed file persistence**
-- 📦 **Kubernetes Deployments per REPL** (Dynamic)
-- 📡 **WebSocket-based Editor & Terminal**
-- 🧹 **Ephemeral containers for cleanup and sync**
-- 🔒 **HTTPS & TLS** via Let's Encrypt & Cert Manager
-- 🎨 Beautiful **Next.js** + Tailwind frontend
-
----
-
-## ⚙️ How It Works
-
-```mermaid
-graph TB
-    User[👤 User] --> Web[🌐 Web Frontend<br/>React/Next.js Application]
-    Web --> Core[🔧 Core Backend<br/>• User Authentication<br/>• Repl Management<br/>• S3 Integration<br/>• K8s Orchestration]
-    Core --> S3[(🗄️ S3 Storage<br/>username/repl-id/<br/>├── templates/<br/>└── user-files/)]
-
-    subgraph K8sCluster["☸️ Kubernetes Cluster"]
-        direction TB
-        IngressController[🚪 Traefik Ingress Controller<br/>Traffic Routing]
-        CertManager[🔒 Cert Manager<br/>TLS Certificate Management]
-
-        subgraph ReplResources["📦 Per-Repl Resources"]
-            Deployment[🚀 Deployment<br/>Repl Container Instance]
-            Service[🔗 Service<br/>Internal Network Access]
-            Ingress[🌍 Ingress<br/>External Access Route]
-        end
-
-        subgraph Pod["🏠 Repl Pod"]
-            MainContainer[🐳 Runner Container<br/>• WebSocket Server<br/>• File Operations<br/>• PTY/Terminal Access<br/>• Code Execution]
-            EphemeralContainer[⚡ Ephemeral Container<br/>File Sync Back to S3<br/>🔄 Cleanup Process]
-        end
-
-        Deployment --> Pod
-        Service --> Pod
-        Ingress --> Service
-        IngressController --> Ingress
-    end
-
-    Core --> K8sCluster
-    Core -.->|Create Resources<br/>Deploy → Service → Ingress| ReplResources
-    Web -.->|🔌 WebSocket Connection<br/>• File Management<br/>• Terminal Access<br/>• Real-time Collaboration| MainContainer
-    Core -.->|📁 Copy Template<br/>to user directory| S3
-    EphemeralContainer -.->|💾 Sync Files Back<br/>Before Cleanup| S3
-    MainContainer -.->|📂 Load Files<br/>on Session Start| S3
-````
-
----
-
-### 🌀 Session Lifecycle
-
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant W as Web Frontend
-    participant C as Core Service
-    participant K as Kubernetes
-    participant S as S3 Storage
-    participant R as Runner Container
-
-    U->>W: Create New Repl
-    W->>C: POST /repl/create
-    C->>S: Create user directory<br/>Copy template files
-
-    U->>W: Start Session
-    W->>C: POST /repl/start
-    C->>K: Create Deployment<br/>Service & Ingress
-    K->>R: Initialize Container
-    R->>S: Download files
-    R->>W: WebSocket Connection
-
-    Note over U,R: Development Session Active
-    U->>R: File operations via WebSocket
-    R->>R: Real-time file editing
-
-    U->>W: Close Session
-    W->>C: POST /repl/stop
-    C->>K: Inject Ephemeral Container
-    K->>S: Upload modified files
-    C->>K: Delete Resources
+ you ── "open" ────►  core API (Go)
+                                │
+                                ├─ creates a Deployment, Service and Ingress on Kubernetes
+                                └─ waits for the pod to answer /ping
+                                          │
+            ┌─────────────────────────────┘
+            ▼
+      workspace pod ── init container pulls your files into /workspaces
+            │
+            └─ runner (Go) ◄──── WebSocket ────► browser: file tree · editor · terminal
+                   │
+                   └─ 4 minutes after the last tab closes:
+                      core copies /workspaces back to the bucket and deletes the pod
 ```
 
----
+Traffic reaches every pod through a single Traefik ingress on `repl.parthkapoor.me/<workspace>/…`, running on the node's own network so the cluster doesn't need a paid cloud load balancer. TLS comes from cert-manager and Let's Encrypt.
 
-## 🔩 Key Components
+The [architecture docs](https://devx.parthkapoor.me/docs/architecture) walk through each step in detail.
 
-### [`apps/web/`](./apps/web) – **Frontend**
+## Inside the repository
 
-* Built with **Next.js** + **Tailwind CSS**
-* GitHub OAuth login
-* GUI for File Tree, Editor, Terminal
-* WebSocket hooks to interact with Runner
+| Path | What lives there |
+| --- | --- |
+| [`apps/web`](./apps/web) | The website, docs and IDE — Next.js 15, React 19, Tailwind v4, Monaco, xterm.js |
+| [`apps/core`](./apps/core) | Control-plane API in Go: GitHub and magic-link sign-in, workspace records in Redis, template copies in S3-compatible storage, Kubernetes orchestration with client-go |
+| [`apps/runner`](./apps/runner) | Runs inside every workspace: the WebSocket protocol for files and terminals, the preview proxy, idle shutdown |
+| [`apps/mcp`](./apps/mcp) | Optional Model Context Protocol sidecar so AI assistants can read a workspace's files |
+| [`packages`](./packages) | Shared Go code: logging, JSON helpers, the protobuf contract between runner and MCP |
+| [`infra`](./infra) | Dockerfiles, the Docker Swarm stack for the API, Traefik and cert-manager manifests |
+| [`templates`](./templates) | Starter files copied into new workspaces |
 
-### [`apps/core/`](./apps/core) – **Backend API**
+The Go services are four modules tied together with a Go workspace (`go.work`); the web app is a standalone npm project.
 
-* Written in **Go**
-* Handles user auth, S3 ops, Kubernetes deployments, cleanup
-* Redis for REPL session state
-* 📄 See [apps/core/README.md](./apps/core) for detailed architecture & deployment steps
+## Running it locally
 
-### [`apps/runner/`](./apps/runner) – **REPL Runtime Container**
+**The frontend** runs on its own:
 
-* Lightweight Go server
-* WebSocket API for:
+```sh
+cd apps/web
+cp .env.example .env
+npm install
+npm run dev
+```
 
-  * File tree and file content access
-  * Terminal (PTY) sessions
-* 📄 See [apps/runner/README.md](./apps/runner) for event list and package internals
+**The Go services** need Go 1.24+ and `protoc`:
 
-### [`infra/k8s/`](./infra/k8s) – **Kubernetes Bootstrap & TLS**
+```sh
+make proto-tools   # pinned protoc plugins
+make proto         # generate packages/pb
+make ci            # tidy check, build, vet and test every module, plus web lint/typecheck/tests
+```
 
-* Contains:
+Running real workspaces needs a Kubernetes cluster, Redis and an S3-compatible bucket. [Self-hosting](https://devx.parthkapoor.me/docs/self-hosting) covers the full setup on any provider with a single public node.
 
-  * Traefik (hostNetwork) setup
-  * `cert-manager` + Let’s Encrypt for auto TLS
-* 📄 See [infra/k8s/README.md](./infra/k8s) for full setup instructions
+## Status
 
-### [`templates/`](./templates)
+DevEx is built and run by one person on a small cluster, and it's still evolving. Open problems and the order they're being tackled in are tracked in the [roadmap issue](https://github.com/ParthKapoor-dev/devex/issues/33).
 
-* Base folders (e.g. Node.js, Python) copied on REPL creation
-* Language-specific dockerized scaffolds
-* 📦 Want to add your own template? See the [Contribution Guide](./CONTRIBUTING.md)
+Found a security problem? Please report it privately through the repository's [Security tab](https://github.com/ParthKapoor-dev/devex/security) rather than in a public issue.
 
----
+## Contributing
 
-## 🧱 Infrastructure
+Templates, fixes and ideas are welcome. The [contributing guide](https://devx.parthkapoor.me/docs/contributing) explains how the pieces fit, how to run the checks, and what a good pull request looks like. Pull requests go to the `develop` branch.
 
-* ☸️ Kubernetes cluster for REPL pods
-* 🔒 Cert Manager + Let’s Encrypt for TLS
-* 🗃️ S3-compatible storage for persistence
-* 🐳 Docker images for runtime environments
-* ⚙️ Redis for in-memory session tracking
+## Why it exists
 
----
+I wanted to understand what actually happens between clicking "open" and getting a shell in the cloud — containers, orchestration, networking, TLS, persistence — so I built the whole path myself.
+— [Parth Kapoor](https://parthkapoor.me)
 
-## 📦 Deployment Flow
+## License
 
-1. User logs in and creates a REPL
-2. `apps/core/` copies a template into `username/repl-id/` on S3
-3. `apps/core/` deploys a pod, service, ingress in Kubernetes
-4. `apps/runner/` connects via WebSocket and serves FS + Terminal
-5. On session end:
-
-   * Ephemeral container uploads updated files to S3
-   * All K8s resources are cleaned up
-
----
-
-## 💻 Tech Stack
-
-| Layer         | Stack                              |
-| ------------- | ---------------------------------- |
-| Frontend      | Next.js, Tailwind, WebSockets      |
-| Backend       | GoLang (Echo/Fiber), Redis, S3 SDK |
-| Runner        | GoLang + PTY + WebSocket           |
-| Orchestration | Kubernetes, Docker, Docker Swarm   |
-| Networking    | Traefik + cert-manager       |
-| Auth          | GitHub OAuth                       |
-
----
-
-## 📄 Per-Component Docs
-
-📚 For deeper implementation details:
-
-* [`apps/core/`](./apps/core) – [Backend README.md](./apps/core/README.md)
-* [`apps/runner/`](./apps/runner) – [Runner WebSocket README.md](./apps/runner/README.md)
-* [`infra/k8s/`](./infra/k8s) – [Kubernetes + TLS Setup](./infra/k8s/README.md)
-* [`apps/web/`](./apps/web) – [Frontend README.md](./apps/web/README.md)
-
----
-
-## 🧠 Why I Built This
-
-> “This project is my deep dive into Cloud Infrastructure, DevOps, and FullStack Engineering — wrapped in a real-world application.”
-> — [Parth Kapoor](https://parthkapoor.me)
-
----
-
-## 🌐 Demo & Links
-
-* 🧪 [Live](https://devx.parthkapoor.me)
-* 🧑‍💻 [Portfolio](https://parthkapoor.me)
-* 🐙 [GitHub Repo](https://github.com/ParthKapoor-dev/devex)
-
----
-
-## 🤝 Contributing
-
-This project is under active development.
-Want to contribute a template, fix, or feature? Start here 👉 [CONTRIBUTING.md](./CONTRIBUTING.md)
-
-Pull requests, suggestions, and feedback are always welcome!
-
----
-
-## 📜 License
-
-Licensed under the [MIT License](./LICENSE)
+[MIT](./LICENSE)
