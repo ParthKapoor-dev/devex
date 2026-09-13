@@ -73,8 +73,10 @@ Things that are explicitly *not* the accent's job:
 - **Terminal output.** The 16 ANSI colours and `term-accent` follow shell
   convention. Green means passed, red means failed. Do not rebrand them.
 
-Colour that is *not* the accent belongs in the backdrop. `SiteBackdrop` and
-`AppBackdrop` carry the expressiveness so the chrome can stay quiet.
+Colour that is *not* the accent belongs in the backdrop. The landing hero's
+CRT (`components/landing/hero/crt-backdrop.tsx`), the login wave panel
+(`components/Auth/LoginShell.tsx`) and `AppBackdrop` carry the expressiveness
+so the chrome can stay quiet.
 
 Two naming traps:
 
@@ -84,7 +86,7 @@ Two naming traps:
   turns every dropdown row bright amber.
 - Prefer the existing utilities over re-deriving an effect inline: `glass`,
   `glow-brand`, `surface-card`, and `label` for the uppercase-mono UI voice.
-  **Do not change `glass`** — it is the footer card's original treatment, which
+  **Do not change `glass`** — it is the footer's original treatment, which
   the maintainer asked to keep as-is.
 
 ### Colour outside CSS

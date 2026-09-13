@@ -23,7 +23,9 @@ Constraints:
   gets attention. Do not flatten it into a generic minimal template. The bar is
   "distinctive *and* cheap", not one or the other.
 - The sandbox has the strictest bar: extremely fast, developer feel.
-- **The footer card must not change.** Explicitly asked for.
+- **The `glass` utility must not change.** Explicitly asked for. The footer
+  was later redesigned on request (2026-09-13).
+- **Keep `components/brand/block-wordmark.tsx`** even though nothing uses it.
 - Granular commits, one per distinct change.
 - Subagents on Sonnet for anything that is not hard.
 

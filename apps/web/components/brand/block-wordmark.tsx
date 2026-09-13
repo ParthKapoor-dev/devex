@@ -4,15 +4,21 @@ import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * MOCK (direction B) — fork of components/mocks/cube-wordmark.tsx.
+ * The DevEx wordmark, built from tilting 3D blocks.
  *
- * Changes from the shared one:
- * - lit faces: top lighter, sides darker, so a tilted block reads as solid;
- * - "heat": each cube's tilt drives a CSS var that warms its faces to amber,
- *   so the cursor leaves a glowing trail through the word;
- * - a spring instead of plain easing, so blocks overshoot a touch;
- * - entrance: blocks drop in column by column (CSS) and roll flat (JS);
- * - a per-cell perspective, and a readout ref for the cursor coordinates.
+ * Not used on any page yet — kept deliberately, at the maintainer's request,
+ * from the landing-page design review (direction "Blocks"). It started as a
+ * port of React Bits "Cubes" (https://reactbits.dev, MIT + Commons Clause),
+ * rewritten without gsap:
+ *
+ * - the word is a 5×7 bitmap font and only lit cells get a block;
+ * - faces are shaded (top lighter, sides darker) so a tilted block reads solid;
+ * - each block's tilt drives a CSS var that warms it toward amber, so the
+ *   cursor leaves a trail through the word;
+ * - one spring-driven rAF loop for every block, paused off-screen;
+ * - blocks drop in column by column on mount; click sends a ripple.
+ *
+ * It is ~80 blocks × 6 faces of DOM. Fine for one hero, not for a list.
  */
 
 const GLYPHS: Record<string, string[]> = {

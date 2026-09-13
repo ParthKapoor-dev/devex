@@ -99,8 +99,14 @@ Things that bite immediately:
   Import hex from `apps/web/lib/tokens.ts`.
 - The editor (Monaco) and the docs (Shiki) share one syntax palette. Change
   `components/sandbox/Editor/theme.ts` and `lib/docs/shiki-theme.ts` together.
-- **The footer card is not to be changed.** Its treatment is the `glass`
-  utility; leave both alone.
+- **Do not change the `glass` utility.** The maintainer asked to keep that
+  treatment as-is. (The footer itself was redesigned on 2026-09-13, at the
+  maintainer's request, along with everything after the FAQ.)
+- **The landing page runs exactly one WebGL context** — the hero's CRT — and it
+  pauses when the hero leaves the viewport. Do not add a second shader below
+  the fold; use CSS or scroll-linked transforms.
+- **`components/brand/block-wordmark.tsx` is unused on purpose.** The
+  maintainer asked to keep it for later; do not delete it as dead code.
 - **Run `npm run audit:agents` before calling a frontend change done.** It
   scores how readable the site is to an AI agent (`npx ax audit
   devx.parthkapoor.me`). Production was 30/100 when first measured. The audit
