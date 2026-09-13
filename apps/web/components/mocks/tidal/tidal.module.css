@@ -1,0 +1,103 @@
+/* MOCK — Tidal direction. Keyframes Tailwind has no token for. */
+
+.marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 48s linear infinite;
+}
+
+.marqueeHost:hover .marquee {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.caret {
+  animation: caret 1.1s steps(1) infinite;
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Terminal lines arriving one by one, then holding. */
+.typeLine {
+  opacity: 0;
+  animation: type-line 7s var(--ease-out-quad) infinite;
+}
+
+@keyframes type-line {
+  0%,
+  4% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  8%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* A packet travelling along the port-forward rule. */
+.packet {
+  animation: packet 2.8s var(--ease-out-expo) infinite;
+}
+
+@keyframes packet {
+  from {
+    left: 0%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+/* Sync bar filling toward the bucket. */
+.sync {
+  transform-origin: left;
+  animation: sync 3.6s var(--ease-out-expo) infinite;
+}
+
+@keyframes sync {
+  from {
+    transform: scaleX(0);
+  }
+  70%,
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee,
+  .caret,
+  .packet,
+  .sync {
+    animation: none;
+  }
+  .typeLine {
+    animation: none;
+    opacity: 1;
+  }
+  .sync {
+    transform: scaleX(1);
+  }
+}

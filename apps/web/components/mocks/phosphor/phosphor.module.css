@@ -1,0 +1,269 @@
+/* MOCK — direction C · Phosphor. Plain CSS (no Tailwind) so the keyframes
+   stay local. Every animation here is load-once choreography; the global
+   reduced-motion block in globals.css zeroes durations *and* delays, and all
+   of these use a `both`/`forwards` fill, so reduced motion lands on the
+   finished frame rather than a blank one. */
+
+/* ---- Phosphor glow ------------------------------------------------------ */
+
+.glow {
+  text-shadow:
+    0 0 1px color-mix(in oklab, var(--color-brand) 70%, transparent),
+    0 0 18px color-mix(in oklab, var(--color-brand) 45%, transparent),
+    0 0 42px color-mix(in oklab, var(--color-brand-600) 25%, transparent);
+}
+
+.glowSoft {
+  text-shadow: 0 0 12px color-mix(in oklab, var(--color-brand) 35%, transparent);
+}
+
+/* ---- Overlays ----------------------------------------------------------- */
+
+.scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.28) 0px,
+    rgb(0 0 0 / 0.28) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* The slow bright band a real CRT rolls down the glass. */
+.rollbar {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 22%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklab, var(--color-brand) 5%, transparent) 50%,
+    transparent
+  );
+  animation: roll 7s linear infinite;
+}
+
+@keyframes roll {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(560%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rollbar {
+    display: none;
+  }
+}
+
+/* ---- Boot log ----------------------------------------------------------- */
+
+/* Typed command: width grows in whole characters. `--n` is the length. */
+.typed {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  width: calc(var(--n) * 1ch);
+  animation: type calc(var(--n) * 28ms) steps(var(--n), end) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes type {
+  from {
+    width: 0;
+  }
+}
+
+/* Appear on a frame boundary, like a line being written to the tty.
+   Linear on purpose: `visibility` flips to visible for any progress > 0, and
+   a steps() easing can finish at 0.9999 and stay hidden. */
+.appear {
+  animation: appear 1ms linear both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes appear {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+
+/* `[ .. ]` → `[ ok ]`. Both badges share one grid cell. */
+.swap {
+  display: inline-grid;
+}
+.swap > * {
+  grid-area: 1 / 1;
+}
+.pending {
+  animation: vanish var(--t, 200ms) linear both;
+  animation-delay: var(--d, 0ms);
+}
+.done {
+  animation: reveal var(--t, 200ms) linear both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* Hold, then flip in the last 1% — a hard cut without steps() rounding. */
+@keyframes vanish {
+  0%,
+  99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes reveal {
+  0%,
+  99% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Spinner on the pending badge: four frames of a quarter-turn. */
+.spin::before {
+  content: "..";
+  animation: spinner 320ms steps(1, end) infinite;
+}
+@keyframes spinner {
+  0% {
+    content: "..";
+  }
+  25% {
+    content: "o.";
+  }
+  50% {
+    content: "oo";
+  }
+  75% {
+    content: ".o";
+  }
+}
+
+/* ---- Headline burn-in ----------------------------------------------------- */
+
+.burn {
+  animation: burn 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes burn {
+  0% {
+    opacity: 0;
+    filter: blur(10px) brightness(2.6);
+    transform: scaleY(0.06);
+  }
+  18% {
+    opacity: 1;
+    filter: blur(4px) brightness(2.2);
+    transform: scaleY(1.02);
+  }
+  45% {
+    opacity: 0.82;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* ---- Monitor ------------------------------------------------------------ */
+
+.bezel {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 30%),
+    linear-gradient(0deg, rgb(0 0 0 / 0.5), transparent 40%),
+    var(--color-raised);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 -2px 0 rgb(0 0 0 / 0.6),
+    0 40px 120px -40px color-mix(in oklab, var(--color-brand) 30%, transparent),
+    0 30px 60px -30px rgb(0 0 0 / 0.9);
+}
+
+.glass {
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.9),
+    inset 0 0 60px rgb(0 0 0 / 0.85),
+    0 0 0 6px rgb(0 0 0 / 0.55);
+}
+
+/* Glass reflection + edge darkening, on top of the picture. */
+.glassSheen {
+  background:
+    radial-gradient(120% 90% at 50% 50%, transparent 55%, rgb(0 0 0 / 0.65) 100%),
+    linear-gradient(
+      160deg,
+      rgb(255 255 255 / 0.07) 0%,
+      transparent 32%
+    );
+}
+
+/* Warm the YouTube poster frame into amber phosphor. */
+.phosphorImage {
+  filter: grayscale(1) sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(0.72)
+    contrast(1.15);
+}
+
+/* ---- Login -------------------------------------------------------------- */
+
+.window {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--color-brand) 22%, transparent),
+    0 0 80px -20px color-mix(in oklab, var(--color-brand) 35%, transparent),
+    0 40px 80px -30px rgb(0 0 0 / 0.95);
+}
+
+.boot {
+  animation: power 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes power {
+  0% {
+    opacity: 0;
+    transform: scale(0.96, 0.004);
+    filter: brightness(3);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1, 0.004);
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Inline shell input: no box, just the text and a block caret colour. */
+.shellInput {
+  caret-color: var(--color-brand);
+  caret-shape: block;
+}
