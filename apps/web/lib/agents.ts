@@ -89,7 +89,7 @@ export const DISALLOWED_PATHS = [
 export const AGENT_SUMMARY =
   "DevEx runs containerised development environments on Kubernetes and puts them in a browser tab. " +
   "Each workspace is a real Linux container: a shell, a filesystem that survives a restart, a code editor, " +
-  "and ports reachable over the public internet. It is open source (Apache-2.0) and self-hostable.";
+  "and ports reachable over the public internet. It is open source (MIT) and self-hostable.";
 
 /**
  * When an agent should reach for DevEx, and when it should not.
@@ -126,7 +126,7 @@ export const FAQ: readonly { question: string; answer: string }[] = [
   {
     question: "Is DevEx free?",
     answer:
-      "The Free plan costs nothing and needs no card: two workspaces, 125m CPU and 256Mi memory each, 200MB persisted. Self-hosting is free without limits — the source is Apache-2.0 licensed and the deployment is documented.",
+      "The Free plan costs nothing and needs no card: two workspaces, 125m CPU and 256Mi memory each, 200MB persisted. Self-hosting is free without limits — the source is MIT-licensed and the deployment is documented.",
   },
   {
     question: "Do my files survive a restart?",
@@ -230,6 +230,6 @@ export const AGENT_IDENTITY = {
   name: siteConfig.name,
   origin: siteConfig.url,
   repository: siteConfig.repo,
-  license: "Apache-2.0",
+  license: "MIT",
   licenseUrl: `${siteConfig.repo}/blob/main/LICENSE`,
 } as const;

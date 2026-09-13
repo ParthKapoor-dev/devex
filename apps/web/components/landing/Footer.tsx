@@ -154,7 +154,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-14 flex flex-col-reverse items-start gap-4 border-t border-edge pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-xs text-ink-subtle">
-            © {new Date().getFullYear()} devX · Apache-2.0
+            © {new Date().getFullYear()} devX · MIT
           </p>
 
           <a

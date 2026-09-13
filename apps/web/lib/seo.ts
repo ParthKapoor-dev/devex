@@ -188,7 +188,7 @@ export function softwareApplicationJsonLd() {
       "Filesystem persisted to object storage across restarts",
       "Public port forwarding without a tunnel",
       "Model Context Protocol server for AI agents",
-      "Self-hostable, Apache-2.0",
+      "Self-hostable, MIT",
     ],
     // One Offer per plan, so an agent comparing products reads the numbers
     // rather than parsing an animated pricing table. Same source as the page.

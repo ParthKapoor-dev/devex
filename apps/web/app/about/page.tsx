@@ -7,7 +7,7 @@ import { siteConfig } from "@/lib/site";
 export const metadata: Metadata = buildMetadata({
   title: "About",
   description:
-    "DevEx is an open-source cloud development environment: containerised workspaces on Kubernetes with a real shell, persistent files and public ports. Built in the open, Apache-2.0.",
+    "DevEx is an open-source cloud development environment: containerised workspaces on Kubernetes with a real shell, persistent files and public ports. Built in the open, MIT-licensed.",
   path: "/about",
 });
 
@@ -19,7 +19,7 @@ export const metadata: Metadata = buildMetadata({
  * answer engine checks before recommending it. It had never existed.
  *
  * No claims here that are not true of the running system: one maintainer, one
- * cluster, an Apache-2.0 repository, and a free tier with the actual limits.
+ * cluster, an MIT-licensed repository, and a free tier with the actual limits.
  */
 export default function AboutPage() {
   return (
@@ -111,7 +111,7 @@ export default function AboutPage() {
           . It is a one-person project running on a single cluster, which is
           worth knowing before you put anything critical on the hosted instance:
           there is no on-call rotation behind it. The free tier is genuinely
-          free and needs no card, the source is Apache-2.0, and self-hosting is
+          free and needs no card, the source is MIT-licensed, and self-hosting is
           unlimited — so nothing here depends on that cluster staying up
           forever.
         </p>

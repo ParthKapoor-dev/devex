@@ -51,7 +51,7 @@ function body(): string {
     AGENT_SUMMARY,
     "",
     `- Site: ${siteConfig.url}`,
-    `- Source: ${siteConfig.repo} (Apache-2.0)`,
+    `- Source: ${siteConfig.repo} (MIT)`,
     `- API: ${API_ORIGIN}`,
     `- Author: ${siteConfig.author.name} — ${siteConfig.author.url}`,
     "",

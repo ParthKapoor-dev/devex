@@ -89,7 +89,7 @@ export function llmsIndex(): string {
     ...FAQ.flatMap(({ question, answer }) => [`**${question}**`, "", answer, ""]),
     "## Project",
     "",
-    `- [Source](${siteConfig.repo}): Apache-2.0. The whole stack — web app, Go control plane, runner and MCP server.`,
+    `- [Source](${siteConfig.repo}): MIT. The whole stack — web app, Go control plane, runner and MCP server.`,
     `- [Author](${siteConfig.author.url}): ${siteConfig.author.name}.`,
     "",
   ].join("\n");

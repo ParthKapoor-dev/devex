@@ -87,7 +87,7 @@ export const PLANS: readonly Plan[] = [
 
 /** The one sentence that has to appear anywhere the plans do. */
 export const SELF_HOST_NOTE =
-  "Self-hosting is free and unlimited. DevEx is Apache-2.0 licensed; bring your own Kubernetes cluster and none of the above applies.";
+  "Self-hosting is free and unlimited. DevEx is MIT-licensed; bring your own Kubernetes cluster and none of the above applies.";
 
 /** `/pricing.md` — the plans as markdown, for agents comparing products. */
 export function pricingMarkdown(): string {
