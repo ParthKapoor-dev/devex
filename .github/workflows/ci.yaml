@@ -1,0 +1,161 @@
+name: CI
+
+# Checks only: nothing here pushes images, deploys, or talks to production.
+# The deploy pipelines (core, runner, mcp, templates) are separate workflows.
+#
+# Runs on every pull request, and on pushes to develop and main. Each job is
+# skipped when nothing it checks has changed (see the `changes` job).
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A newer push to the same branch cancels the older run.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      web: ${{ steps.filter.outputs.web }}
+      images: ${{ steps.filter.outputs.images }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go:
+              - "apps/core/**"
+              - "apps/runner/**"
+              - "apps/mcp/**"
+              - "packages/**"
+              - "go.work"
+              - "makefile"
+              - ".github/workflows/ci.yaml"
+            web:
+              - "apps/web/**"
+              - ".github/workflows/ci.yaml"
+            images:
+              - "apps/core/**"
+              - "apps/runner/**"
+              - "apps/mcp/**"
+              - "packages/**"
+              - "infra/**"
+              - "makefile"
+              - ".github/workflows/ci.yaml"
+
+  go:
+    name: Go — tidy, build, vet, test
+    needs: changes
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/core/go.mod
+          cache-dependency-path: |
+            packages/go.sum
+            apps/core/go.sum
+            apps/runner/go.sum
+            apps/mcp/go.sum
+
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends protobuf-compiler
+
+      - name: Generate protobuf code
+        run: |
+          make proto-tools
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          PATH="$(go env GOPATH)/bin:$PATH" make proto
+
+      - name: go.mod and go.sum are tidy
+        run: make tidy-check
+
+      - name: Build
+        run: make build
+
+      - name: Vet
+        run: make vet
+
+      - name: Test (race detector)
+        run: make test-race
+
+  web:
+    name: Web — lint, typecheck, test, build
+    needs: changes
+    if: needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Unit tests
+        run: npm run test --if-present
+      - run: npm run build
+
+  images:
+    name: Docker images build (not pushed)
+    needs: changes
+    if: needs.changes.outputs.images == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Plain `docker build` rather than buildx: the language images take the
+      # runner binary from the runner-service image built one step earlier,
+      # and the classic builder can read that local image.
+      - name: core
+        run: docker build -f infra/core/dockerfile -t devex/core-service:ci .
+
+      - name: mcp
+        run: docker build -f infra/mcp/dockerfile -t devex/mcp:ci .
+
+      - name: runner-service
+        run: docker build -f infra/runner/dockerfile -t ghcr.io/parthkapoor-dev/devex/runner-service:ci .
+
+      - name: language images
+        run: |
+          set -euo pipefail
+          for f in infra/runner/*.dockerfile; do
+            name="$(basename "$f" .dockerfile)"
+            echo "::group::runner-$name"
+            docker build -f "$f" --build-arg RUNNER_IMAGE_TAG=ci -t "devex/runner-$name:ci" .
+            echo "::endgroup::"
+          done
+
+      - name: language images contain this commit's runner
+        run: |
+          set -euo pipefail
+          want="$(docker run --rm --entrypoint sha256sum ghcr.io/parthkapoor-dev/devex/runner-service:ci /app/main | cut -d' ' -f1)"
+          for f in infra/runner/*.dockerfile; do
+            name="$(basename "$f" .dockerfile)"
+            got="$(docker run --rm --entrypoint sha256sum "devex/runner-$name:ci" /app/runner | cut -d' ' -f1)"
+            echo "runner-$name: $got"
+            test "$got" = "$want"
+          done
