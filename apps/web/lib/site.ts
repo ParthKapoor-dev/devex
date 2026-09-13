@@ -30,8 +30,10 @@ export const siteConfig = {
   title: "DevEx — Open-source cloud development environments",
 
   /** ~155 chars — the usable width of a Google result snippet. */
+  // Says what the hero says. It used to promise "in seconds", which the page
+  // itself contradicts (a first boot is 10–20s).
   description:
-    "Spin up containerised dev environments in your browser in seconds. Kubernetes-native, self-hostable REPLs with a real terminal, editor and persistent files.",
+    "DevEx is an open-source cloud IDE. Every workspace is its own Linux container on Kubernetes, with a code editor, a real terminal and a public URL.",
 
   tagline: "Your best developer experience, on the cloud.",
 

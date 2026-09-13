@@ -6,7 +6,7 @@ import { buildMetadata } from "@/lib/seo";
 import { API_ORIGIN } from "@/lib/agents";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Status",
+  title: "Cluster status",
   description:
     "Live status of the DevEx control plane, its Kubernetes cluster, its object storage and its Redis. Checked against the API's own health endpoint.",
   path: "/ping",
