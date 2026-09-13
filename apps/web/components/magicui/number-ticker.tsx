@@ -24,9 +24,11 @@ export function NumberTicker({
 }: NumberTickerProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(direction === "down" ? value : startValue);
+  // Near-critical damping. At 60 the spring was three times overdamped and
+  // took ~5s of per-frame DOM writes to count up to a three-digit number.
   const springValue = useSpring(motionValue, {
-    damping: 60,
-    stiffness: 100,
+    damping: 24,
+    stiffness: 110,
   });
   const isInView = useInView(ref, { once: true, margin: "0px" });
 
@@ -39,18 +41,19 @@ export function NumberTicker({
     }
   }, [motionValue, isInView, delay, value, direction, startValue]);
 
-  useEffect(
-    () =>
-      springValue.on("change", (latest) => {
-        if (ref.current) {
-          ref.current.textContent = Intl.NumberFormat("en-US", {
-            minimumFractionDigits: decimalPlaces,
-            maximumFractionDigits: decimalPlaces,
-          }).format(Number(latest.toFixed(decimalPlaces)));
-        }
-      }),
-    [springValue, decimalPlaces],
-  );
+  useEffect(() => {
+    // One formatter, not one per frame.
+    const format = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: decimalPlaces,
+      maximumFractionDigits: decimalPlaces,
+    });
+    let last = "";
+    return springValue.on("change", (latest) => {
+      const text = format.format(Number(latest.toFixed(decimalPlaces)));
+      // Skip the write when the rounded number has not changed.
+      if (ref.current && text !== last) ref.current.textContent = last = text;
+    });
+  }, [springValue, decimalPlaces]);
 
   return (
     <span
