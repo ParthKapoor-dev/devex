@@ -10,7 +10,7 @@ type newReplRequest struct {
 
 // replStore is the part of *redis.Redis the handlers use.
 type replStore interface {
-	CreateRepl(template, username, replName, replId string) error
+	CreateRepl(*models.Repl) error
 	DeleteRepl(replId string) error
 	GetRepl(replId string) (models.Repl, error)
 	GetUserRepls(username string) ([]string, error)

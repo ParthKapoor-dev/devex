@@ -2,8 +2,8 @@ package repl
 
 import (
 	"fmt"
-	log "packages/logging"
 	"net/http"
+	log "packages/logging"
 	"strings"
 
 	"core/cmd/middleware"
@@ -52,10 +52,9 @@ func newRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rds r
 
 	// Get User from auth
 	user, _ := middleware.GetUserFromContext(r.Context())
-	userName := strings.ToLower(user.Login)
 
-	if userRepls, err := rds.GetUserRepls(userName); err == nil && len(userRepls) == 2 {
-		log.Warn("Repl limit reached", "user", userName, "limit", 2)
+	if userRepls, err := rds.GetUserRepls(user.Id); err == nil && len(userRepls) == 2 {
+		log.Warn("Repl limit reached", "user", user.Name, "limit", 2)
 		json.WriteError(w, http.StatusInternalServerError, "Free Account Limit Reached")
 		return
 	}
@@ -65,17 +64,26 @@ func newRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rds r
 	replId := fmt.Sprintf("repl-%s", strings.TrimSpace(id.String()))
 
 	sourcePrefix := fmt.Sprintf("templates/%s", repl.Template)
-	destinationPrefix := fmt.Sprintf("repl/%s/%s/", userName, replId)
+	destinationPrefix := fmt.Sprintf("repl/%s/%s/", user.Id, replId)
 
 	if err := s3Client.CopyFolder(sourcePrefix, destinationPrefix); err != nil {
-		log.Error("S3 copy template failed", "user", userName, "repl_id", replId, "template", repl.Template, "error", err)
+		log.Error("S3 copy template failed", "user", user.Id, "repl_id", replId, "template", repl.Template, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// Create Repl in Store
-	if err := rds.CreateRepl(repl.Template, userName, repl.ReplName, replId); err != nil {
-		log.Error("Create repl record failed", "user", userName, "repl_id", replId, "template", repl.Template, "error", err)
+	replEntry := models.Repl{
+		User:     user.Name,
+		UserId:   user.Id,
+		Template: repl.Template,
+		Name:     repl.ReplName,
+		Id:       replId,
+		IsActive: false,
+	}
+
+	if err := rds.CreateRepl(&replEntry); err != nil {
+		log.Error("Create repl record failed", "user", user.Id, "repl_id", replId, "template", repl.Template, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -86,7 +94,6 @@ func newRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rds r
 func deleteRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rds replStore) {
 
 	user, _ := middleware.GetUserFromContext(r.Context())
-	userName := strings.ToLower(user.Login)
 
 	replId := r.PathValue("replId")
 
@@ -95,7 +102,7 @@ func deleteRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rd
 		json.WriteError(w, http.StatusBadRequest, "This Repl Id doesn't exists")
 		return
 	}
-	if repl.User != userName {
+	if repl.UserId != user.Id {
 		json.WriteError(w, http.StatusUnauthorized, "This User doesn't have access to this Repl")
 		return
 	}
@@ -107,16 +114,16 @@ func deleteRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rd
 		}
 	}
 
-	destination := fmt.Sprintf("repl/%s/%s/", userName, repl.Id)
-	if err := s3Client.DeleteFolder(destination); err != nil {
-		log.Error("S3 delete failed", "user", userName, "repl_id", repl.Id, "error", err)
+	target := fmt.Sprintf("repl/%s/%s/", user.Id, repl.Id)
+	if err := s3Client.DeleteFolder(target); err != nil {
+		log.Error("S3 delete failed", "user", user.Id, "repl_id", repl.Id, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// Create Repl in Store
 	if err := rds.DeleteRepl(repl.Id); err != nil {
-		log.Error("Delete repl record failed", "user", userName, "repl_id", repl.Id, "error", err)
+		log.Error("Delete repl record failed", "user", user.Id, "repl_id", repl.Id, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -127,9 +134,8 @@ func deleteRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rd
 func getUserRepls(w http.ResponseWriter, r *http.Request, rds replStore) {
 
 	user, _ := middleware.GetUserFromContext(r.Context())
-	userName := strings.ToLower(user.Login)
 
-	replIds, err := rds.GetUserRepls(userName)
+	replIds, err := rds.GetUserRepls(user.Id)
 	if err != nil {
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -139,7 +145,7 @@ func getUserRepls(w http.ResponseWriter, r *http.Request, rds replStore) {
 	for _, id := range replIds {
 		repl, err := rds.GetRepl(id)
 		if err != nil {
-			log.Warn("Repl ID does not exist for user", "repl_id", id, "user", userName, "error", err)
+			log.Warn("Repl ID does not exist for user", "repl_id", id, "user", user.Id, "error", err)
 			continue
 		}
 		repls = append(repls, repl)
@@ -151,7 +157,6 @@ func getUserRepls(w http.ResponseWriter, r *http.Request, rds replStore) {
 func activateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 
 	user, _ := middleware.GetUserFromContext(r.Context())
-	userName := strings.ToLower(user.Login)
 
 	replId := r.PathValue("replId")
 
@@ -161,7 +166,7 @@ func activateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 		json.WriteError(w, http.StatusBadRequest, "This Repl Id doesn't exists")
 		return
 	}
-	if repl.User != userName {
+	if repl.UserId != user.Id {
 		json.WriteError(w, http.StatusUnauthorized, "This User doesn't have access to this Repl")
 		return
 	}
@@ -170,8 +175,8 @@ func activateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 		json.WriteError(w, http.StatusInternalServerError, "Unable to Create Repl Session")
 	}
 
-	if err := k8s.CreateReplDeploymentAndService(userName, replId, repl.Template); err != nil {
-		log.Error("K8s deployment failed", "repl_id", replId, "user", userName, "template", repl.Template, "error", err)
+	if err := k8s.CreateReplDeploymentAndService(user.Id, replId, repl.Template); err != nil {
+		log.Error("K8s deployment failed", "repl_id", replId, "user", user.Id, "template", repl.Template, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -192,7 +197,6 @@ func activateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 func deactivateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 
 	user, _ := middleware.GetUserFromContext(r.Context())
-	userName := strings.ToLower(user.Login)
 
 	replId := r.PathValue("replId")
 
@@ -201,7 +205,7 @@ func deactivateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 		json.WriteError(w, http.StatusBadRequest, "This Repl Id doesn't exists")
 		return
 	}
-	if repl.User != userName {
+	if repl.UserId != user.Id {
 		json.WriteError(w, http.StatusUnauthorized, "This User doesn't have access to this Repl")
 		return
 	}
@@ -210,8 +214,8 @@ func deactivateRepl(w http.ResponseWriter, r *http.Request, rds replStore) {
 		json.WriteError(w, http.StatusInternalServerError, "Unable to Create Repl Session")
 	}
 
-	if err := k8s.DeleteReplDeploymentAndService(userName, replId); err != nil {
-		log.Error("K8s repl deletion failed", "repl_id", replId, "user", userName, "error", err)
+	if err := k8s.DeleteReplDeploymentAndService(user.Id, replId); err != nil {
+		log.Error("K8s repl deletion failed", "repl_id", replId, "user", user.Id, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
