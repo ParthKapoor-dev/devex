@@ -8,7 +8,10 @@ export interface Repl {
 export interface StoredRepl {
   id: string;
   name: string;
+  /** Display name of the owner. Not an identity: use `userId`. */
   user: string;
+  /** The owner's account id, the same value as `User.id`. */
+  userId: string;
   /** Was `bool`, which is not a TypeScript type. */
   isActive: boolean;
   /**
