@@ -74,7 +74,7 @@ func newRepl(w http.ResponseWriter, r *http.Request, s3Client replStorage, rds r
 
 	// Create Repl in Store
 	replEntry := models.Repl{
-		User:     user.Name,
+		User:     user.Login,
 		UserId:   user.Id,
 		Template: repl.Template,
 		Name:     repl.ReplName,

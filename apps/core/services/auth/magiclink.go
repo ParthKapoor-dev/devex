@@ -1,10 +1,13 @@
 package auth
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/mail"
 	log "packages/logging"
 	"strings"
 	"time"
@@ -106,7 +109,13 @@ func magiclinkCallbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := email.ExtractNameFromEmail(validatedEmail)
-	userId := "email:" + strings.ToLower(name)
+	addr, err := mail.ParseAddress(validatedEmail)
+	if err != nil {
+		redirectWithError(w, r, "invalid_token")
+		return
+	}
+	sum := sha256.Sum256([]byte(strings.ToLower(addr.Address)))
+	userId := "email:" + hex.EncodeToString(sum[:16])
 
 	// TODO: Complete User Info
 	user := &models.User{

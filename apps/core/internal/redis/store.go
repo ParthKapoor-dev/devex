@@ -6,6 +6,7 @@ import (
 	"core/pkg/dotenv"
 	"errors"
 	"fmt"
+
 	log "packages/logging"
 
 	"github.com/redis/go-redis/v9"
@@ -96,24 +97,15 @@ func (r *Redis) GetRepl(replId string) (models.Repl, error) {
 
 	var entry models.Repl
 
-	if err := r.client.HGetAll(r.ctx, "repl:"+replId).Scan(&entry); err != nil {
-		return models.Repl{}, err
+	if err := r.client.HGetAll(r.ctx, getReplKey(replId)).Scan(&entry); err != nil {
+		return entry, err
 	}
 
 	if entry.Id == "" {
-		return models.Repl{}, errors.New("No such Repl Found")
+		return entry, errors.New("No such Repl Found")
 	}
 
-	repl := models.Repl{
-		Id:       replId,
-		Name:     entry.Name,
-		User:     entry.User,
-		UserId:   entry.UserId,
-		Template: entry.Template,
-		IsActive: entry.IsActive,
-	}
-
-	return repl, nil
+	return entry, nil
 }
 
 // user-repl relationship
