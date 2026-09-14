@@ -176,7 +176,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
 /* -------------------------------------------------------------------------- */
 
 interface User {
-  id: number;
+  id: string;
   login: string;
   name: string;
   email: string;

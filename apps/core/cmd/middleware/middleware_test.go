@@ -100,7 +100,7 @@ func TestAuthMiddlewareExpiredMagicLinkSession(t *testing.T) {
 
 func TestAuthMiddlewareGitHubSession(t *testing.T) {
 	expiry := time.Now().Add(time.Hour)
-	user := &models.User{ID: 42, Login: "octocat"}
+	user := &models.User{Id: "gh:42", Login: "octocat"}
 	cookies := sessionCookies(t, &models.TokenInfo{
 		Token:     &oauth2.Token{AccessToken: "test-access-token", TokenType: "bearer", Expiry: expiry},
 		User:      user,
@@ -112,7 +112,7 @@ func TestAuthMiddlewareGitHubSession(t *testing.T) {
 	if !reached {
 		t.Fatalf("next handler not called, status = %d body = %s", rec.Code, rec.Body)
 	}
-	if gotUser == nil || gotUser.ID != 42 || gotUser.Login != "octocat" {
+	if gotUser == nil || gotUser.Id != "gh:42" || gotUser.Login != "octocat" {
 		t.Errorf("user in context = %+v, want %+v", gotUser, user)
 	}
 }

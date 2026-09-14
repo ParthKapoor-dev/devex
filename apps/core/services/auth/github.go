@@ -2,8 +2,9 @@ package auth
 
 import (
 	"context"
-	log "packages/logging"
 	"net/http"
+	log "packages/logging"
+	"strconv"
 	"time"
 
 	"core/internal/oauth"
@@ -89,9 +90,11 @@ func githubCallbackHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	userId := "gh:" + strconv.FormatInt(githubUser.GetID(), 10)
+
 	// Create user model
 	user := &models.User{
-		ID:        githubUser.GetID(),
+		Id:        userId,
 		Login:     githubUser.GetLogin(),
 		Name:      githubUser.GetName(),
 		Email:     primaryEmail,

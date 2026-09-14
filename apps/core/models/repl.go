@@ -1,9 +1,10 @@
 package models
 
 type Repl struct {
-	User     string `json:"user"`
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	Template string `json:"template"`
-	IsActive bool   `json:"isActive"`
+	Id       string `json:"id" redis:"id"`
+	Name     string `json:"name" redis:"name"`
+	User     string `json:"user" redis:"user"`
+	UserId   string `json:"userId" redis:"userId"`
+	Template string `json:"template" redis:"template"`
+	IsActive bool   `json:"isActive" redis:"isActive"`
 }

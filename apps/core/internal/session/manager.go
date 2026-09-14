@@ -37,7 +37,7 @@ func SaveSession(w http.ResponseWriter, r *http.Request, tokenInfo *models.Token
 	}
 
 	session.Values["token_info"] = string(sessionData)
-	session.Values["user_id"] = tokenInfo.User.ID
+	session.Values["user_id"] = tokenInfo.User.Id
 	session.Values["authenticated"] = true
 
 	return session.Save(r, w)

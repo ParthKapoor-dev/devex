@@ -1,5 +1,6 @@
 export interface User {
-  id: number;
+  /** Stable account id from core: `gh:<github id>` or `email:<…>`. */
+  id: string;
   login: string;
   name: string;
   email: string;

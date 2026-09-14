@@ -1,8 +1,8 @@
 package runner
 
 import (
-	log "packages/logging"
 	"net/http"
+	log "packages/logging"
 
 	"core/internal/k8s"
 	"core/internal/redis"
@@ -28,14 +28,13 @@ func endReplSession(w http.ResponseWriter, r *http.Request, rds *redis.Redis) {
 		json.WriteError(w, http.StatusBadRequest, "This Repl Id doesn't exists")
 		return
 	}
-	userName := repl.User
 
 	if err := rds.DeleteReplSession(replId); err != nil {
 		json.WriteError(w, http.StatusInternalServerError, "Unable to Create Repl Session")
 	}
 
-	if err := k8s.DeleteReplDeploymentAndService(userName, replId); err != nil {
-		log.Error("K8s repl deletion failed", "repl_id", replId, "user", userName, "error", err)
+	if err := k8s.DeleteReplDeploymentAndService(repl.UserId, replId); err != nil {
+		log.Error("K8s repl deletion failed", "repl_id", replId, "user", repl.UserId, "error", err)
 		json.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
