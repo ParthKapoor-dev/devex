@@ -2,11 +2,11 @@ package redis
 
 import (
 	"context"
+	"core/models"
+	"core/pkg/dotenv"
 	"errors"
 	"fmt"
 	log "packages/logging"
-	"core/models"
-	"core/pkg/dotenv"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -43,19 +43,23 @@ func (r *Redis) Ping() error {
 	return err
 }
 
-// Helper Functinos
-func (r *Redis) CreateRepl(template, username, replName, replId string) error {
-	if err := r.client.HSet(r.ctx, "repl:"+replId, map[string]string{
-		"id":       replId,
-		"name":     replName,
-		"user":     username,
-		"template": template,
-		"isActive": "false",
-	}).Err(); err != nil {
+// Helper Functions
+
+func getUserKey(userId string) string {
+	return fmt.Sprintf("user:%s", userId)
+}
+
+func getReplKey(replId string) string {
+	return fmt.Sprintf("repl:%s", replId)
+}
+
+func (r *Redis) CreateRepl(repl *models.Repl) error {
+
+	if err := r.client.HSet(r.ctx, getReplKey(repl.Id), repl).Err(); err != nil {
 		return err
 	}
 
-	if err := r.client.SAdd(r.ctx, "user:"+username, replId).Err(); err != nil {
+	if err := r.client.SAdd(r.ctx, getUserKey(repl.UserId), repl.Id).Err(); err != nil {
 		return err
 	}
 
@@ -64,27 +68,24 @@ func (r *Redis) CreateRepl(template, username, replName, replId string) error {
 
 func (r *Redis) DeleteRepl(replId string) error {
 	// Get the repl data to find the username
-	replData, err := r.client.HGetAll(r.ctx, "repl:"+replId).Result()
-	if err != nil {
+
+	var entry models.Repl
+
+	if err := r.client.HGetAll(r.ctx, getReplKey(replId)).Scan(&entry); err != nil {
 		return fmt.Errorf("failed to get repl data: %w", err)
 	}
 
-	if len(replData) == 0 {
+	if entry.Id == "" {
 		return fmt.Errorf("repl not found: %s", replId)
 	}
 
-	username := replData["user"]
-	if username == "" {
-		return fmt.Errorf("no user found for repl: %s", replId)
-	}
-
 	// Remove repl from user's set
-	if err := r.client.SRem(r.ctx, "user:"+username, replId).Err(); err != nil {
+	if err := r.client.SRem(r.ctx, getUserKey(entry.UserId), replId).Err(); err != nil {
 		return fmt.Errorf("failed to remove repl from user set: %w", err)
 	}
 
 	// Delete the repl hash
-	if err := r.client.Del(r.ctx, "repl:"+replId).Err(); err != nil {
+	if err := r.client.Del(r.ctx, getReplKey(replId)).Err(); err != nil {
 		return fmt.Errorf("failed to delete repl: %w", err)
 	}
 
@@ -93,40 +94,42 @@ func (r *Redis) DeleteRepl(replId string) error {
 
 func (r *Redis) GetRepl(replId string) (models.Repl, error) {
 
-	data, err := r.client.HGetAll(r.ctx, "repl:"+replId).Result()
-	if err != nil {
+	var entry models.Repl
+
+	if err := r.client.HGetAll(r.ctx, "repl:"+replId).Scan(&entry); err != nil {
 		return models.Repl{}, err
 	}
 
-	if len(data) == 0 {
+	if entry.Id == "" {
 		return models.Repl{}, errors.New("No such Repl Found")
 	}
 
 	repl := models.Repl{
 		Id:       replId,
-		Name:     data["name"],
-		User:     data["user"],
-		Template: data["template"],
-		IsActive: data["isActive"] == "true",
+		Name:     entry.Name,
+		User:     entry.User,
+		UserId:   entry.UserId,
+		Template: entry.Template,
+		IsActive: entry.IsActive,
 	}
 
 	return repl, nil
 }
 
 // user-repl relationship
-func (r *Redis) CreateUserRepl(username, replId string) error {
-	return r.client.SAdd(r.ctx, "user:"+username, replId).Err()
+func (r *Redis) CreateUserRepl(userId, replId string) error {
+	return r.client.SAdd(r.ctx, getUserKey(userId), replId).Err()
 }
 
-func (r *Redis) GetUserRepls(username string) ([]string, error) {
-	return r.client.SMembers(r.ctx, "user:"+username).Result()
+func (r *Redis) GetUserRepls(userId string) ([]string, error) {
+	return r.client.SMembers(r.ctx, getUserKey(userId)).Result()
 }
 
 // Repl Session
 func (r *Redis) CreateReplSession(replId string) error {
-	return r.client.HSet(r.ctx, "repl:"+replId, "isActive", "true").Err()
+	return r.client.HSet(r.ctx, getReplKey(replId), "isActive", true).Err()
 }
 
 func (r *Redis) DeleteReplSession(replId string) error {
-	return r.client.HSet(r.ctx, "repl:"+replId, "isActive", "false").Err()
+	return r.client.HSet(r.ctx, getReplKey(replId), "isActive", false).Err()
 }

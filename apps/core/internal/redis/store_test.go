@@ -29,24 +29,25 @@ func TestPing(t *testing.T) {
 func TestCreateAndGetRepl(t *testing.T) {
 	store, mr := newTestStore(t)
 
-	if err := store.CreateRepl("node", "alice", "My Repl", "repl-1"); err != nil {
+	repl := models.Repl{User: "alice", UserId: "gh:alice@gmail.com", Id: "repl-1", Name: "My Repl", Template: "node", IsActive: false}
+
+	if err := store.CreateRepl(&repl); err != nil {
 		t.Fatalf("CreateRepl: %v", err)
 	}
 
-	got, err := store.GetRepl("repl-1")
+	got, err := store.GetRepl(repl.Id)
 	if err != nil {
 		t.Fatalf("GetRepl: %v", err)
 	}
-	want := models.Repl{User: "alice", Id: "repl-1", Name: "My Repl", Template: "node", IsActive: false}
-	if got != want {
-		t.Errorf("GetRepl = %+v, want %+v", got, want)
+	if got != repl {
+		t.Errorf("GetRepl = %+v, want %+v", got, repl)
 	}
 
 	// The key layout is shared with the runner; pin it.
 	if v := mr.HGet("repl:repl-1", "user"); v != "alice" {
 		t.Errorf("repl:repl-1 user = %q, want alice", v)
 	}
-	if ok, _ := mr.SIsMember("user:alice", "repl-1"); !ok {
+	if ok, _ := mr.SIsMember("user:gh:alice@gmail.com", "repl-1"); !ok {
 		t.Error("repl-1 not added to user:alice")
 	}
 }
@@ -63,15 +64,18 @@ func TestGetUserRepls(t *testing.T) {
 	store, _ := newTestStore(t)
 
 	for _, id := range []string{"repl-1", "repl-2"} {
-		if err := store.CreateRepl("go", "alice", id, id); err != nil {
+		repl := models.Repl{Template: "go", User: "alice", UserId: "email:alice@something.com", Id: id, IsActive: false, Name: id}
+		if err := store.CreateRepl(&repl); err != nil {
 			t.Fatalf("CreateRepl %s: %v", id, err)
 		}
 	}
-	if err := store.CreateRepl("go", "bob", "bobs", "repl-3"); err != nil {
+
+	repl := models.Repl{Template: "go", User: "bob", UserId: "email:bob@something.com", Id: "repl-3", IsActive: false, Name: "bobs"}
+	if err := store.CreateRepl(&repl); err != nil {
 		t.Fatalf("CreateRepl: %v", err)
 	}
 
-	got, err := store.GetUserRepls("alice")
+	got, err := store.GetUserRepls("email:alice@something.com")
 	if err != nil {
 		t.Fatalf("GetUserRepls: %v", err)
 	}
@@ -107,10 +111,14 @@ func TestCreateUserRepl(t *testing.T) {
 func TestDeleteRepl(t *testing.T) {
 	store, mr := newTestStore(t)
 
-	if err := store.CreateRepl("python", "alice", "a", "repl-1"); err != nil {
+	replOne := models.Repl{Template: "python", User: "bob", UserId: "email:bob@something.com", Id: "repl-1", IsActive: false, Name: "a"}
+
+	replTwo := models.Repl{Template: "python", User: "bob", UserId: "email:bob@something.com", Id: "repl-2", IsActive: false, Name: "b"}
+
+	if err := store.CreateRepl(&replOne); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.CreateRepl("python", "alice", "b", "repl-2"); err != nil {
+	if err := store.CreateRepl(&replTwo); err != nil {
 		t.Fatal(err)
 	}
 
@@ -124,7 +132,7 @@ func TestDeleteRepl(t *testing.T) {
 	if mr.Exists("repl:repl-1") {
 		t.Error("repl:repl-1 hash still exists")
 	}
-	got, err := store.GetUserRepls("alice")
+	got, err := store.GetUserRepls(replOne.UserId)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +158,9 @@ func TestDeleteReplErrors(t *testing.T) {
 func TestReplSession(t *testing.T) {
 	store, _ := newTestStore(t)
 
-	if err := store.CreateRepl("node", "alice", "a", "repl-1"); err != nil {
+	repl := models.Repl{User: "alice", UserId: "gh:alice@gmail.com", Id: "repl-1", Name: "a", Template: "node", IsActive: false}
+
+	if err := store.CreateRepl(&repl); err != nil {
 		t.Fatal(err)
 	}
 
