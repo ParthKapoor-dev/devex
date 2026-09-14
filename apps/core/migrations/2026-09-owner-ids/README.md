@@ -1,4 +1,4 @@
-# migrate-owner-ids
+# 2026-09 owner ids
 
 One-off migration for the release that identifies accounts by a stable id (PR #34).
 
@@ -14,7 +14,7 @@ Old records don't say whether `<name>` was a GitHub login or the part of an emai
 Run from a directory **outside** the repo, so nothing picks up a `.env`. Every step reads the same flags:
 
 ```sh
-go build -o migrate-owner-ids ./apps/core/cmd/migrate-owner-ids   # from the repo root
+(cd apps/core && go build -o ../../migrate-owner-ids ./migrations/2026-09-owner-ids)   # from the repo root; move the binary out of the repo
 export S3_ACCESS_KEY=… S3_SECRET_KEY=…
 FLAGS="-redis-url redis://:<password>@<host>:6379/0 -s3-endpoint https://<account>.r2.cloudflarestorage.com -s3-bucket <bucket>"
 ```
@@ -34,3 +34,5 @@ FLAGS="-redis-url redis://:<password>@<host>:6379/0 -s3-endpoint https://<accoun
 `apply` only adds data, so until step 9 a rollback is just redeploying the previous core image. `apply` and `verify` can be re-run any time; `apply` never overwrites a file that already exists at the new path. Each `-yes` run records its time in the Redis hash `migrations:owner-ids`.
 
 Keep `mapping.csv` out of git: it lists your users.
+
+Delete this folder in a small PR once `contract -yes` has run; git history keeps it.

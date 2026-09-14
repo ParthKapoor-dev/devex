@@ -1,4 +1,4 @@
-// Command migrate-owner-ids moves workspaces created before accounts had
+// Command migrate-owner-ids (migration 2026-09) moves workspaces created before accounts had
 // stable ids onto the id-based layout.
 //
 //	before: user:<name>  -> {replId}   repl:<replId> without userId   files under repl/<name>/
