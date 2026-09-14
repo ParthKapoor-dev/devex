@@ -3,9 +3,9 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
-	log "packages/logging"
 	"math/rand"
 	"net/http"
+	log "packages/logging"
 	"strings"
 	"time"
 
@@ -106,9 +106,11 @@ func magiclinkCallbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := email.ExtractNameFromEmail(validatedEmail)
+	userId := "email:" + strings.ToLower(name)
 
 	// TODO: Complete User Info
 	user := &models.User{
+		Id:        userId,
 		Name:      name,
 		Login:     name,
 		Email:     validatedEmail,

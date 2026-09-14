@@ -53,7 +53,7 @@ func TestMe(t *testing.T) {
 	})
 
 	t.Run("with session", func(t *testing.T) {
-		cookies := loggedInCookies(t, &models.User{ID: 7, Login: "octocat", Email: "octo@example.com"})
+		cookies := loggedInCookies(t, &models.User{Id: "gh:7", Login: "octocat", Email: "octo@example.com"})
 
 		rec := request(h, http.MethodGet, "/me", cookies)
 
@@ -64,7 +64,7 @@ func TestMe(t *testing.T) {
 		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 			t.Fatalf("decode %s: %v", rec.Body, err)
 		}
-		if got.ID != 7 || got.Login != "octocat" || got.Email != "octo@example.com" {
+		if got.Id != "gh:7" || got.Login != "octocat" || got.Email != "octo@example.com" {
 			t.Errorf("user = %+v", got)
 		}
 	})
