@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { cn } from "@/lib/utils";
+import { bitmap } from "@/lib/wordmark";
+
+export { bitmap };
 
 /**
  * The DevEx wordmark, built from tilting 3D blocks.
@@ -20,23 +23,6 @@ import { cn } from "@/lib/utils";
  *
  * It is ~80 blocks × 6 faces of DOM. Fine for one hero, not for a list.
  */
-
-const GLYPHS: Record<string, string[]> = {
-  D: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
-  E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
-  V: ["10001", "10001", "10001", "10001", "01010", "01010", "00100"],
-  X: ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
-  " ": ["0", "0", "0", "0", "0", "0", "0"],
-};
-
-export function bitmap(word: string) {
-  const rows = Array.from({ length: 7 }, () => "");
-  [...word.toUpperCase()].forEach((ch, i) => {
-    const g = GLYPHS[ch] ?? GLYPHS[" "];
-    for (let r = 0; r < 7; r++) rows[r] += (i ? "0" : "") + g[r];
-  });
-  return rows;
-}
 
 /** Top, bottom, left, right, front. The back face is never visible. */
 const FACES = [
