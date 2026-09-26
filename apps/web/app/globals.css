@@ -269,6 +269,27 @@
     text-decoration: none;
   }
 
+  /* Tailwind v4 dropped `button { cursor: pointer }` from Preflight, so every
+     button that did not spell the utility out by hand quietly fell back to an
+     arrow — the command-palette chip, every file, tab and panel toggle in the
+     workspace preview, on the one section whose copy says "Click around".
+
+     `:where()` carries no specificity, so a component that sets its own
+     cursor still wins: the `cursor-default` on dropdown items and dialog
+     scrims is deliberate and stays. */
+  :where(
+    a[href],
+    button:not(:disabled),
+    summary,
+    label[for],
+    select,
+    [role="button"],
+    input[type="checkbox"],
+    input[type="radio"]
+  ) {
+    cursor: pointer;
+  }
+
   /* Visible focus for keyboard users only — the old rule put a ring on every
      mouse click, including on <body>. */
   :focus-visible {
