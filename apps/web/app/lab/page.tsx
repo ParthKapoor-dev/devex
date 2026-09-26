@@ -79,11 +79,11 @@ export default function Lab() {
       <Panel
         n="01"
         title="Dot wordmark"
-        verdict="canvas 2d · ~0 kB · in use"
+        verdict="canvas 2d · ~0 kB · closing band"
         note="The logo’s X over the word, rasterised into an offscreen mask and read back one dot at a time. Coverage becomes dot area rather than opacity, so an edge dot is a smaller square and the X’s diagonals dither instead of stair-stepping. The refresh line runs parallel to the logo’s backslash stroke, so that arm lights all at once and the mark draws itself; behind it, dots cool through amber and drift off their cells until the line comes round again."
       >
         <div className="rounded-lg border border-edge bg-canvas p-10">
-          <DotWordmark className="mx-auto aspect-[72/69] w-64" />
+          <DotWordmark className="mx-auto aspect-[72/87] w-64" />
         </div>
       </Panel>
 
@@ -102,7 +102,7 @@ export default function Lab() {
         n="03"
         title="Blaze"
         verdict="webgl · 0 new kB · footer"
-        note="One fragment shader on the ogl already in the tree. The original renders the page’s own DOM into a texture and refracts it through the heat, which needs Chrome’s html-in-canvas origin trial — every other browser gets the content and no effect. So the heat bends the flame field here instead, and the content is lit rather than refracted: the canvas sits above the text under mix-blend-screen, where black is a no-op and only the light lands. It can wash the text warm; it can never cover it."
+        note="One fragment shader on the ogl already in the tree, built to the shape of the original — which is not a wall of flame and has no flame field in it at all. It is four sheets of embers on a rising lattice, each one orbiting its own cell and lighting and going out at its own height; three octaves of domain-warped smoke that also eats the sheets behind it, which is where the depth comes from; and a glow on the edge they rise off. The original refracts the page’s own DOM through the heat, which needs Chrome’s html-in-canvas origin trial — so here the content is lit instead: the canvas sits above the text under mix-blend-screen, where black is a no-op and only light lands. It can wash text warm; it can never cover it."
       >
         <div className="relative overflow-hidden rounded-lg border border-edge bg-canvas">
           <div className="relative flex h-80 flex-col items-center justify-end gap-3 p-10">
@@ -114,8 +114,12 @@ export default function Lab() {
             </p>
           </div>
           <Blaze
-            className="absolute inset-x-0 bottom-0 z-10 h-64 mix-blend-screen"
-            height={0.5}
+            className="absolute inset-x-0 bottom-0 z-10 h-72 mix-blend-screen"
+            sparkDensity={1.15}
+            sparkSize={1.5}
+            glow={1.25}
+            sparks={1.15}
+            smoke={0.35}
           />
         </div>
       </Panel>

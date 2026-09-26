@@ -12,10 +12,16 @@ import { siteConfig } from "@/lib/site";
  * licence, the status page and the author. The status line is the same device
  * as the hero's, so the page closes the way it opened.
  *
- * The bottom edge is on fire. It sits *above* the content under
- * `mix-blend-screen`, which can only lighten, so the outlined wordmark and the
- * status line are lit by it rather than covered by it — and the last thing a
- * reader sees is the mark glowing rather than a flat rule.
+ * The bottom edge is on fire. The blaze is scoped to everything *above* the
+ * status line, so the line itself stays a clean, legible rule at the very
+ * bottom and the fire has an edge to rise off. It sits above the content under
+ * `mix-blend-screen`, which can only lighten, so the wordmark is lit by it
+ * rather than covered by it.
+ *
+ * The heat also bends that wordmark, through an SVG displacement filter. That
+ * is the one place it can be done honestly — the filter rasterises whatever it
+ * is applied to, so it is right on decorative display type and ruinous on body
+ * copy, which is why nothing else in here gets it.
  *
  * Used on every marketing page, so nothing in it is landing-specific. A server
  * component: the year is computed at build time.
@@ -72,16 +78,35 @@ const link =
 const chip =
   "inline-flex h-9 items-center gap-2 rounded-sm border border-edge px-3 font-mono text-xs text-ink-muted transition-colors duration-[--duration-fast] hover:border-brand/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
+/**
+ * Heat, as an SVG displacement filter.
+ *
+ * `feTurbulence` is generated once and only the displacement scale animates,
+ * so the expensive half of the chain is computed at rasterisation and the
+ * cheap half is what runs per frame. Under reduced motion the element drops
+ * the filter outright rather than freezing it mid-warp.
+ */
+function HeatFilter() {
+  return (
+    <svg aria-hidden="true" focusable="false" className="pointer-events-none absolute size-0">
+      <filter id="blaze-heat" x="-5%" y="-5%" width="110%" height="110%" colorInterpolationFilters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.003 0.008" numOctaves={2} seed={7} result="heat" />
+        <feDisplacementMap in="SourceGraphic" in2="heat" xChannelSelector="R" yChannelSelector="G" scale="6">
+          <animate attributeName="scale" dur="11s" values="2;6;3;7;2" keyTimes="0;0.3;0.55;0.8;1" repeatCount="indefinite" />
+        </feDisplacementMap>
+      </filter>
+    </svg>
+  );
+}
+
 export default function Footer() {
   return (
-    <footer className="relative z-10 mt-24 overflow-hidden border-t border-edge">
-      <Blaze
-        className="absolute inset-x-0 bottom-0 z-20 h-[26rem] mix-blend-screen"
-        height={0.46}
-        glow={1.3}
-        sparks={0.95}
-        smoke={0.55}
-      />
+    <footer className="relative z-10 mt-24 border-t border-edge">
+      <HeatFilter />
+
+      {/* Everything the fire touches. The status line below sits outside it,
+          so it stays a clean rule and the blaze has an edge to rise off. */}
+      <div className="relative overflow-hidden">
 
       <div className="mx-auto max-w-6xl px-5 pt-16 sm:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
@@ -140,12 +165,13 @@ export default function Footer() {
       </div>
 
       {/* The signature. Outlined display type, cropped by the status line so
-          it reads as something the page is sitting on. Decorative. */}
+          it reads as something the page is sitting on. Decorative, which is
+          what makes it safe to run through a displacement filter. */}
       <div aria-hidden="true" className="relative mx-auto mt-10 max-w-6xl select-none px-5 sm:px-8">
         <p
-          className="translate-y-[18%] font-display text-[clamp(5rem,24vw,20rem)] font-semibold leading-[0.8] tracking-[-0.06em] text-transparent"
+          className="translate-y-[18%] font-display text-[clamp(5rem,24vw,20rem)] font-semibold leading-[0.8] tracking-[-0.06em] text-transparent [filter:url(#blaze-heat)] motion-reduce:[filter:none]"
           style={{
-            WebkitTextStroke: "1px color-mix(in oklab, var(--color-brand) 70%, transparent)",
+            WebkitTextStroke: "1.5px color-mix(in oklab, var(--color-brand) 70%, transparent)",
             backgroundImage:
               "linear-gradient(to bottom, color-mix(in oklab, var(--color-brand) 28%, transparent), transparent 80%)",
             WebkitBackgroundClip: "text",
@@ -154,6 +180,17 @@ export default function Footer() {
         >
           devex
         </p>
+      </div>
+
+        <Blaze
+          className="absolute inset-x-0 bottom-0 z-20 h-[30rem] mix-blend-screen"
+          height={0.95}
+          sparkDensity={1.15}
+          sparkSize={1.5}
+          glow={1.25}
+          sparks={1.15}
+          smoke={0.35}
+        />
       </div>
 
       <div className="relative border-t border-brand/15 bg-canvas">

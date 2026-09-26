@@ -64,12 +64,13 @@ export function Blaze({
     >
       {/* The bed of coals. Always painted, so there is warmth at the bottom
           edge before the shader arrives, under reduced motion, and on a
-          machine with no WebGL at all. */}
+          machine with no WebGL at all. Deliberately faint: the shader's own
+          glow lands on top of it, and two glows read as a smudge. */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(120% 78% at 50% 108%, color-mix(in oklab, var(--color-brand-500) 46%, transparent) 0%, color-mix(in oklab, var(--color-brand-600) 18%, transparent) 38%, transparent 72%)",
+            "radial-gradient(115% 70% at 50% 112%, color-mix(in oklab, var(--color-brand-600) 30%, transparent) 0%, color-mix(in oklab, var(--color-brand-600) 10%, transparent) 40%, transparent 74%)",
         }}
       />
       {near && !reduced && (
