@@ -214,9 +214,14 @@ Things that bite immediately:
 - **Do not change the `glass` utility.** The maintainer asked to keep that
   treatment as-is. (The footer itself was redesigned on 2026-09-13, at the
   maintainer's request, along with everything after the FAQ.)
-- **The landing page runs exactly one WebGL context** — the hero's CRT — and it
-  pauses when the hero leaves the viewport. Do not add a second shader below
-  the fold; use CSS or scroll-linked transforms.
+- **The landing page runs one WebGL context at a time.** Two exist — the
+  hero's CRT and the footer's blaze — and they are a full page apart, so
+  neither is ever live while the other is: each pauses the moment it leaves
+  the viewport, and the blaze's shader chunk is not even fetched until the
+  footer is within a screen and a half. That is the whole budget. A third
+  shader, or a second one that can share the viewport with either of these,
+  needs a different answer — CSS, a scroll-linked transform, or a 2D canvas on
+  `useCanvasScene`.
 - **`components/brand/block-wordmark.tsx` is unused on purpose.** The
   maintainer asked to keep it for later; do not delete it as dead code.
 - **Run `npm run audit:agents` before calling a frontend change done.** It

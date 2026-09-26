@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Github, MessagesSquare } from "lucide-react";
 import { DevExLogoDark } from "../icons/logo";
+import { Blaze } from "@/components/effects/blaze";
 import { siteConfig } from "@/lib/site";
 
 /**
@@ -10,6 +11,11 @@ import { siteConfig } from "@/lib/site";
  * wordmark that the page ends on; and a tmux-style status line carrying the
  * licence, the status page and the author. The status line is the same device
  * as the hero's, so the page closes the way it opened.
+ *
+ * The bottom edge is on fire. It sits *above* the content under
+ * `mix-blend-screen`, which can only lighten, so the outlined wordmark and the
+ * status line are lit by it rather than covered by it — and the last thing a
+ * reader sees is the mark glowing rather than a flat rule.
  *
  * Used on every marketing page, so nothing in it is landing-specific. A server
  * component: the year is computed at build time.
@@ -69,6 +75,14 @@ const chip =
 export default function Footer() {
   return (
     <footer className="relative z-10 mt-24 overflow-hidden border-t border-edge">
+      <Blaze
+        className="absolute inset-x-0 bottom-0 z-20 h-[26rem] mix-blend-screen"
+        height={0.46}
+        glow={1.3}
+        sparks={0.95}
+        smoke={0.55}
+      />
+
       <div className="mx-auto max-w-6xl px-5 pt-16 sm:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
           <div>

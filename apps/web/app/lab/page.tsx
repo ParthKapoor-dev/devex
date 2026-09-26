@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { DotWordmark } from "@/components/brand/dot-wordmark";
 import { AsciiSweep } from "@/components/effects/ascii-sweep";
-import { EmberField } from "@/components/effects/ember-field";
-import { GlassObject } from "@/components/effects/glass-object";
+import { Blaze } from "@/components/effects/blaze";
 import { buildMetadata } from "@/lib/seo";
 import { token } from "@/lib/tokens";
 
@@ -68,22 +67,23 @@ export default function Lab() {
     <div className="mx-auto max-w-5xl px-6 py-24">
       <p className="label text-ink-subtle">Scratch · not linked, not indexed</p>
       <h1 className="mt-4 font-display text-4xl font-medium tracking-[-0.03em] text-ink">
-        Four effects, none of them shipped.
+        Three effects, all of them shipped.
       </h1>
       <p className="mt-4 max-w-2xl leading-relaxed text-ink-muted">
-        Every one is written here rather than installed. The originals are
+        Every one is written here rather than installed — the originals are
         either licensed in a way that a public MIT repo cannot take, or they
-        want a second WebGL context, or both. Move the pointer over each.
+        need a browser flag to work at all. Each panel is the same component
+        the site uses, at a size you can actually look at.
       </p>
 
       <Panel
         n="01"
         title="Dot wordmark"
         verdict="canvas 2d · ~0 kB · in use"
-        note="The 5×7 mark supersampled 3× and halftoned — coverage becomes dot area, so the edges break up instead of stair-stepping. A sweep crosses on a diagonal and the dots it passes swell and warm. This is the one already on the landing page, rebuilt: the first attempt drew one square per font cell, which is a pixel font, not a dither."
+        note="The logo’s X over the word, rasterised into an offscreen mask and read back one dot at a time. Coverage becomes dot area rather than opacity, so an edge dot is a smaller square and the X’s diagonals dither instead of stair-stepping. The refresh line runs parallel to the logo’s backslash stroke, so that arm lights all at once and the mark draws itself; behind it, dots cool through amber and drift off their cells until the line comes round again."
       >
         <div className="rounded-lg border border-edge bg-canvas p-10">
-          <DotWordmark className="mx-auto h-28 w-full max-w-lg" />
+          <DotWordmark className="mx-auto aspect-[72/69] w-64" />
         </div>
       </Panel>
 
@@ -100,37 +100,24 @@ export default function Lab() {
 
       <Panel
         n="03"
-        title="Embers"
-        verdict="canvas 2d · ~1 kB · closing band"
-        note="Blaze, read conservatively. Not flames — a page that looks like it is burning is the wrong metaphor for “a real machine, one tab away”, and a full fire shader would blow the accent budget on its own. Sparse points rising and going out, which is the part of fire a near-neutral page can carry. Count scales with area and caps, so a wide monitor does not quietly cost more."
+        title="Blaze"
+        verdict="webgl · 0 new kB · footer"
+        note="One fragment shader on the ogl already in the tree. The original renders the page’s own DOM into a texture and refracts it through the heat, which needs Chrome’s html-in-canvas origin trial — every other browser gets the content and no effect. So the heat bends the flame field here instead, and the content is lit rather than refracted: the canvas sits above the text under mix-blend-screen, where black is a no-op and only the light lands. It can wash the text warm; it can never cover it."
       >
         <div className="relative overflow-hidden rounded-lg border border-edge bg-canvas">
-          <EmberField className="absolute inset-0" />
-          <div className="relative flex h-64 flex-col items-center justify-center gap-3">
-            <p className="font-display text-2xl font-medium text-ink">
+          <div className="relative flex h-80 flex-col items-center justify-end gap-3 p-10">
+            <p className="font-display text-4xl font-medium text-ink">
               Nothing to install.
             </p>
             <p className="font-mono text-xs text-ink-subtle">
-              this is what it would look like behind the closing call to action
+              the text is under the fire, not behind it
             </p>
           </div>
+          <Blaze
+            className="absolute inset-x-0 bottom-0 z-10 h-64 mix-blend-screen"
+            height={0.5}
+          />
         </div>
-      </Panel>
-
-      <Panel
-        n="04"
-        title="Glass"
-        verdict="webgl · 0 new kB · needs a decision"
-        note="One fragment shader on the ogl already in the tree. Because the backdrop is procedural there is nothing to screenshot: the shader evaluates it twice, once straight and once at a refracted coordinate, so the refraction is real rather than a blur. Dispersion is a fraction of a pixel — an iridescent object would be the loudest thing on a zero-chroma page — and the accent is spent on the rim. The original is three.js plus five addons, roughly 190–210 kB gzipped, for one object."
-      >
-        <GlassObject className="h-80 w-full rounded-lg border border-edge" />
-        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-ink-subtle">
-          Note: on this page it owns its own WebGL context. To put it in the
-          hero it would have to be folded into the CRT&rsquo;s context and
-          refract the shader itself — which is the only reason to want glass
-          there. That is real work in <code className="font-mono">crt-shader.tsx</code>,
-          so it is worth doing only if you like this.
-        </p>
       </Panel>
     </div>
   );
