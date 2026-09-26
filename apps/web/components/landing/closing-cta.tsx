@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { DotWordmark } from "@/components/brand/dot-wordmark";
-import { EmberField } from "@/components/effects/ember-field";
 import { siteConfig } from "@/lib/site";
 
 /**
@@ -14,6 +13,9 @@ import { siteConfig } from "@/lib/site";
  * keydown listener is on `window` and the hero never unmounts, so Enter starts
  * a workspace from this end of the page too.
  *
+ * The mark is the only thing to look at here, so nothing sits behind it: the
+ * fire is one section further down, in the footer.
+ *
  * A server component. Only the mark is a client island.
  */
 export default function ClosingCta() {
@@ -22,11 +24,8 @@ export default function ClosingCta() {
       aria-labelledby="closing-cta"
       className="relative overflow-hidden px-6"
     >
-      {/* Sparse, and behind everything. The mark is the thing to look at. */}
-      <EmberField className="absolute inset-x-0 bottom-0 top-10 -z-10" intensity={1.15} />
-
       <div className="mx-auto max-w-5xl border-t border-edge py-20 text-center sm:py-24">
-        <DotWordmark className="mx-auto h-16 w-full max-w-[17rem] sm:h-20 sm:max-w-sm" />
+        <DotWordmark className="mx-auto aspect-[72/69] w-40 sm:w-52" />
 
         <h2
           id="closing-cta"
