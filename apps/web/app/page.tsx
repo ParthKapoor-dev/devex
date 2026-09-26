@@ -10,6 +10,7 @@ import Pricing from "@/components/landing/Pricing";
 import Faq from "@/components/landing/Faq";
 import Footer from "@/components/landing/Footer";
 import { PauseOffscreen } from "@/components/landing/pause-offscreen";
+import { SmoothScroll } from "@/components/smooth-scroll";
 import { homeJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -27,6 +28,11 @@ export const metadata: Metadata = {
  * Only one WebGL context runs on this page — the hero's CRT — and it pauses
  * as soon as the hero leaves the viewport. Everything below the fold is CSS
  * or scroll-linked transforms.
+ *
+ * `<SmoothScroll />` eases the page's own scroll position, which is what those
+ * transforms read — so the whole page gained weight without any of them
+ * changing. It is mounted here rather than in the root layout on purpose: the
+ * sandbox must keep its native wheel.
  */
 export default function LandingPage() {
   return (
@@ -36,6 +42,7 @@ export default function LandingPage() {
         // Built from static config, never user input.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd()) }}
       />
+      <SmoothScroll />
       <Hero />
       <PauseOffscreen>
         <Marquee />
