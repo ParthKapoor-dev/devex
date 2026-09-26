@@ -77,7 +77,7 @@ export default function Pricing({ n }: { n?: string } = {}) {
           Start free. <span className="text-brand">Scale when you do.</span>
         </>
       }
-      lead="Every plan runs the same containers on the same cluster. What changes is how many you get at once, and how much you can ask of each. 125m is an eighth of a core — a shell, an editor and a script are fine; a dev server with a file watcher wants the 1250m."
+      lead="Every plan runs the same containers on the same cluster. What changes is how many you get at once, and how much you can ask of each."
       aside={<BillingToggle annual={annual} onChange={choose} />}
     >
       {/* Below `md` the plans are a swipeable row with the next card peeking

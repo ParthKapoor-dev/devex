@@ -166,8 +166,7 @@ export default function Hero() {
         >
           DevEx is an open-source cloud IDE. Every workspace is its own Linux
           container on Kubernetes — a code editor, a real terminal and a public
-          URL in your browser, with files that are still there tomorrow. Run it
-          on our cluster, or on yours.
+          URL in your browser, with files that are still there tomorrow.
         </p>
 
         <div
