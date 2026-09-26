@@ -42,9 +42,9 @@ const SS = 4;
 const FONT_ROWS = 7;
 
 /** Fractions of `GRID_W`: the X's width, the word's width, the gap between. */
-const MARK_W = 0.54;
+const MARK_W = 0.7;
 const WORD_W = 0.94;
-const GAP = 0.14;
+const GAP = 0.16;
 
 /** Ordered dither. Breaks the halftone up so it is not a field of even discs. */
 const BAYER = [
