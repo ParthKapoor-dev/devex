@@ -32,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { ShortcutHint } from "@/components/ui/shortcut-hint";
+import { usePauseSmoothScroll } from "@/lib/smooth-scroll";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -115,6 +116,11 @@ export const Cmd = ({ compact = false }: { compact?: boolean } = {}) => {
   const [docs, setDocs] = React.useState<DocEntry[] | null>(null);
 
   useCommandMenuShortcut(() => setOpen((value) => !value));
+
+  // Radix already locks the body; it is the smooth-scroll engine that does
+  // not notice, so only that is paused here. Locking the body twice would
+  // leave the page frozen after close.
+  usePauseSmoothScroll(open);
   useDocsShortcut(() => {
     setOpen(true);
     setQuery("docs ");

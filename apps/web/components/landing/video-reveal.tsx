@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useSpring } from "motion/react";
 import { Play, Plus } from "lucide-react";
+import { useScrollLock } from "@/lib/smooth-scroll";
 import { cn } from "@/lib/utils";
 
 /**
@@ -99,15 +100,16 @@ function Popover({
   origin: string;
   onClose: () => void;
 }) {
+  // Locks the body *and* the smooth-scroll engine. `overflow: hidden` alone
+  // stopped working once the landing page gained one: the engine writes
+  // `scrollTop` directly and never reads that property, so the page carried on
+  // gliding behind the open video.
+  useScrollLock(true);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   return (
