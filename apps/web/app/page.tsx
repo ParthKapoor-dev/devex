@@ -9,7 +9,6 @@ import Stack from "@/components/landing/stack";
 import YoursToRun from "@/components/landing/yours-to-run";
 import Pricing from "@/components/landing/Pricing";
 import Faq from "@/components/landing/Faq";
-import ClosingCta from "@/components/landing/closing-cta";
 import Footer from "@/components/landing/Footer";
 import { PauseOffscreen } from "@/components/landing/pause-offscreen";
 import { SmoothScroll } from "@/components/smooth-scroll";
@@ -25,15 +24,15 @@ export const metadata: Metadata = {
  *   what it is (hero) → the facts at a glance (marquee) → what "real" means
  *   (01) → the screen you land in (02) → when you would reach for it (03) →
  *   how it works, with the demo (04) → what you can run (05) → self-hosting
- *   and agents (06) → price (07) → questions (08) → the ask → the index.
+ *   and agents (06) → price (07) → questions (08) → the index.
  *
  * 03 is the only section about the reader rather than the machine. Everything
  * else explains the product; without it the page never says why anyone would
  * want one.
  *
- * Only one WebGL context runs on this page — the hero's CRT — and it pauses
- * as soon as the hero leaves the viewport. Everything below the fold is CSS
- * or scroll-linked transforms.
+ * One WebGL context runs at a time. Two exist — the hero's CRT and the
+ * footer's blaze — and they are a page apart, so neither is live while the
+ * other is. Everything between them is CSS or scroll-linked transforms.
  *
  * `<SmoothScroll />` eases the page's own scroll position, which is what those
  * transforms read — so the whole page gained weight without any of them
@@ -61,7 +60,6 @@ export default function LandingPage() {
       <YoursToRun />
       <Pricing n="07" />
       <Faq n="08" />
-      <ClosingCta />
       <Footer />
     </div>
   );
