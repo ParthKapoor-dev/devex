@@ -350,8 +350,15 @@ export default function Preview() {
           </aside>
 
           <div className="min-w-0">
-            {/* Tab strip */}
-            <div className="flex h-8 items-stretch overflow-x-auto border-b border-edge bg-surface">
+            {/* Tab strip. `data-lenis-prevent-horizontal` so a sideways
+                trackpad swipe scrolls the tabs rather than being swallowed by
+                the page's smooth scroll — a swipe is rarely purely horizontal,
+                and the stray vertical component was enough to claim the whole
+                gesture. Vertical scrolling over it still moves the page. */}
+            <div
+              data-lenis-prevent-horizontal
+              className="flex h-8 items-stretch overflow-x-auto border-b border-edge bg-surface"
+            >
               {openTabs.map((tab) => {
                 const isOpen = tab === activeFile;
                 return (
@@ -401,8 +408,12 @@ export default function Preview() {
               })}
             </div>
 
-            {/* Editor */}
-            <div className="overflow-x-auto bg-term-bg px-4 py-3">
+            {/* Editor. Same opt-out as the tab strip: long lines scroll
+                sideways, and that gesture belongs to the code, not the page. */}
+            <div
+              data-lenis-prevent-horizontal
+              className="overflow-x-auto bg-term-bg px-4 py-3"
+            >
               <pre className="min-h-[13.5rem] font-mono text-[13px] leading-[1.7]">
                 <code>
                   {file.code.map((line, i) => (
