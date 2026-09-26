@@ -48,7 +48,7 @@ export default function Stack() {
         icons={STACK}
         before={
           <div className="flex flex-col items-center gap-5 text-center">
-            <Eyebrow n="04">Your stack</Eyebrow>
+            <Eyebrow n="05">Your stack</Eyebrow>
             <h2
               id="stack-title"
               className="flex items-center gap-2 whitespace-nowrap font-display text-[clamp(1.15rem,5.2vw,3.25rem)] sm:gap-3 font-medium tracking-[-0.035em] text-ink"

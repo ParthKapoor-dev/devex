@@ -57,6 +57,16 @@ export default function NotAPlayground() {
       />
 
       <div className="pointer-events-auto relative mx-auto -mt-[22vh] max-w-6xl px-4 sm:px-6">
+        {/* The headline is a claim about what this is not, which only lands for
+            a reader who has used the thing it is not. One sentence turns it
+            back into a positive before the cells cash it out. */}
+        <p className="mx-auto mb-10 max-w-2xl text-balance text-center leading-relaxed text-ink-muted sm:text-lg">
+          Browser IDEs fake the shell, fake the disk, and have no network to
+          speak of. This is a container with a package manager, a namespace and
+          root inside it.{" "}
+          <span className="text-ink">If it runs in Docker, it runs here.</span>
+        </p>
+
         {/* On phones: a plain divided list rather than four stacked boxes. */}
         <ul className="grid border-y border-edge bg-canvas/60 sm:grid-cols-2 sm:overflow-hidden sm:rounded-2xl sm:border sm:backdrop-blur-[2px] lg:grid-cols-4">
           {TRUTHS.map((t, i) => (

@@ -35,7 +35,10 @@ export const siteConfig = {
   description:
     "DevEx is an open-source cloud IDE. Every workspace is its own Linux container on Kubernetes, with a code editor, a real terminal and a public URL.",
 
-  tagline: "Your best developer experience, on the cloud.",
+  // Says what the H1 says. It was "Your best developer experience, on the
+  // cloud." — the one piece of generic SaaS copy in the repo, and it ships
+  // in robots.txt, so it was the first line a crawler read.
+  tagline: "A real machine, one tab away.",
 
   keywords: [
     "cloud IDE",
