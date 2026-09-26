@@ -47,7 +47,7 @@ export default function HowItWorks() {
     <section id="how-it-works" aria-labelledby="how-title" className="scroll-mt-24 px-4 sm:px-6">
       <div className="mx-auto grid max-w-5xl gap-12 border-t border-edge py-20 sm:py-28 lg:grid-cols-[7fr_5fr] lg:gap-16">
         <div>
-          <Eyebrow n="03">How it works</Eyebrow>
+          <Eyebrow n="04">How it works</Eyebrow>
           <h2
             id="how-title"
             className="mt-5 text-balance font-display text-3xl font-medium tracking-[-0.035em] text-ink sm:text-4xl"

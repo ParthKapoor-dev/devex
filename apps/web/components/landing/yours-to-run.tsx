@@ -51,7 +51,7 @@ const CELLS: {
     icon: Bot,
     kicker: "MCP",
     title: "Give an AI agent a real machine",
-    body: "Turn on the MCP sidecar and an assistant can read the files in a workspace — the same ones open in your editor — instead of guessing at them. It exposes read_file today; more tools are planned.",
+    body: "Point Claude Code, Cursor, or any MCP client at a running workspace and it reads the files you have open — the real ones, on the container's disk. read_file ships today; writes and run_command are next.",
     shell: "mcp · /mcp/<repl-id>",
     // The server's live tools today are Ping and read_file; show the real one.
     code: [
@@ -75,7 +75,7 @@ export default function YoursToRun() {
   return (
     <Section
       id="open-source"
-      n="05"
+      n="06"
       eyebrow="Open source"
       title={
         <>

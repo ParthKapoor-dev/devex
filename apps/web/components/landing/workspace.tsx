@@ -38,8 +38,11 @@ export default function Workspace() {
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-balance text-ink-muted">
           This is the layout you land in once a workspace is running: files on
-          the left, Monaco in the middle, a shell and port forwarding below.
-          Click around — switch files, flip the panel.
+          the left, Monaco in the middle, a shell and port forwarding below. The
+          tree is the container&rsquo;s disk, the terminal is a PTY inside the
+          pod, and <code className="font-mono text-[0.9em] text-ink">:3000</code>{" "}
+          is a hostname the internet can resolve. Click around — switch files,
+          flip the panel.
         </p>
       </div>
 
