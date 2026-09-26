@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { DotMatrix } from "@/components/ui/dot-matrix";
 import { useEffect } from "react";
 
 interface ProtectedRouteProps {
@@ -22,12 +23,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     // This is the first thing anyone sees on the dashboard and the sandbox.
     // It was a 128px ring with a `border-gray-900` edge — near-black, spinning
     // on a near-black page, so on this theme it rendered as nothing at all
-    // while the session was being checked.
+    // while the session was being checked. Then it was pulsing text; now the
+    // text holds still and the matrix carries the motion, which is the way
+    // round that lets you actually read it.
     return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <p className="label animate-pulse text-ink-subtle">
-          Checking your session
-        </p>
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-5">
+        <DotMatrix label="Checking your session" className="dot-matrix-lg" />
+        <p className="label text-ink-subtle">Checking your session</p>
       </div>
     );
   }

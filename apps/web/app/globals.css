@@ -495,6 +495,75 @@
 }
 
 /* ==========================================================================
+   Dot matrix
+
+   The loading indicator. 25 cells, one keyframe, no JavaScript — see
+   components/ui/dot-matrix.tsx for why that matters for a loading state.
+
+   Not a port: dotmatrix.zzzzshawn.cloud is the idea, but its LICENSE is
+   "Custom Proprietary / All rights reserved" and forbids redistribution, so
+   none of its code is here. What is worth borrowing is free: the `role=status`
+   shape and gating on reduced motion.
+   ========================================================================== */
+
+.dot-matrix {
+  --dm-cell: 3px;
+  --dm-gap: 2px;
+  /* Delay between one cell lighting and the next. 25 cells at 46ms is a
+     1.15s sweep inside a 1.6s cycle, leaving a short dark beat before it
+     comes round again — without it the thing reads as a nervous flicker. */
+  --dm-step: 46ms;
+  --dm-cycle: 1.6s;
+  --dm-dim: 0.14;
+
+  display: grid;
+  grid-template-columns: repeat(5, var(--dm-cell));
+  gap: var(--dm-gap);
+  width: max-content;
+  color: var(--color-brand);
+}
+
+.dot-matrix > span[aria-hidden] {
+  width: var(--dm-cell);
+  height: var(--dm-cell);
+  background: currentColor;
+  opacity: var(--dm-dim);
+  /* No `will-change`: opacity is composited anyway, and 25 permanently
+     promoted layers is real memory for something that unmounts in a second. */
+  animation: dot-matrix-sweep var(--dm-cycle) linear infinite;
+  animation-delay: calc(var(--dm-i) * var(--dm-step));
+}
+
+@keyframes dot-matrix-sweep {
+  0%,
+  100% {
+    opacity: var(--dm-dim);
+  }
+  5% {
+    opacity: 1;
+  }
+  26% {
+    opacity: var(--dm-dim);
+  }
+}
+
+/* Bigger, for a page that has nothing else on it yet. */
+.dot-matrix-lg {
+  --dm-cell: 5px;
+  --dm-gap: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still legible as "busy" — a fixed gradient from the middle out — but it
+     does not move. The global reduced-motion switch zeroes durations, which
+     would otherwise leave every cell stuck at whatever opacity it started on. */
+  .dot-matrix > span[aria-hidden] {
+    animation: none;
+    opacity: calc(1 - var(--dm-i) * 0.03);
+  }
+}
+
+/* ==========================================================================
    Smooth scroll
 
    The three rules `lenis/dist/lenis.css` exists to ship, written out here

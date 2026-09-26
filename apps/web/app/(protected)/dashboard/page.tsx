@@ -5,6 +5,7 @@ import AppBackdrop from "@/components/backgrounds/app-backdrop";
 import GuiInterface from "@/components/dashboard/GuiInterface";
 import TerminalInterface from "@/components/dashboard/TerminalInterface";
 import StartReplCard from "@/components/ui/start-repl-card";
+import { DotMatrix } from "@/components/ui/dot-matrix";
 import { useAuth } from "@/contexts/AuthContext";
 import { CoreService } from "@/lib/core";
 import { cn } from "@/lib/utils";
@@ -111,7 +112,8 @@ export default function Dashboard() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-dvh items-center justify-center">
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-5">
+          <DotMatrix label="Loading your workspaces" className="dot-matrix-lg" />
           <p className="label text-ink-subtle">Loading</p>
         </div>
       }
