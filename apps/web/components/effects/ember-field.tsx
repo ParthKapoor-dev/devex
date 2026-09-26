@@ -25,18 +25,26 @@ import { cn } from "@/lib/utils";
  * quietly become expensive on a wide monitor.
  */
 
-/** Embers per 100,000 px² of surface. Deliberately thin. */
-const DENSITY = 2.2;
-const MAX = 90;
+/** Embers per 100,000 px² of surface. */
+const DENSITY = 16;
+const MAX = 140;
+/** One in this many is a bright one that travels faster and leaves a trail. */
+const SPARK = 7;
 
 type Ember = {
   x: number;
   y: number;
+  /** Where it was last frame, so a fast one can be drawn as a streak. */
+  px: number;
+  py: number;
   vx: number;
   vy: number;
   life: number;
   span: number;
   size: number;
+  /** Phase of this ember's own flicker, so they do not pulse in unison. */
+  phase: number;
+  spark: boolean;
 };
 
 export function EmberField({
@@ -61,46 +69,104 @@ export function EmberField({
         e.x = Math.random() * width;
         // Rise from the bottom edge, or from anywhere on the first fill so the
         // field does not visibly "start".
-        e.y = initial ? Math.random() * height : height + Math.random() * 30;
-        e.vx = (Math.random() - 0.5) * 0.14;
-        e.vy = -(0.16 + Math.random() * 0.34);
-        e.span = 4200 + Math.random() * 5200;
+        e.y = initial ? Math.random() * height : height + Math.random() * 24;
+        e.px = e.x;
+        e.py = e.y;
+        e.spark = Math.random() * SPARK < 1;
+        e.vx = (Math.random() - 0.5) * 0.18;
+        e.vy = -(e.spark ? 0.5 + Math.random() * 0.55 : 0.12 + Math.random() * 0.3);
+        e.span = (e.spark ? 2600 : 5200) + Math.random() * 4200;
         e.life = initial ? Math.random() * e.span : 0;
-        e.size = 0.9 + Math.random() * 1.7;
+        e.size = (e.spark ? 2.1 : 1.4) + Math.random() * 1.7;
+        e.phase = Math.random() * 100;
       };
 
       const layout = (surface: SceneSurface) => {
         width = surface.width;
         height = surface.height;
+        glow = null;
         const want = Math.min(
           MAX,
           Math.round(((width * height) / 100_000) * DENSITY * intensity),
         );
         embers = Array.from({ length: want }, () => {
-          const e: Ember = { x: 0, y: 0, vx: 0, vy: 0, life: 0, span: 1, size: 1 };
+          const e: Ember = {
+            x: 0, y: 0, px: 0, py: 0, vx: 0, vy: 0,
+            life: 0, span: 1, size: 1, phase: 0, spark: false,
+          };
           spawn(e, true);
           return e;
         });
       };
 
+      let glow: CanvasGradient | null = null;
+
       const paint = ({ ctx }: SceneSurface, delta: number) => {
         ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = token.brand500;
+
+        if (!glow) {
+          glow = ctx.createLinearGradient(0, height, 0, height * 0.35);
+          glow.addColorStop(0, "rgba(254, 154, 0, 0.055)");
+          glow.addColorStop(1, "rgba(254, 154, 0, 0)");
+        }
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, height * 0.35, width, height * 0.65);
+
+        ctx.lineCap = "round";
 
         for (const e of embers) {
           e.life += delta;
-          if (e.life > e.span || e.y < -12) spawn(e, false);
+          if (e.life > e.span || e.y < -16) spawn(e, false);
+
+          e.px = e.x;
+          e.py = e.y;
 
           const t = e.life / e.span;
           e.x += e.vx * delta * 0.06;
           e.y += e.vy * delta * 0.06;
-          // A slow lateral wander, so they do not rise in straight lines.
-          e.x += Math.sin(e.life / 900 + e.span) * 0.06;
+          // Turbulence: two out-of-step waves, so they wander instead of
+          // rising on rails. Cheap, and enough to read as air moving.
+          e.x +=
+            (Math.sin(e.life / 780 + e.phase) +
+              Math.sin(e.life / 310 + e.phase * 2) * 0.45) *
+            0.09;
+          // Embers slow as they cool.
+          e.vy *= 1 - 0.00006 * delta;
 
-          // Fade in over the first fifth, then out across the rest.
-          const fade = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8;
-          ctx.globalAlpha = Math.max(0, fade) * 0.55 * intensity;
-          ctx.fillRect(e.x, e.y, e.size, e.size * 1.6);
+          // Fade in over the first tenth, then out across the rest.
+          const fade = t < 0.1 ? t / 0.1 : 1 - (t - 0.1) / 0.9;
+          // Flicker. Two frequencies again, so it is not a clean pulse.
+          const flicker =
+            0.72 +
+            0.28 * Math.sin(e.life / 95 + e.phase * 6) * Math.sin(e.life / 37 + e.phase);
+          const alpha = Math.max(0, fade) * flicker * (e.spark ? 0.95 : 0.62) * intensity;
+          if (alpha <= 0.004) continue;
+
+          ctx.globalAlpha = alpha;
+
+          if (e.spark) {
+            // A streak between where it was and where it is — what actually
+            // makes a moving point read as travelling rather than blinking.
+            ctx.strokeStyle = token.brand400;
+            ctx.lineWidth = e.size * 0.85;
+            ctx.beginPath();
+            ctx.moveTo(e.px, e.py);
+            ctx.lineTo(e.x, e.y);
+            ctx.stroke();
+
+            // A soft head, so the brightest point is a point.
+            ctx.globalAlpha = alpha * 0.4;
+            ctx.fillStyle = token.brand300;
+            ctx.fillRect(
+              e.x - e.size * 1.4,
+              e.y - e.size * 1.4,
+              e.size * 2.8,
+              e.size * 2.8,
+            );
+          } else {
+            ctx.fillStyle = token.brand500;
+            ctx.fillRect(e.x, e.y, e.size, e.size * 1.5);
+          }
         }
         ctx.globalAlpha = 1;
       };

@@ -26,20 +26,41 @@ import { cn } from "@/lib/utils";
  */
 
 /** Dense to sparse. What a character decays through on its way out. */
-const RAMP = ["█", "▓", "▒", "░", "·", " "];
+const RAMP = ["▓", "▒", "▒", "░", "░", "·", " "];
 
-const SWEEP_MS = 4200;
-const BAND = 0.3; // fraction of the travel that is "inside" the sweep
+const LOOP_MS = 4200;
+const BAND = 0.15; // fraction of the travel that is "inside" the sweep
 const SKEW = 0.5; // how diagonal the band is
+/** How far ahead of the band a character starts to brighten. */
+const HALO = 0.45;
+
+export type SweepLine = {
+  /** Drawn in column 0 in its own colour — a prompt, an arrow, a gutter mark. */
+  prefix?: string;
+  text: string;
+  /** Hex. Canvas cannot resolve `var()` or `oklch()`; see lib/tokens.ts. */
+  colour?: string;
+  prefixColour?: string;
+};
 
 export function AsciiSweep({
   lines,
   className,
   fontSize = 13,
+  lineRatio = 1.65,
+  mode = "scroll",
 }: {
-  lines: readonly string[];
+  lines: readonly SweepLine[];
   className?: string;
   fontSize?: number;
+  /** Line height as a multiple of the font size. Match the block it replaces. */
+  lineRatio?: number;
+  /**
+   * `scroll` runs the band once as the block rises into view and finishes
+   * before it settles, so a reader who has stopped to read is never left
+   * looking at dissolved text. `loop` keeps going; it is for the lab.
+   */
+  mode?: "scroll" | "loop";
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reducedMotion = useReducedMotion();
@@ -60,69 +81,110 @@ export function AsciiSweep({
       const measure = ({ ctx }: SceneSurface) => {
         ctx.font = `${fontSize}px "Commit Mono", ui-monospace, monospace`;
         advance = ctx.measureText("M").width;
-        lineHeight = fontSize * 1.65;
+        lineHeight = fontSize * lineRatio;
       };
 
-      const paint = ({ ctx, width, height }: SceneSurface, time: number) => {
+      const paint = (surface: SceneSurface, head: number) => {
+        const { ctx, width, height } = surface;
         ctx.clearRect(0, 0, width, height);
         ctx.font = `${fontSize}px "Commit Mono", ui-monospace, monospace`;
         ctx.textBaseline = "top";
 
         const travel = width + height * SKEW;
-        const head = ((time % SWEEP_MS) / SWEEP_MS) * (travel * (1 + BAND * 2)) - travel * BAND;
         const band = travel * BAND;
 
         for (let row = 0; row < lines.length; row++) {
-          const text = lines[row];
+          const line = lines[row];
           const y = row * lineHeight;
           if (y > height) break;
 
-          for (let col = 0; col < text.length; col++) {
-            const ch = text[col];
-            if (ch === " ") continue;
-            const x = col * advance;
-            if (x > width) break;
+          const prefix = line.prefix ?? "";
+          const gap = prefix ? prefix.length + 2 : 0;
 
-            // Distance from the sweep line, along its own axis.
-            const along = x + y * SKEW;
-            const d = along - head;
+          // One run per glyph, but the resting colour comes from the line, so
+          // a terminal keeps its prompt/response colouring when the band is
+          // nowhere near it.
+          const run = (chars: string, startCol: number, rest: string) => {
+            for (let i = 0; i < chars.length; i++) {
+              const ch = chars[i];
+              if (ch === " ") continue;
+              const col = startCol + i;
+              const x = col * advance;
+              if (x > width) break;
 
-            let glyph = ch;
-            let colour: string = token.inkMuted;
-            let alpha = 0.72;
+              const d = x + y * SKEW - head;
 
-            if (d > -band && d < band) {
-              // Inside the band. `t` runs 0 at the trailing edge to 1 at the
-              // leading edge, so text decays ahead of the sweep and is already
-              // restored behind it.
-              const t = (d + band) / (band * 2);
-              const n = jitter(col, row);
-              const step = Math.min(
-                RAMP.length - 1,
-                Math.floor(t * RAMP.length * (0.65 + n * 0.7)),
-              );
-              if (step > 0) {
-                glyph = RAMP[step];
-                colour = token.brand500;
-                alpha = 0.95 - step * 0.12;
-              } else {
-                colour = token.ink;
-                alpha = 1;
+              let glyph = ch;
+              let colour = rest;
+              let alpha = 0.85;
+              let lift = 0;
+
+              if (d > -band && d < band * (1 + HALO)) {
+                const n = jitter(col, row);
+
+                if (d > band) {
+                  // Ahead of the band: not dissolved yet, but warming up. This
+                  // is what stops it looking like a hard wipe.
+                  const t = 1 - (d - band) / (band * HALO);
+                  alpha = 0.85 + t * 0.15;
+                  lift = -t * n * 1.6;
+                } else {
+                  // Inside. `t` is 0 at the trailing edge and 1 at the leading
+                  // one, so text is already restored behind the band.
+                  const t = (d + band) / (band * 2);
+                  const step = Math.min(
+                    RAMP.length - 1,
+                    Math.floor(t * RAMP.length * (0.6 + n * 0.75)),
+                  );
+                  if (step > 0) {
+                    glyph = RAMP[step];
+                    colour = token.brand500;
+                    alpha = 1 - step * 0.09;
+                    lift = (n - 0.5) * step * 0.9;
+                  } else {
+                    colour = token.ink;
+                    alpha = 1;
+                  }
+                }
               }
-            }
 
-            ctx.globalAlpha = alpha;
-            ctx.fillStyle = colour;
-            ctx.fillText(glyph, x, y);
-          }
+              ctx.globalAlpha = alpha;
+              ctx.fillStyle = colour;
+              ctx.fillText(glyph, x, y + lift);
+            }
+          };
+
+          if (prefix) run(prefix, 0, line.prefixColour ?? token.inkSubtle);
+          run(line.text, gap, line.colour ?? token.inkMuted);
         }
         ctx.globalAlpha = 1;
+      };
+
+      /**
+       * Where the band is, from how far the block has risen up the viewport.
+       * It finishes around the point the block reaches the middle of the
+       * screen, so it is over before anyone starts reading.
+       */
+      const scrolled = (surface: SceneSurface) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return -1e9;
+        const rect = canvas.getBoundingClientRect();
+        const vh = window.innerHeight || 1;
+        const q = Math.min(1, Math.max(0, (vh - rect.top) / (vh * 0.85)));
+        const travel = surface.width + surface.height * SKEW;
+        return q * (travel + travel * BAND * 2.4) - travel * BAND * 1.2;
       };
 
       return {
         resize: measure,
         frame(surface, time) {
-          paint(surface, time);
+          if (mode === "loop") {
+            const travel = surface.width + surface.height * SKEW;
+            const span = travel * (1 + BAND * 2);
+            paint(surface, ((time % LOOP_MS) / LOOP_MS) * span - travel * BAND);
+          } else {
+            paint(surface, scrolled(surface));
+          }
         },
         still(surface) {
           // The text, plainly, with no band anywhere near it.
@@ -132,20 +194,22 @@ export function AsciiSweep({
       };
     },
     { fps: 30, maxDpr: 2, reducedMotion },
-    [lines, fontSize, reducedMotion],
+    [lines, fontSize, lineRatio, mode, reducedMotion],
   );
 
   return (
     <div className={cn("relative", className)}>
       {/* The real text: readable, selectable, findable. The canvas is paint. */}
       <pre
-        className="pointer-events-none invisible m-0 font-mono leading-[1.65]"
-        style={{ fontSize }}
+        className="pointer-events-none invisible m-0 whitespace-pre font-mono"
+        style={{ fontSize, lineHeight: lineRatio }}
       >
-        {lines.join("\n")}
+        {lines
+          .map((l) => (l.prefix ? `${l.prefix}  ${l.text}` : l.text))
+          .join("\n")}
       </pre>
       <canvas ref={canvasRef} className="absolute inset-0 size-full" aria-hidden="true" />
-      <span className="sr-only">{lines.join(" ")}</span>
+      <span className="sr-only">{lines.map((l) => l.text).join(". ")}</span>
     </div>
   );
 }

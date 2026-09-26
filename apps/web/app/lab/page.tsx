@@ -4,6 +4,7 @@ import { AsciiSweep } from "@/components/effects/ascii-sweep";
 import { EmberField } from "@/components/effects/ember-field";
 import { GlassObject } from "@/components/effects/glass-object";
 import { buildMetadata } from "@/lib/seo";
+import { token } from "@/lib/tokens";
 
 /**
  * A scratch page for judging effects before any of them touch the site.
@@ -22,12 +23,12 @@ export const metadata: Metadata = buildMetadata({
 });
 
 const TRANSCRIPT = [
-  "$ devex start --template node api",
-  "[ ok ] template copied · s3://…/you/api/          0.4s",
-  "[ ok ] deployment · service · ingress · applied   0.2s",
-  "[ ok ] pod running · files restored              12.8s",
-  "[ ok ] pty attached · websocket                   0.6s",
-  "✓ running in 14s — editor, shell and ports are live",
+  { prefix: "$", text: "devex start --template node api", colour: token.ink },
+  { prefix: "[ok]", text: "template copied · s3://…/you/api/          0.4s" },
+  { prefix: "[ok]", text: "deployment · service · ingress · applied   0.2s" },
+  { prefix: "[ok]", text: "pod running · files restored              12.8s" },
+  { prefix: "[ok]", text: "pty attached · websocket                   0.6s" },
+  { prefix: "✓", text: "running in 14s — editor, shell and ports are live", colour: token.ink },
 ];
 
 function Panel({
@@ -89,18 +90,18 @@ export default function Lab() {
       <Panel
         n="02"
         title="ASCII sweep"
-        verdict="canvas 2d · ~2 kB · unplaced"
+        verdict="canvas 2d · ~2 kB · section 06"
         note="A band crosses the text and dissolves what it touches through a glyph ramp. The original needs WebGL2 plus Chrome's HTML-in-Canvas origin trial to do this to arbitrary live markup; run it on strings we already have and it is a monospace grid on a 2D canvas — same gesture, two thousand cells instead of two million pixels. The real text stays in the DOM underneath for screen readers and find-in-page."
       >
         <div className="overflow-hidden rounded-lg border border-edge bg-term-bg p-6">
-          <AsciiSweep lines={TRANSCRIPT} fontSize={13} />
+          <AsciiSweep lines={TRANSCRIPT} fontSize={13} mode="loop" />
         </div>
       </Panel>
 
       <Panel
         n="03"
         title="Embers"
-        verdict="canvas 2d · ~1 kB · unplaced"
+        verdict="canvas 2d · ~1 kB · closing band"
         note="Blaze, read conservatively. Not flames — a page that looks like it is burning is the wrong metaphor for “a real machine, one tab away”, and a full fire shader would blow the accent budget on its own. Sparse points rising and going out, which is the part of fire a near-neutral page can carry. Count scales with area and caps, so a wide monitor does not quietly cost more."
       >
         <div className="relative overflow-hidden rounded-lg border border-edge bg-canvas">
