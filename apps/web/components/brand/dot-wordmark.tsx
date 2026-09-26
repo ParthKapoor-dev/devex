@@ -8,50 +8,89 @@ import { token } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 
 /**
- * DEVX drawn as a dot-matrix panel.
+ * DEVX as a halftoned dot panel.
  *
- * The same idea as the loader in `components/ui/dot-matrix.tsx` — the product
- * is a terminal, so the mark is made of the cells a terminal is made of. Doing
- * both with one visual language is the point; two unrelated effects would read
- * as decoration.
+ * The first version drew one square per cell of the 5x7 font, which is a pixel
+ * font rendered in squares — legible, and completely flat. What makes a
+ * dithered mark read as dithered is that it is sampled at a *higher* rate than
+ * the thing it is sampling, so the edges have somewhere to break up.
  *
- * Canvas 2D, not WebGL. The landing page runs exactly one WebGL context (the
- * hero's CRT) and AGENTS.md forbids a second below the fold, so this rides
- * `useCanvasScene` instead — which also buys the offscreen pause, the
- * tab-hidden pause, the DPR cap and the reduced-motion path for free.
+ * So: supersample the font by `SCALE`, bilinearly sample the 1-bit mask to get
+ * real coverage at the edges, and turn coverage into dot **area** rather than
+ * opacity. That is a halftone, and it is also why this is cheap — every dot in
+ * a pass shares one fill style, so the whole panel is two `fill()` calls
+ * instead of ~1,400 state changes.
  *
- * **The unlit cells are drawn too.** A bitmap with only its lit cells is just
- * text; drawing the dark ones at a low alpha is what makes it read as a panel
- * that the letters are *on*, and it is where the dithered texture comes from.
+ * A sweep crosses it on a slow diagonal and the dots it passes through swell
+ * and warm to amber. That is the only moving part, and it is the same gesture
+ * as the CRT above it: a panel being refreshed a line at a time.
  *
- * Colour is rationed the way the design language asks: at rest every dot is
- * neutral, and only the ones near the pointer warm towards amber. The accent
- * marks where you are, which is its whole job.
+ * Canvas 2D, not WebGL — the landing page runs exactly one WebGL context (the
+ * hero's CRT) and AGENTS.md forbids a second below the fold. Riding
+ * `useCanvasScene` also buys the offscreen pause, the tab-hidden pause, the
+ * DPR cap and the reduced-motion path.
  */
 
-const ROWS = 7;
-const SCATTER = 26; // px a cell starts from home, before it resolves
-const REACH = 74; // px of pointer influence
-const PUSH = 15; // px a cell is displaced at the centre of that influence
+/** Dots per font cell, per axis. 3 is where the edges start to read as dither. */
+const SCALE = 3;
+const FONT_ROWS = 7;
 
-/** Deterministic per-cell jitter — no allocation, no Math.random in a frame. */
-function hash(i: number) {
-  const x = Math.sin(i * 127.1) * 43758.5453;
-  return x - Math.floor(x);
+/** Ordered dither. Breaks the halftone up so it is not a field of even discs. */
+const BAYER = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+].map((row) => row.map((v) => v / 16));
+
+const REACH = 82; // px of pointer influence
+const PUSH = 13; // px of displacement at the centre of it
+const SWEEP_MS = 5200; // one pass across the panel
+const BAND = 0.055; // width of the sweep, as a fraction of the diagonal
+/** Only the core of the sweep takes the accent; its shoulders just swell. */
+const WARM_AT = 0.5;
+
+type Cell = { gx: number; gy: number; cover: number; bayer: number };
+
+/** Coverage at a point in font space, bilinear over the 1-bit glyph mask. */
+function sample(rows: string[], x: number, y: number): number {
+  const cols = rows[0].length;
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const fx = x - x0;
+  const fy = y - y0;
+  const at = (cx: number, cy: number) =>
+    cx < 0 || cy < 0 || cx >= cols || cy >= FONT_ROWS
+      ? 0
+      : rows[cy][cx] === "1"
+        ? 1
+        : 0;
+  const top = at(x0, y0) * (1 - fx) + at(x0 + 1, y0) * fx;
+  const bottom = at(x0, y0 + 1) * (1 - fx) + at(x0 + 1, y0 + 1) * fx;
+  return top * (1 - fy) + bottom * fy;
 }
 
-type Cell = { col: number; row: number; lit: boolean; seed: number };
-
-function cells(word: string): { list: Cell[]; cols: number } {
+function build(word: string) {
   const rows = bitmap(word);
   const cols = rows[0].length;
+  const gw = cols * SCALE;
+  const gh = FONT_ROWS * SCALE;
   const list: Cell[] = [];
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < cols; c++) {
-      list.push({ col: c, row: r, lit: rows[r][c] === "1", seed: r * cols + c });
+
+  for (let gy = 0; gy < gh; gy++) {
+    for (let gx = 0; gx < gw; gx++) {
+      const cover = sample(
+        rows,
+        (gx + 0.5) / SCALE - 0.5,
+        (gy + 0.5) / SCALE - 0.5,
+      );
+      // Push the midtones apart so letter interiors stay solid and only the
+      // true edges land in the range where dithering is visible.
+      const shaped = cover <= 0 ? 0 : Math.pow(cover, 1.15);
+      list.push({ gx, gy, cover: shaped, bayer: BAYER[gy % 4][gx % 4] });
     }
   }
-  return { list, cols };
+  return { list, gw, gh };
 }
 
 export function DotWordmark({
@@ -62,80 +101,103 @@ export function DotWordmark({
   className?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const hostRef = useRef<HTMLDivElement>(null);
   // Written by pointer events, read in the frame. A ref, not state — a
   // pointermove that re-rendered React would cost more than the whole scene.
-  const pointer = useRef<{ x: number; y: number; on: boolean }>({
-    x: 0,
-    y: 0,
-    on: false,
-  });
+  const pointer = useRef({ x: 0, y: 0, on: false });
   const reducedMotion = useReducedMotion();
 
   useCanvasScene(
     canvasRef,
     () => {
-      const { list, cols } = cells(word);
-      let cell = 0;
+      const { list, gw, gh } = build(word);
+      let cellPx = 0;
       let originX = 0;
       let originY = 0;
 
       const layout = ({ width, height }: SceneSurface) => {
-        // Fit the panel to the box, leaving a cell of air around it.
-        cell = Math.min(width / (cols + 2), height / (ROWS + 2));
-        originX = (width - cell * cols) / 2;
-        originY = (height - cell * ROWS) / 2;
+        cellPx = Math.min(width / (gw + SCALE), height / (gh + SCALE));
+        originX = (width - cellPx * gw) / 2;
+        originY = (height - cellPx * gh) / 2;
       };
 
-      const paint = (surface: SceneSurface, resolve: number, time: number) => {
+      const paint = (surface: SceneSurface, intro: number, time: number) => {
         const { ctx, width, height } = surface;
         ctx.clearRect(0, 0, width, height);
 
-        const dot = cell * 0.68;
         const p = pointer.current;
+        const span = width + height * 0.45;
+        const head = ((time % SWEEP_MS) / SWEEP_MS) * (span + span * BAND * 2) - span * BAND;
+        const bandPx = span * BAND;
+        const max = cellPx * 0.7;
+
+        // Two passes, two fill styles: everything neutral, then everything the
+        // sweep or the pointer has touched. One `fill()` each.
+        ctx.beginPath();
+        const warmed: [number, number, number][] = [];
 
         for (const c of list) {
-          const seed = hash(c.seed);
-          const homeX = originX + c.col * cell + cell / 2;
-          const homeY = originY + c.row * cell + cell / 2;
+          if (c.cover < 0.04) continue;
 
-          // Resolve: cells fly in from a scattered start on first view.
-          const away = 1 - resolve;
-          let x = homeX + (seed - 0.5) * SCATTER * away * 2;
-          let y = homeY + (hash(c.seed + 91) - 0.5) * SCATTER * away * 2;
+          let x = originX + c.gx * cellPx + cellPx / 2;
+          let y = originY + c.gy * cellPx + cellPx / 2;
 
-          // Idle drift, so the panel breathes instead of sitting dead.
-          y += Math.sin(time / 1100 + seed * 6.3) * cell * 0.05;
+          // Intro: the panel resolves from a scatter on first view.
+          if (intro < 1) {
+            const away = 1 - intro;
+            x += (c.bayer - 0.5) * cellPx * 26 * away;
+            y += (BAYER[(c.gy + 2) % 4][(c.gx + 1) % 4] - 0.5) * cellPx * 26 * away;
+          }
 
-          // Pointer: push away, and warm towards the accent.
-          let warm = 0;
+          // The sweep, on a slow diagonal.
+          const along = x + y * 0.45;
+          const d = Math.abs(along - head);
+          const lit = d < bandPx ? Math.pow(1 - d / bandPx, 2) : 0;
+
+          // The pointer pushes dots aside and warms them.
+          let warm = lit;
           if (p.on) {
             const dx = x - p.x;
             const dy = y - p.y;
             const dist = Math.hypot(dx, dy);
             if (dist < REACH && dist > 0.001) {
-              const f = 1 - dist / REACH;
-              const falloff = f * f;
-              x += (dx / dist) * PUSH * falloff;
-              y += (dy / dist) * PUSH * falloff;
-              warm = falloff;
+              const f = (1 - dist / REACH) ** 2;
+              x += (dx / dist) * PUSH * f;
+              y += (dy / dist) * PUSH * f;
+              warm = Math.max(warm, f);
             }
           }
 
-          // Unlit cells are the panel the letters sit on; they stay faint.
-          // The gap has to be wide — at inkMuted and 0.8 the letters read as
-          // grey mush against their own panel rather than as a word.
-          const base = c.lit ? 0.92 + seed * 0.08 : 0.05 + seed * 0.03;
-          ctx.globalAlpha = base * resolve;
-          ctx.fillStyle =
-            warm > 0.02 ? token.brand500 : c.lit ? token.ink : token.inkSubtle;
-
-          // Size carries the dither: a little per-cell variance, and a swell
-          // under the pointer. Unlit cells stay small so they read as the
-          // panel's off-pixels rather than as part of a letter.
+          // Coverage becomes area, so an edge dot is a smaller disc rather
+          // than a fainter one. The bayer term keeps the field from reading
+          // as a grid of even circles.
           const size =
-            dot * (c.lit ? 0.92 + seed * 0.16 : 0.5 + seed * 0.14) * (1 + warm * 0.7);
-          ctx.fillRect(x - size / 2, y - size / 2, size, size);
+            max *
+            Math.sqrt(c.cover) *
+            (0.78 + c.bayer * 0.34) *
+            (1 + warm * 0.45) *
+            intro;
+
+          if (size < 0.35) continue;
+
+          if (warm > WARM_AT) {
+            warmed.push([x, y, size]);
+          } else {
+            ctx.rect(x - size / 2, y - size / 2, size, size);
+          }
+        }
+
+        ctx.globalAlpha = 0.9 * intro;
+        ctx.fillStyle = token.ink;
+        ctx.fill();
+
+        if (warmed.length) {
+          ctx.beginPath();
+          for (const [x, y, size] of warmed) {
+            ctx.rect(x - size / 2, y - size / 2, size, size);
+          }
+          ctx.globalAlpha = intro;
+          ctx.fillStyle = token.brand500;
+          ctx.fill();
         }
         ctx.globalAlpha = 1;
       };
@@ -143,25 +205,22 @@ export function DotWordmark({
       return {
         resize: layout,
         frame(surface, time) {
-          const resolve = Math.min(1, time / 850);
-          paint(surface, 1 - Math.pow(1 - resolve, 3), time);
+          const t = Math.min(1, time / 900);
+          paint(surface, 1 - Math.pow(1 - t, 3), time);
         },
         still(surface) {
-          // Assembled and motionless, with no pointer response.
+          // Assembled, no sweep, no pointer response.
           pointer.current.on = false;
-          paint(surface, 1, 0);
+          paint(surface, 1, SWEEP_MS * 2);
         },
       };
     },
-    // 30fps: the whole scene is ~160 filled rects and nothing in it moves fast
-    // enough for 60 to be distinguishable.
     { fps: 30, maxDpr: 2, reducedMotion },
     [word, reducedMotion],
   );
 
   return (
     <div
-      ref={hostRef}
       className={cn("relative", className)}
       onPointerMove={(e) => {
         const box = e.currentTarget.getBoundingClientRect();
