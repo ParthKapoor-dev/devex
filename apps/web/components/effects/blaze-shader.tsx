@@ -24,10 +24,16 @@
  * through the heat, which needs Chrome's html-in-canvas origin trial; every
  * other browser gets the content with no effect at all. So the content is lit
  * rather than refracted here — the canvas sits above the text under
- * `mix-blend-screen`, where black is a no-op and only light lands, so the fire
- * can wash the text warm but can never cover it. The heat distortion is done
- * where it can be done honestly, on the footer's own decorative wordmark; see
- * `Footer.tsx`.
+ * `mix-blend-screen`, so the fire can wash the text warm but can never cover
+ * it. The heat distortion is done where it can be done honestly, on the
+ * footer's own decorative wordmark; see `Footer.tsx`.
+ *
+ * The canvas is **transparent**, and the shader writes premultiplied colour
+ * with the brightest channel as alpha. An opaque black canvas would be a
+ * no-op under `screen` in theory and a visible seam in practice: blending is
+ * confined to the nearest stacking context, the footer's has no background of
+ * its own, so black against nothing stays black and the element's top edge
+ * shows as a hard line across the page.
  *
  * Our own code throughout, on the `ogl` already in the tree: the original is
  * MIT **plus Commons Clause**, which a public MIT repo cannot take.
@@ -203,7 +209,7 @@ void main() {
   float zone = clamp(uHeight, 0.02, 1.0);
   float fy = vUv.y / zone;
   if (fy > 1.0) {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    gl_FragColor = vec4(0.0);
     return;
   }
 
@@ -228,7 +234,15 @@ void main() {
   acc += mix(uSmokeColor, uSparkColor, 0.45) * uGlow * 0.55 * along * pow(1.0 - fy, 16.0);
   acc += uSmokeColor * 0.05 * uGlow * pow(1.0 - fy, 2.0);
 
-  gl_FragColor = vec4(clamp(acc, 0.0, 1.0), 1.0);
+  /*
+   * Premultiplied, with the brightest channel as alpha. Every channel is at
+   * or below that by construction, so this is already premultiplied — and
+   * unlit pixels come out fully transparent rather than black, which is the
+   * whole point: an opaque black canvas over a #080808 page is a visible
+   * seam wherever the element starts, however it is blended.
+   */
+  acc = clamp(acc, 0.0, 1.0);
+  gl_FragColor = vec4(acc, max(acc.r, max(acc.g, acc.b)));
 }
 `;
 
@@ -269,12 +283,13 @@ export default function BlazeShader({
 
     const renderer = new Renderer({
       dpr: dpr ?? Math.min(window.devicePixelRatio || 1, 1.5),
-      alpha: false,
+      alpha: true,
+      premultipliedAlpha: true,
       antialias: false,
       powerPreference: "low-power",
     });
     const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(0, 0, 0, 0);
 
     const [spark, smokeCol] = colours.map(rgb);
     const program = new Program(gl, {
