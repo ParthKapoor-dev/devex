@@ -474,6 +474,39 @@
 }
 
 /* ==========================================================================
+   Smooth scroll
+
+   The three rules `lenis/dist/lenis.css` exists to ship, written out here
+   instead of imported. Its fourth rule is
+   `.lenis-smooth iframe { pointer-events: none }` — a blanket guard against
+   an iframe swallowing the gesture, which would also make the YouTube player
+   inside the demo popover unclickable. The popover stops the engine outright,
+   so we do not need it. See components/smooth-scroll.tsx.
+   ========================================================================== */
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+/* How `lenis.stop()` holds the page still. `clip`, not `hidden`, for the same
+   reason as the `overflow-x` above: `hidden` would make <html> a scroll
+   container and every sticky track below it would stop sticking. */
+html.lenis.lenis-stopped {
+  overflow: clip;
+}
+
+/* Scrollers that opted out keep their own overscroll, so reaching the end of
+   one does not hand the rest of the gesture to the page behind it. */
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch],
+.lenis [data-lenis-prevent-vertical],
+.lenis [data-lenis-prevent-horizontal] {
+  overscroll-behavior: contain;
+}
+
+/* ==========================================================================
    Terminal
    ========================================================================== */
 
