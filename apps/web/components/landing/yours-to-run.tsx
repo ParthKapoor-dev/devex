@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowRight, Bot, Server } from "lucide-react";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { AsciiSweep, type SweepLine } from "@/components/effects/ascii-sweep";
+import { token } from "@/lib/tokens";
 import { Section } from "./section";
 
 /**
@@ -64,12 +66,20 @@ const CELLS: {
   },
 ];
 
-const PREFIX: Record<Line["tone"], { mark: string; className: string }> = {
-  cmd: { mark: "$", className: "text-term-ink" },
-  cont: { mark: " ", className: "text-term-muted" },
-  req: { mark: "→", className: "text-brand-200" },
-  res: { mark: "←", className: "text-term-muted" },
+const PREFIX: Record<Line["tone"], { mark: string; colour: string; markColour: string }> = {
+  cmd: { mark: "$", colour: token.ink, markColour: token.inkSubtle },
+  cont: { mark: " ", colour: token.inkMuted, markColour: token.inkSubtle },
+  req: { mark: "→", colour: token.brand300, markColour: token.brand500 },
+  res: { mark: "←", colour: token.inkMuted, markColour: token.inkSubtle },
 };
+
+const sweepLines = (code: Line[]): SweepLine[] =>
+  code.map(({ tone, text }) => ({
+    prefix: PREFIX[tone].mark.trim() || undefined,
+    text,
+    colour: PREFIX[tone].colour,
+    prefixColour: PREFIX[tone].markColour,
+  }));
 
 export default function YoursToRun() {
   return (
@@ -116,19 +126,16 @@ export default function YoursToRun() {
                   </span>
                   <span className="truncate font-mono text-[11px] text-term-muted">{shell}</span>
                 </div>
-                <pre className="overflow-x-auto px-3.5 py-3.5 font-mono text-xs leading-[1.8]">
-                  {code.map((line, n) => (
-                    <span key={n} className="block whitespace-pre">
-                      <span
-                        aria-hidden="true"
-                        className={cn("mr-2.5 select-none", line.tone === "req" ? "text-brand" : "text-term-muted")}
-                      >
-                        {PREFIX[line.tone].mark}
-                      </span>
-                      <span className={PREFIX[line.tone].className}>{line.text}</span>
-                    </span>
-                  ))}
-                </pre>
+                {/* The band crosses these as the section rises into view and
+                    is finished before it settles, so nobody who stops to read
+                    is left looking at dissolved text. */}
+                <div className="overflow-x-auto px-3.5 py-3.5">
+                  <AsciiSweep
+                    lines={sweepLines(code)}
+                    fontSize={12}
+                    lineRatio={1.8}
+                  />
+                </div>
               </div>
             </div>
 

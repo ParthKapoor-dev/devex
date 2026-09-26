@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DotWordmark } from "@/components/brand/dot-wordmark";
+import { EmberField } from "@/components/effects/ember-field";
 import { siteConfig } from "@/lib/site";
 
 /**
@@ -21,6 +22,9 @@ export default function ClosingCta() {
       aria-labelledby="closing-cta"
       className="relative overflow-hidden px-6"
     >
+      {/* Sparse, and behind everything. The mark is the thing to look at. */}
+      <EmberField className="absolute inset-x-0 bottom-0 top-10 -z-10" intensity={1.15} />
+
       <div className="mx-auto max-w-5xl border-t border-edge py-20 text-center sm:py-24">
         <DotWordmark className="mx-auto h-16 w-full max-w-[17rem] sm:h-20 sm:max-w-sm" />
 

@@ -43,12 +43,15 @@ const BAYER = [
   [15, 7, 13, 5],
 ].map((row) => row.map((v) => v / 16));
 
-const REACH = 82; // px of pointer influence
-const PUSH = 13; // px of displacement at the centre of it
-const SWEEP_MS = 5200; // one pass across the panel
-const BAND = 0.055; // width of the sweep, as a fraction of the diagonal
-/** Only the core of the sweep takes the accent; its shoulders just swell. */
-const WARM_AT = 0.5;
+const REACH = 96; // px of pointer influence
+const PUSH = 15; // px of displacement at the centre of it
+const REFRESH_MS = 3400; // one pass of the refresh line
+/** Fraction of a cycle a dot spends lit by the line that just passed it. */
+const HOT = 0.06;
+/** How far a dot decays before the line comes back round. */
+const DECAY = 0.7;
+/** Brightness buckets. Each is one fill() — the panel is 6 draw calls total. */
+const STEPS = 4;
 
 type Cell = { gx: number; gy: number; cover: number; bayer: number };
 
@@ -120,20 +123,22 @@ export function DotWordmark({
         originY = (height - cellPx * gh) / 2;
       };
 
+      // Reused every frame so the loop never allocates. x, y, size per dot.
+      const bucket = Array.from({ length: STEPS + 1 }, () => ({
+        xs: new Float32Array(list.length * 3),
+        n: 0,
+      }));
+
       const paint = (surface: SceneSurface, intro: number, time: number) => {
         const { ctx, width, height } = surface;
         ctx.clearRect(0, 0, width, height);
 
         const p = pointer.current;
-        const span = width + height * 0.45;
-        const head = ((time % SWEEP_MS) / SWEEP_MS) * (span + span * BAND * 2) - span * BAND;
-        const bandPx = span * BAND;
+        const travel = width + height * 0.45;
+        const head = ((time % REFRESH_MS) / REFRESH_MS) * travel;
         const max = cellPx * 0.7;
 
-        // Two passes, two fill styles: everything neutral, then everything the
-        // sweep or the pointer has touched. One `fill()` each.
-        ctx.beginPath();
-        const warmed: [number, number, number][] = [];
+        for (const b of bucket) b.n = 0;
 
         for (const c of list) {
           if (c.cover < 0.04) continue;
@@ -148,13 +153,22 @@ export function DotWordmark({
             y += (BAYER[(c.gy + 2) % 4][(c.gx + 1) % 4] - 0.5) * cellPx * 26 * away;
           }
 
-          // The sweep, on a slow diagonal.
-          const along = x + y * 0.45;
-          const d = Math.abs(along - head);
-          const lit = d < bandPx ? Math.pow(1 - d / bandPx, 2) : 0;
+          // Age since the refresh line last crossed this dot, 0 (just passed)
+          // to 1 (about to be reached). This is the whole effect: the line does
+          // not tint the panel, it *redraws* it, and every dot dims and drifts
+          // as it waits its turn — which is what a phosphor panel actually
+          // does between refreshes.
+          let age = (x + y * 0.45 - head) / travel;
+          age = age - Math.floor(age);
 
-          // The pointer pushes dots aside and warms them.
-          let warm = lit;
+          const hot = age < HOT ? 1 - age / HOT : 0;
+          const stale = Math.min(1, age / DECAY);
+          // Stale dots wander off their cell a little and shrink.
+          const wander = stale * cellPx * 0.16;
+          x += (c.bayer - 0.5) * wander;
+          y += (BAYER[(c.gx + 3) % 4][(c.gy + 2) % 4] - 0.5) * wander;
+
+          let warm = hot;
           if (p.on) {
             const dx = x - p.x;
             const dy = y - p.y;
@@ -167,37 +181,55 @@ export function DotWordmark({
             }
           }
 
-          // Coverage becomes area, so an edge dot is a smaller disc rather
-          // than a fainter one. The bayer term keeps the field from reading
-          // as a grid of even circles.
+          // Coverage becomes area, so an edge dot is a smaller square rather
+          // than a fainter one. The bayer term keeps the field from reading as
+          // a grid of even discs.
           const size =
             max *
             Math.sqrt(c.cover) *
             (0.78 + c.bayer * 0.34) *
-            (1 + warm * 0.45) *
+            (1 - stale * 0.18) *
+            (1 + warm * 0.55) *
             intro;
 
           if (size < 0.35) continue;
 
-          if (warm > WARM_AT) {
-            warmed.push([x, y, size]);
-          } else {
-            ctx.rect(x - size / 2, y - size / 2, size, size);
-          }
+          // Bucket 0 is the hot pass (amber); 1..STEPS are ink, brightest first.
+          const b =
+            warm > 0.28
+              ? bucket[0]
+              : bucket[1 + Math.min(STEPS - 1, Math.floor(stale * STEPS))];
+          b.xs[b.n * 3] = x;
+          b.xs[b.n * 3 + 1] = y;
+          b.xs[b.n * 3 + 2] = size;
+          b.n++;
         }
 
-        ctx.globalAlpha = 0.9 * intro;
-        ctx.fillStyle = token.ink;
-        ctx.fill();
-
-        if (warmed.length) {
+        const stroke = (b: { xs: Float32Array; n: number }, grow: number) => {
           ctx.beginPath();
-          for (const [x, y, size] of warmed) {
-            ctx.rect(x - size / 2, y - size / 2, size, size);
+          for (let i = 0; i < b.n; i++) {
+            const size = b.xs[i * 3 + 2] * grow;
+            ctx.rect(b.xs[i * 3] - size / 2, b.xs[i * 3 + 1] - size / 2, size, size);
           }
-          ctx.globalAlpha = intro;
-          ctx.fillStyle = token.brand500;
           ctx.fill();
+        };
+
+        // Ink, dimmest first so the crisp dots land on top.
+        ctx.fillStyle = token.ink;
+        for (let i = STEPS; i >= 1; i--) {
+          if (!bucket[i].n) continue;
+          ctx.globalAlpha = (0.95 - (i - 1) * 0.13) * intro;
+          stroke(bucket[i], 1);
+        }
+
+        // The refresh line. Bloom under it, then the dot itself — a lit cell on
+        // a dark panel spills, and without that it reads as paint.
+        if (bucket[0].n) {
+          ctx.fillStyle = token.brand500;
+          ctx.globalAlpha = 0.14 * intro;
+          stroke(bucket[0], 2.6);
+          ctx.globalAlpha = intro;
+          stroke(bucket[0], 1);
         }
         ctx.globalAlpha = 1;
       };
@@ -211,7 +243,7 @@ export function DotWordmark({
         still(surface) {
           // Assembled, no sweep, no pointer response.
           pointer.current.on = false;
-          paint(surface, 1, SWEEP_MS * 2);
+          paint(surface, 1, REFRESH_MS * 0.5);
         },
       };
     },
