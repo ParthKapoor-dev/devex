@@ -57,12 +57,12 @@ export default function ClosingCta() {
         </div>
 
         <p className="mt-6 font-mono text-xs text-ink-subtle">
-          free, no card · or run the whole thing yourself:{" "}
+          free, no card ·{" "}
           <a
             href={siteConfig.repo}
             className="text-ink-muted underline-offset-4 transition-colors duration-[--duration-fast] hover:text-brand hover:underline"
           >
-            {siteConfig.repo.replace("https://", "")}
+            MIT, self-hostable
           </a>
         </p>
       </div>

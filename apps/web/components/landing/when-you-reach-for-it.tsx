@@ -21,22 +21,22 @@ const MOMENTS = [
   {
     k: "Onboard",
     title: "Day one, not week one",
-    body: "A new contributor opens a link and lands on the same Node, the same Python and the same env vars as everyone else. No version-matching call, no afternoon of brew archaeology.",
+    body: "A new contributor opens a link and gets the same Node, the same Python, the same env vars as everyone else.",
   },
   {
     k: "Review",
     title: "Their branch, not your laptop",
-    body: "Open a second workspace on someone's pull request instead of stashing your own work to make room for it. Two containers, two terminals, one tab each.",
+    body: "Open a second workspace on someone's pull request instead of stashing your own work to make room.",
   },
   {
     k: "Ship",
     title: "A URL, not a repo",
-    body: "Start the server and hand over the address. It works from a phone, from a webhook, and from someone who was never going to run npm install to look at your work.",
+    body: "Start the server, hand over the address. It works from a phone, and from a webhook.",
   },
   {
     k: "Offload",
     title: "Off the fans",
-    body: "A long install, a hungry file watcher, a test suite that spins the laptop up to take off — it runs on the cluster, and your battery does not notice it happened.",
+    body: "A long install or a hungry file watcher runs on the cluster. Your battery never notices.",
   },
 ];
 
@@ -73,11 +73,9 @@ export default function WhenYouReachForIt() {
         ))}
       </HairlineGrid>
 
-      <p className="mt-6 text-sm leading-relaxed text-ink-subtle">
+      <p className="mt-6 text-sm text-ink-subtle">
         <span className="text-ink-muted">Not for:</span> GPUs, privileged
-        containers, Docker-in-Docker, or anything you need still running after
-        you close the tab. Workspaces are unprivileged pods with CPU and memory
-        limits, and they are reclaimed when they go idle.
+        containers, or anything that has to outlive the tab.
       </p>
     </Section>
   );
