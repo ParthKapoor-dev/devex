@@ -13,6 +13,11 @@ function ScrollArea({
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
+      // Opt the viewport out of page-level smooth scrolling. The engine reads
+      // this on the way up from the wheel target, before it decides anything
+      // else — including while it is stopped for a modal, which is exactly
+      // when a palette's own list still has to scroll.
+      data-lenis-prevent
       className={cn("relative", className)}
       {...props}
     >
