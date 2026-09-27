@@ -22,13 +22,6 @@
 *.sublime-workspace
 .DS_Store
 
-# Environment variables
-*/.env
-
-# Secrets
-*/secrets
-*/hosts/
-
 # Logs and temporary files
 *.log
 */tmp/

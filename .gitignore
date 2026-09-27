@@ -21,12 +21,25 @@
 *.sublime-workspace
 .DS_Store
 
-# Environment variables
-*/.env
+# Environment variables (only the example files are committed)
+.env
+.env.*
+*.env
+.envrc
+!.env.example
 
-# Secrets
-*/secrets
-*/hosts/
+# Secrets and inventories, at any depth
+**/secrets
+**/hosts
+*.kubeconfig
+kubeconfig*
+
+# Keys and certificates
+*.pem
+*.key
+*.p12
+id_rsa*
+id_ed25519*
 
 # Logs and temporary files
 *.log
